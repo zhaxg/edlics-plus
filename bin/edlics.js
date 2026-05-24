@@ -226,6 +226,9 @@ function handleAPI(req, res) {
     if (parts[0] === 'api' && parts[1] === 'info') {
       const os = require('os');
       const user = process.env.SUDO_USER || process.env.USER || process.env.LOGNAME || 'unknown';
+      const homeDir = process.env.SUDO_USER
+        ? path.resolve('/home', process.env.SUDO_USER)
+        : os.homedir();
       let ip = '127.0.0.1';
       try {
         const ifaces = os.networkInterfaces();
@@ -235,7 +238,7 @@ function handleAPI(req, res) {
           }
         }
       } catch {}
-      ok({ user, hostname: os.hostname(), ip });
+      ok({ user, hostname: os.hostname(), ip, home: homeDir });
       return;
     }
 
