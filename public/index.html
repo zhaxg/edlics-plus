@@ -65,10 +65,18 @@ body {
 .toolbar .search-box::placeholder { color: var(--text-dimmer); }
 .container { display: flex; flex: 1; overflow: hidden; }
 .sidebar {
-  width: 260px; min-width: 180px; background: var(--sidebar);
-  border-right: 1px solid var(--border); display: flex; flex-direction: column;
-  overflow: hidden;
-}
+   width: 480px; min-width: 240px; background: var(--sidebar);
+   border-right: 1px solid var(--border); display: flex; flex-direction: column;
+   overflow: hidden;
+ }
+ .sidebar-resize {
+   width: 12px; min-width: 12px; cursor: col-resize; z-index: 10;
+   display: flex; align-items: center; justify-content: center;
+ }
+ .sidebar-resize::after {
+   content: ''; width: 2px; height: 60%; background: var(--text-dim); border-radius: 1px;
+ }
+ .sidebar-resize:hover::after { background: var(--accent); }
 .sidebar-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 14px 8px; font-size: 11px; text-transform: uppercase;
@@ -88,16 +96,16 @@ body {
 .file-tree::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .file-tree::-webkit-scrollbar-thumb:hover { background: var(--text-dimmer); }
 .tree-item {
-  display: flex; align-items: center; gap: 6px; padding: 5px 14px;
-  cursor: pointer; font-size: 13px; color: var(--text); user-select: none;
-  white-space: nowrap; transition: background 0.1s;
+   display: flex; align-items: center; gap: 6px; padding: 5px 14px;
+   cursor: pointer; font-size: 13px; color: var(--text); user-select: none;
+   transition: background 0.1s;
 }
 .tree-item:hover { background: var(--hover); }
 .tree-item .icon {
   flex-shrink: 0; width: 18px; text-align: center; font-size: 11px;
   font-family: 'SF Mono', 'Fira Code', monospace;
 }
-.tree-item .name { overflow: hidden; text-overflow: ellipsis; }
+.tree-item .name { overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-all; }
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .tabs {
   display: flex; align-items: center; background: var(--tab-bg);
@@ -217,8 +225,8 @@ body {
   <button id="btnNewDir" title="New folder">+ Dir</button>
 </div>
 <div class="container">
-  <div class="sidebar">
-    <div class="sidebar-header">
+ <div class="sidebar">
+     <div class="sidebar-header">
       <span>Explorer</span>
       <span style="display:flex;align-items:center;gap:6px;">
         <span id="sudoBadge" style="display:none;font-size:10px;color:var(--yellow);font-weight:600;">sudo</span>
@@ -226,8 +234,9 @@ body {
       </span>
     </div>
     <div class="file-tree" id="fileTree"></div>
-  </div>
-  <div class="main">
+</div>
+   <div class="sidebar-resize" id="sidebarResize"></div>
+   <div class="main">
     <div class="tabs" id="tabs"></div>
     <div class="editor-area" id="editorArea">
       <div class="welcome" id="welcome">
@@ -252,7 +261,7 @@ body {
 import { EditorView, EditorState, basicSetup, keymap, javascript, python, html, css, json, markdown, xml, yaml } from '/editor.mjs';
 
 const BASE = '';
-const HOME = '/home/ec2-user';
+let HOME = '/home';
 let serverInfo = null;
 let sudoPassword = null;
 const state = {
@@ -340,7 +349,7 @@ function renderDir(dirPath, container) {
   if (parent) {
     const up = document.createElement('div');
     up.className = 'tree-item';
-    up.innerHTML = '<span class="icon" style="color:var(--text-dimmer)">↑</span><span class="name" style="color:var(--text-dim)">..</span>';
+    up.innerHTML = '<span class="icon" style="color:var(--text-dimmer)">↑</span><span class="name" style="color:var(--text-dim)" title="..">..</span>';
     up.addEventListener('click', function() { renderDir(parent, container); });
     container.appendChild(up);
   }
@@ -363,11 +372,12 @@ function renderDir(dirPath, container) {
       }
       div.appendChild(icon);
       const name = document.createElement('span');
-      name.className = 'name';
-      const isHidden = item.name.startsWith('.');
-      if (isHidden) { name.style.opacity = '0.4'; name.style.fontSize = '12px'; }
-      name.textContent = item.name;
-      div.appendChild(name);
+name.className = 'name';
+       const isHidden = item.name.startsWith('.');
+       if (isHidden) { name.style.opacity = '0.4'; name.style.fontSize = '12px'; }
+       name.textContent = item.name;
+       name.title = item.name;
+       div.appendChild(name);
       if (item.isDirectory) {
         div.dataset.dir = join(dirPath, item.name);
         div.addEventListener('click', dirClick);
@@ -764,6 +774,22 @@ document.getElementById('searchBox').addEventListener('input', e => {
   }, 300);
 });
 
+// Sidebar resize
+let sidebarResizing = false;
+const sidebarEl = document.querySelector('.sidebar');
+const resizeEl = document.getElementById('sidebarResize');
+resizeEl.addEventListener('mousedown', e => {
+  sidebarResizing = true;
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!sidebarResizing) return;
+  const rect = sidebarEl.getBoundingClientRect();
+  const newWidth = Math.max(180, Math.min(1200, e.clientX - rect.left));
+  sidebarEl.style.width = newWidth + 'px';
+});
+document.addEventListener('mouseup', () => { sidebarResizing = false; });
+
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveFile(); }
@@ -781,11 +807,13 @@ document.getElementById('btnRefresh').onclick = () => renderTree(currentDir);
 api('GET', '/api/info').then(data => {
   if (data && data.user) {
     serverInfo = data;
+    if (data.home) HOME = data.home;
     document.getElementById('serverBadge').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusLeft').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusRight').textContent = data.ip;
   }
-}).catch(() => {});
+  renderTree(HOME);
+}).catch(() => { renderTree(HOME); });
 
 api('GET', '/api/sudo-status').then(status => {
   if (status.nopasswd) {
@@ -794,8 +822,6 @@ api('GET', '/api/sudo-status').then(status => {
     document.getElementById('sudoBadge').textContent = 'sudo';
   }
 }).catch(() => {});
-
-renderTree(HOME);
 </script>
 </body>
 </html>
