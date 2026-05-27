@@ -223,6 +223,7 @@ body {
   <input class="search-box" id="searchBox" placeholder="Search files..." />
   <button id="btnNewFile" title="New file">+ File</button>
   <button id="btnNewDir" title="New folder">+ Dir</button>
+  <button id="btnUpload" title="Upload files to current directory">⬆ Upload</button>
 </div>
 <div class="container">
  <div class="sidebar">
@@ -693,6 +694,51 @@ function renameItem(filePath) {
   }).catch(e => toast('Rename failed: ' + e.message, true));
 }
 
+function downloadItem(filePath) {
+  const a = document.createElement('a');
+  a.href = '/api/download?path=' + encodeURIComponent(filePath);
+  a.download = basename(filePath);
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast('Downloading ' + basename(filePath));
+}
+
+function uploadFiles() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.multiple = true;
+  input.style.display = 'none';
+  input.onchange = () => {
+    const total = input.files.length;
+    let done = 0;
+    for (const file of input.files) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result.split(',')[1];
+        const destPath = join(currentDir, file.name);
+        api('POST', '/api/upload?path=' + encodeURIComponent(destPath), { content: base64 }).then(data => {
+          if (data.error) { toast(file.name + ': ' + data.error, true); }
+          done++;
+          if (done === total) {
+            renderDir(currentDir, document.getElementById('fileTree'));
+            toast('Uploaded ' + total + ' file(s)');
+          }
+        }).catch(e => {
+          toast(file.name + ': ' + e.message, true);
+          done++;
+          if (done === total) renderDir(currentDir, document.getElementById('fileTree'));
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  document.body.appendChild(input);
+  input.click();
+  document.body.removeChild(input);
+}
+
 function showNewFileDialog(type) {
   const overlay = document.getElementById('dialogOverlay');
   const content = document.getElementById('dialogContent');
@@ -726,11 +772,12 @@ function showContextMenu(x, y, filePath, isDir) {
   const menu = document.getElementById('contextMenu');
   const items = [
     { label: (isDir ? '▸ ' : '· ') + 'Open', action: () => { if (!isDir) openFile(filePath); } },
+    { label: '⬇ Download', action: () => downloadItem(filePath) },
     { label: '↻ Rename', action: () => renameItem(filePath) },
     { label: '✕ Delete', action: () => deleteItem(filePath), danger: true },
   ];
   if (!isDir) {
-    items.unshift({ label: '⎘ Copy Path', action: () => { navigator.clipboard.writeText(filePath); toast('Copied'); } });
+    items.splice(1, 0, { label: '⎘ Copy Path', action: () => { navigator.clipboard.writeText(filePath); toast('Copied'); } });
   }
   menu.innerHTML = items.map(item =>
     `<div class="context-menu-item${item.danger ? ' danger' : ''}">${item.label}</div>`
@@ -803,6 +850,7 @@ document.addEventListener('keydown', e => {
 document.getElementById('btnNewFile').onclick = () => showNewFileDialog('file');
 document.getElementById('btnNewDir').onclick = () => showNewFileDialog('directory');
 document.getElementById('btnRefresh').onclick = () => renderTree(currentDir);
+document.getElementById('btnUpload').onclick = () => uploadFiles();
 
 api('GET', '/api/info').then(data => {
   if (data && data.user) {
