@@ -4,6 +4,7 @@ import { EditorView, EditorState, keymap, basicSetup, javascript, python, html, 
 import { state, serverInfo } from './state.mjs';
 import { escapeHtml, basename, confirmDialog, isImageFile } from './api.mjs';
 import { themeCompartment, currentTheme } from './theme.mjs';
+import { isMarkdownFile, isPreviewableFile, isSvgFile, renderMarkdown, renderSvgPreview } from './markdown-preview.mjs';
 
 // Tab context menu (avoid circular dep with context-menu.mjs)
 const _tabCtxIcons = {
@@ -65,6 +66,25 @@ function formatSize(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+// Toggle markdown preview for a tab
+export function toggleMdPreview(tab) {
+  if (!tab || !tab._previewPanel) return;
+  const isCurrentlyPreview = tab._previewMode === 'preview';
+  if (isCurrentlyPreview) {
+    // Switch to edit
+    tab._previewMode = 'edit';
+    tab._previewPanel.style.display = 'none';
+    if (tab._cmWrapper) tab._cmWrapper.style.display = '';
+  } else {
+    // Switch to preview
+    tab._previewMode = 'preview';
+    tab._previewPanel.style.display = '';
+    if (tab._cmWrapper) tab._cmWrapper.style.display = 'none';
+    if (tab._updatePreview) tab._updatePreview();
+  }
+  renderTabs();
+}
+
 export function addTab(filePath, content, switchTo = true, type = 'text', size = 0, fileType = null) {
   const existing = state.tabs.find(t => t.path === filePath);
   if (existing) { if (switchTo) setActiveTab(existing.id); return existing; }
@@ -84,6 +104,10 @@ export async function removeTab(id) {
     if (!await confirmDialog(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
   }
   if (tab.cmView) { tab.cmView.view.destroy(); tab.cmView = null; }
+  // Clean up md preview references
+  if (tab._previewPanel) { tab._previewPanel.remove(); tab._previewPanel = null; }
+  if (tab._cmWrapper) { tab._cmWrapper.remove(); tab._cmWrapper = null; }
+  tab._updatePreview = null;
   state.tabs.splice(idx, 1);
   state.dirty.delete(tab.path);
   if (state.activeTab === id) {
@@ -98,8 +122,8 @@ export function setActiveTab(id) {
   state.activeTab = id;
   const tab = state.tabs.find(t => t.id === id);
   if (!tab) return;
-  renderTabs();
   loadEditor(tab);
+  renderTabs();
 }
 
 export function renderTabs() {
@@ -117,12 +141,26 @@ export function renderTabs() {
     div.addEventListener('contextmenu', function (e) { e.preventDefault(); showTabContextMenu(e.clientX, e.clientY, tab); });
     container.appendChild(div);
   }
+
+  // Add markdown/SVG preview toggle button at the right end (VS Code style)
+  const activeTab = state.tabs.find(t => t.id === state.activeTab);
+  if (activeTab && isPreviewableFile(activeTab.path)) {
+    const mdToggle = document.createElement('div');
+    mdToggle.className = 'md-tab-toggle';
+    mdToggle.title = 'Toggle preview';
+    const isPreview = activeTab._previewMode === 'preview';
+    mdToggle.innerHTML = isPreview
+      ? '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M6.5 2a.5.5 0 0 0 0 1h1v10h-1a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-1V3h1a.5.5 0 0 0 0-1zM4 4h2.5v1H4a1 1 0 0 0-1 1v3.997a1 1 0 0 0 1 1h2.5v1H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 6.997H9.5v1H12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H9.5v1H12a1 1 0 0 1 1 1v3.997a1 1 0 0 1-1 1"/></svg>'
+      : '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M13.5 1h-9A2.503 2.503 0 0 0 2 3.5v2.776a4.4 4.4 0 0 1 1-.226V3.499c0-.827.673-1.5 1.5-1.5h4v11.386l1.057 1.057c.157.149.274.344.35.557H13.5c1.378 0 2.5-1.122 2.5-2.5V3.5C16 2.122 14.878 1 13.5 1M15 12.5c0 .827-.673 1.5-1.5 1.5h-4V2h4c.827 0 1.5.673 1.5 1.5zm-8.71.09c.45-.58.71-1.31.71-2.09C7 8.57 5.43 7 3.5 7S0 8.57 0 10.5S1.57 14 3.5 14c.78 0 1.51-.26 2.09-.71l2.56 2.56c.09.1.22.15.35.15s.26-.05.35-.15c.2-.19.2-.51 0-.7zM5.5 12a2.5 2.5 0 0 1-2 1a2.5 2.5 0 0 1 0-5a2.5 2.5 0 0 1 2 4"/></svg>';
+    mdToggle.addEventListener('click', () => toggleMdPreview(activeTab));
+    container.appendChild(mdToggle);
+  }
 }
 
 export function closeEditor() {
   if (state.editorView) { state.editorView.destroy(); state.editorView = null; }
   const area = document.getElementById('editorArea');
-  area.querySelectorAll('textarea').forEach(el => el.remove());
+  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper').forEach(el => el.remove());
   const welcome = document.getElementById('welcome');
   if (welcome) welcome.classList.remove('hidden');
   document.getElementById('pathBar').innerHTML = '';
@@ -142,8 +180,8 @@ export function loadEditor(tab) {
   welcome.classList.add('hidden');
   if (!tab) return;
   if (state.editorView) { state.editorView.destroy(); state.editorView = null; }
-  // Clear previous content (textareas, images, etc.)
-  area.querySelectorAll('textarea, .image-preview, .binary-preview').forEach(el => el.remove());
+  // Clear previous content (textareas, images, binary previews, md toggle, etc.)
+  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper').forEach(el => el.remove());
 
   // Image preview
   if (tab.type === 'image') {
@@ -185,6 +223,52 @@ export function loadEditor(tab) {
 
   // Text editor (CodeMirror)
   try {
+    const isMd = isMarkdownFile(tab.path);
+    const isSvg = isSvgFile(tab.path);
+    const isPreviewable = isMd || isSvg;
+    let updatePreview = null;
+
+    // For .md/.svg files, create preview panel (toggle is in the tab bar)
+    if (isPreviewable) {
+      // Create preview panel with appropriate class
+      const previewPanel = document.createElement('div');
+      previewPanel.className = isSvg ? 'svg-preview' : 'md-preview';
+      previewPanel.style.display = 'none';
+      area.appendChild(previewPanel);
+
+      // Store references on tab for the tab bar toggle button
+      tab._previewPanel = previewPanel;
+      // Default to preview mode for md and svg files
+      if (tab._previewMode === undefined) {
+        tab._previewMode = 'preview';
+      }
+
+      let _previewTimer = null;
+      updatePreview = () => {
+        clearTimeout(_previewTimer);
+        _previewTimer = setTimeout(async () => {
+          try {
+            if (isSvg) {
+              // SVG: render directly in DOM
+              renderSvgPreview(previewPanel, tab.content);
+            } else {
+              // Markdown: render as HTML
+              previewPanel.innerHTML = await renderMarkdown(tab.content);
+            }
+          } catch (e) {
+            previewPanel.innerHTML = '<p style="color:var(--red);">Preview error: ' + escapeHtml(e.message) + '</p>';
+          }
+        }, 300);
+      };
+      tab._updatePreview = updatePreview;
+
+      // Restore preview state if switching back to this tab
+      if (tab._previewMode === 'preview') {
+        previewPanel.style.display = '';
+        updatePreview();
+      }
+    }
+
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         tab.content = update.state.doc.toString();
@@ -192,6 +276,10 @@ export function loadEditor(tab) {
         else state.dirty.delete(tab.path);
         renderTabs();
         updateStatus();
+        // Live-update preview if open
+        if (isPreviewable && tab._previewMode === 'preview' && updatePreview) {
+          updatePreview();
+        }
       }
     });
     const cm6Keymap = keymap.of([{ key: 'Mod-s', run: () => { import('./file-ops.mjs').then(m => m.saveFile()); return true; } }]);
@@ -201,11 +289,36 @@ export function loadEditor(tab) {
       '.cm-content': { fontFamily: '"SF Mono", "Fira Code", "Cascadia Code", monospace', tabSize: '2' },
     });
     const langExt = getCM6Lang(tab.path);
-    const startState = EditorState.create({
-      doc: tab.content || '',
-      extensions: [basicSetup, updateListener, cm6Keymap, cm6Theme, themeCompartment.of(currentTheme), ...langExt],
-    });
-    state.editorView = new EditorView({ state: startState, parent: area });
+
+    // Create wrapper for CodeMirror (for previewable files, to hide/show as unit)
+    if (isPreviewable) {
+      const cmWrapper = document.createElement('div');
+      cmWrapper.className = 'cm-wrapper';
+      cmWrapper.style.flex = '1';
+      cmWrapper.style.minHeight = '0';
+      cmWrapper.style.display = 'flex';
+      cmWrapper.style.flexDirection = 'column';
+      cmWrapper.style.overflow = 'hidden';
+      // If restoring preview mode, hide the wrapper initially
+      if (tab._previewMode === 'preview') {
+        cmWrapper.style.display = 'none';
+      }
+      area.appendChild(cmWrapper);
+      tab._cmWrapper = cmWrapper;
+
+      const startState = EditorState.create({
+        doc: tab.content || '',
+        extensions: [basicSetup, updateListener, cm6Keymap, cm6Theme, themeCompartment.of(currentTheme), ...langExt],
+      });
+      state.editorView = new EditorView({ state: startState, parent: cmWrapper });
+    } else {
+      const startState = EditorState.create({
+        doc: tab.content || '',
+        extensions: [basicSetup, updateListener, cm6Keymap, cm6Theme, themeCompartment.of(currentTheme), ...langExt],
+      });
+      state.editorView = new EditorView({ state: startState, parent: area });
+    }
+
     tab.cmView = { view: state.editorView };
     state.editorView.focus();
     updatePathBar(tab.path);

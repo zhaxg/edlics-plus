@@ -56,7 +56,7 @@ export function confirmDialog(msg) {
 
 export function basename(p) { return p.split('/').filter(Boolean).pop() || p; }
 
-const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.bmp', '.ico', '.svg', '.tiff', '.tif']);
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.bmp', '.ico', '.tiff', '.tif']);
 export function isImageFile(name) {
   const dot = name.lastIndexOf('.');
   return dot > 0 && IMAGE_EXTS.has(name.slice(dot).toLowerCase());
