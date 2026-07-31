@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Edlics</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2389b4fa'/><text x='16' y='23' text-anchor='middle' font-family='system-ui,sans-serif' font-weight='800' font-size='18' fill='%231e1e2e'>Ed</text></svg>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.3.0/index.min.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -17,7 +18,7 @@
   --green: #a6e3a1; --red: #f38ba8; --yellow: #f9e2af; --peach: #fab387; --mauve: #cba6f7; --pink: #f5c2e7;
 }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
   display: flex; flex-direction: column;
 }
@@ -182,7 +183,7 @@ body {
 .statusbar {
   display: flex; align-items: center; justify-content: space-between;
   padding: 3px 14px; background: var(--sidebar); border-top: 1px solid var(--border);
-  font-size: 11px; color: var(--text-dimmer); flex-shrink: 0;
+  font-size: 11px; color: var(--text-dim); flex-shrink: 0;
 }
 .statusbar span { display: flex; align-items: center; gap: 16px; }
 .context-menu {
@@ -218,13 +219,21 @@ body {
 .cm-editor .cm-selectionBackground, .cm-editor.cm-focused .cm-selectionBackground { background: var(--active); }
 .cm-editor .cm-matchingBracket { background: rgba(137,180,250,0.2); outline: 1px solid var(--accent); }
 .cm-editor .cm-foldPlaceholder { background: var(--hover); color: var(--text-dim); }
+.cm-editor .cm-scroller::-webkit-scrollbar { width: 8px; height: 8px; }
+.cm-editor .cm-scroller::-webkit-scrollbar-track { background: transparent; }
+.cm-editor .cm-scroller::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.cm-editor .cm-scroller::-webkit-scrollbar-thumb:hover { background: var(--text-dimmer); }
+.cm-editor .cm-scroller::-webkit-scrollbar-corner { background: transparent; }
 </style>
 </head>
 <body>
 <div class="toolbar">
-  <span class="logo"><span class="logo-mark">Ed</span>Edlics</span>
-  <span id="serverBadge" style="font-size:11px;color:var(--text-dimmer);margin-right:4px;white-space:nowrap;"></span>
-  <span id="themeToggle" title="Toggle theme" style="cursor:pointer;font-size:14px;color:var(--text-dimmer);padding:2px 6px;border-radius:4px;user-select:none;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dimmer)'">🌙</span>
+  <div style="display:flex;align-items:center;gap:4px;margin-right:8px;">
+    <span class="logo"><span class="logo-mark">Ed</span>Edlics</span>
+    <span id="serverBadge" style="font-size:11px;color:var(--text-dimmer);white-space:nowrap;padding-left:4px;"></span>
+    <span style="color:var(--text-dimmer);margin:0 2px;">·</span>
+    <span id="themeToggle" title="Toggle theme" style="cursor:pointer;color:var(--text-dimmer);padding:2px;border-radius:4px;user-select:none;transition:color 0.15s;display:flex;align-items:center;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dimmer)'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
+  </div>
   <div class="path-bar" id="pathBar"></div>
   <span id="searchScope" title="Toggle global search" style="cursor:pointer;font-size:10px;color:var(--text-dimmer);padding:3px 5px;border-radius:3px;border:1px solid var(--border);user-select:none;white-space:nowrap;transition:color 0.15s;" onclick="this.textContent=this.textContent==='All'?'Cur':'All';document.getElementById('searchBox').focus();">Cur</span>
   <input class="search-box" id="searchBox" placeholder="Search files..." />
@@ -266,7 +275,7 @@ body {
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { EditorView, EditorState, basicSetup, keymap, javascript, python, html, css, json, markdown, xml, yaml } from '/editor.mjs';
+import { EditorView, EditorState, basicSetup, keymap, oneDark, Compartment, javascript, python, html, css, json, markdown, xml, yaml } from '/editor.mjs';
 
 const BASE = '';
 let HOME = '/home';
@@ -431,6 +440,7 @@ function removeTab(id) {
   if (state.dirty.has(tab.path)) {
     if (!confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
   }
+  if (tab.cmView) { tab.cmView.view.destroy(); tab.cmView = null; }
   state.tabs.splice(idx, 1);
   state.dirty.delete(tab.path);
   if (state.activeTab === id) {
@@ -529,10 +539,12 @@ function loadEditor(tab) {
       doc: tab.content || '',
       extensions: [
         basicSetup, updateListener, cm6Keymap, cm6Theme,
+        themeCompartment.of(currentTheme),
         ...langExt,
       ],
     });
     state.editorView = new EditorView({ state: startState, parent: area });
+    tab.cmView = { view: state.editorView };
     state.editorView.focus();
     updatePathBar(tab.path);
     updateStatus();
@@ -630,15 +642,48 @@ function applyTheme(isLight) {
   } else {
     for (const key of Object.keys(THEME_LIGHT)) root.style.removeProperty(key);
   }
-  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  document.getElementById('themeToggle').innerHTML = isLight
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
   localStorage.setItem('edlics-theme', isLight ? 'light' : 'dark');
+  // Switch CodeMirror theme for all open editors
+  currentTheme = isLight ? lightTheme : oneDark;
+  for (const tab of state.tabs) {
+    if (tab.cmView) {
+      tab.cmView.view.dispatch({ effects: themeCompartment.reconfigure(currentTheme) });
+    }
+  }
 }
+const themeCompartment = new Compartment();
+let currentTheme = oneDark;
+const lightTheme = EditorView.theme({
+  '&': { backgroundColor: '#eff1f5', color: '#4c4f69' },
+  '.cm-content': { caretColor: '#dc8a78' },
+  '.cm-cursor, .cm-dropCursor': { borderLeftColor: '#dc8a78' },
+  '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': { backgroundColor: '#ccd0da' },
+  '.cm-panels': { backgroundColor: '#e6e9ef', color: '#4c4f69' },
+  '.cm-panels.cm-panels-top': { borderBottom: '2px solid #ccd0da' },
+  '.cm-panels.cm-panels-bottom': { borderTop: '2px solid #ccd0da' },
+  '.cm-searchMatch': { backgroundColor: '#eff1f5', outline: '1px solid #9ca0b0' },
+  '.cm-searchMatch.cm-searchMatch-selected': { backgroundColor: '#bcc0cc' },
+  '.cm-activeLine': { backgroundColor: '#e6e9ef' },
+  '.cm-selectionMatch': { backgroundColor: '#ccd0da' },
+  '&.cm-focused .cm-matchingBracket, &.cm-focused .cm-nonmatchingBracket': { backgroundColor: '#ccd0da', outline: '1px solid #9ca0b0' },
+  '.cm-gutters': { backgroundColor: '#e6e9ef', color: '#9ca0b0', border: 'none', borderRight: '1px solid #ccd0da' },
+  '.cm-activeLineGutter': { backgroundColor: '#ccd0da', color: '#4c4f69' },
+  '.cm-foldPlaceholder': { backgroundColor: '#e6e9ef', color: '#9ca0b0', border: 'none' },
+  '.cm-tooltip': { border: 'none', backgroundColor: '#ccd0da' },
+  '.cm-tooltip .cm-tooltip-arrow:before': { borderTopColor: 'transparent', borderBottomColor: 'transparent' },
+  '.cm-tooltip .cm-tooltip-arrow:after': { borderTopColor: '#ccd0da', borderBottomColor: '#ccd0da' },
+  '.cm-tooltip-autocomplete': { '& > ul > li[aria-selected]': { backgroundColor: '#ccd0da', color: '#4c4f69' } },
+}, { dark: false });
 const savedTheme = localStorage.getItem('edlics-theme');
-if (savedTheme === 'light') applyTheme(true);
-document.getElementById('themeToggle').addEventListener('click', () => {
+if (savedTheme === 'light') { applyTheme(true); currentTheme = lightTheme; }
+function toggleTheme() {
   const isLight = !document.documentElement.style.getPropertyValue('--bg');
   applyTheme(isLight);
-});
+}
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
 // File operations
 function openFile(filePath) {

@@ -1,5 +1,5 @@
 export { EditorView, keymap } from '@codemirror/view';
-export { EditorState } from '@codemirror/state';
+export { EditorState, Compartment } from '@codemirror/state';
 export { basicSetup } from 'codemirror';
 export { oneDark } from '@codemirror/theme-one-dark';
 export { javascript } from '@codemirror/lang-javascript';
