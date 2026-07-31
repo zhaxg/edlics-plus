@@ -55,5 +55,11 @@ export function confirmDialog(msg) {
 }
 
 export function basename(p) { return p.split('/').filter(Boolean).pop() || p; }
+
+const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.bmp', '.ico', '.svg', '.tiff', '.tif']);
+export function isImageFile(name) {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 && IMAGE_EXTS.has(name.slice(dot).toLowerCase());
+}
 export function dirname(p) { const i = p.lastIndexOf('/'); return i > 0 ? p.slice(0, i) : '/'; }
 export function join(...parts) { return parts.join('/').replace(/\/+/g, '/').replace(/\/$/, '') || '/'; }

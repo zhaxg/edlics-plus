@@ -2,7 +2,7 @@
 
 import { EditorView, EditorState, keymap, basicSetup, javascript, python, html, css, json, markdown, xml, yaml } from '/editor.mjs';
 import { state, serverInfo } from './state.mjs';
-import { escapeHtml, basename, confirmDialog } from './api.mjs';
+import { escapeHtml, basename, confirmDialog, isImageFile } from './api.mjs';
 import { themeCompartment, currentTheme } from './theme.mjs';
 
 // Tab context menu (avoid circular dep with context-menu.mjs)
@@ -59,11 +59,17 @@ function getCM6Lang(filename) {
   try { const r = fn(); return Array.isArray(r) ? r : [r]; } catch { return []; }
 }
 
-export function addTab(filePath, content, switchTo = true) {
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+export function addTab(filePath, content, switchTo = true, type = 'text', size = 0, fileType = null) {
   const existing = state.tabs.find(t => t.path === filePath);
   if (existing) { if (switchTo) setActiveTab(existing.id); return existing; }
   const id = Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-  const tab = { id, path: filePath, name: basename(filePath), content: content || '', savedContent: content || '' };
+  const tab = { id, path: filePath, name: basename(filePath), content: content || '', savedContent: content || '', type, size, fileType };
   state.tabs.push(tab);
   renderTabs();
   if (switchTo) setActiveTab(id);
@@ -136,7 +142,48 @@ export function loadEditor(tab) {
   welcome.classList.add('hidden');
   if (!tab) return;
   if (state.editorView) { state.editorView.destroy(); state.editorView = null; }
-  area.querySelectorAll('textarea').forEach(el => el.remove());
+  // Clear previous content (textareas, images, etc.)
+  area.querySelectorAll('textarea, .image-preview, .binary-preview').forEach(el => el.remove());
+
+  // Image preview
+  if (tab.type === 'image') {
+    const container = document.createElement('div');
+    container.className = 'image-preview';
+    const img = document.createElement('img');
+    img.src = tab.content; // This is the /api/download URL
+    img.alt = tab.name;
+    container.appendChild(img);
+    if (tab.size) {
+      const info = document.createElement('div');
+      info.className = 'image-info';
+      info.textContent = formatSize(tab.size);
+      container.appendChild(info);
+    }
+    area.appendChild(container);
+    updatePathBar(tab.path);
+    updateStatus();
+    return;
+  }
+
+  // Binary file
+  if (tab.type === 'binary') {
+    const container = document.createElement('div');
+    container.className = 'binary-preview';
+    const fileType = tab.fileType || 'Binary file';
+    const sizeInfo = tab.size ? formatSize(tab.size) : 'unknown size';
+    container.innerHTML = `
+      <div class="binary-icon">📦</div>
+      <p class="file-type">${escapeHtml(fileType)}</p>
+      <p class="hint">${escapeHtml(tab.name)} (${sizeInfo})</p>
+      <a class="download-btn" href="/api/download?path=${encodeURIComponent(tab.path)}" download="${escapeHtml(basename(tab.path))}">Download file</a>
+    `;
+    area.appendChild(container);
+    updatePathBar(tab.path);
+    updateStatus();
+    return;
+  }
+
+  // Text editor (CodeMirror)
   try {
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {

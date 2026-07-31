@@ -1,6 +1,6 @@
 // file-ops.mjs — File operations (open, save, delete, rename, upload, download, create)
 
-import { api, toast, escapeHtml, basename, dirname, join, confirmDialog } from './api.mjs';
+import { api, toast, escapeHtml, basename, dirname, join, confirmDialog, isImageFile } from './api.mjs';
 import { state, currentDir, HOME, sudoPassword, setSudoPassword } from './state.mjs';
 import { addTab, removeTab, setActiveTab, renderTabs, closeEditor } from './editor-ui.mjs';
 import { renderDir } from './file-tree.mjs';
@@ -46,22 +46,35 @@ function showSudoDialog(callback) {
 }
 
 export function openFile(filePath) {
-  api('GET', `/api/read?path=${encodeURIComponent(filePath)}`).then(data => {
+  const isImg = isImageFile(filePath);
+  const url = `/api/read?path=${encodeURIComponent(filePath)}`;
+  api('GET', url).then(data => {
     if (data.error === 'Permission denied') {
       return handleSudoError(filePath, () => {
-        api('GET', `/api/read?path=${encodeURIComponent(filePath)}&sudo=1`).then(d2 => {
+        api('GET', url + '&sudo=1').then(d2 => {
           if (d2.error) { toast(d2.error, true); return; }
-          const existing = state.tabs.find(t => t.path === filePath);
-          if (existing) { existing.content = d2.content; existing.savedContent = d2.content; state.dirty.delete(filePath); setActiveTab(existing.id); }
-          else addTab(filePath, d2.content, true);
+          openFileResult(filePath, d2, isImg);
         });
       });
     }
     if (data.error) { toast(data.error, true); return; }
-    const existing = state.tabs.find(t => t.path === filePath);
+    openFileResult(filePath, data, isImg);
+  }).catch(e => toast('Failed: ' + e.message, true));
+}
+
+function openFileResult(filePath, data, isImg) {
+  const existing = state.tabs.find(t => t.path === filePath);
+  if (isImg) {
+    const imgSrc = '/api/download?path=' + encodeURIComponent(filePath);
+    if (existing) { existing.content = imgSrc; existing.type = 'image'; existing.size = data.size; setActiveTab(existing.id); }
+    else addTab(filePath, imgSrc, true, 'image', data.size);
+  } else if (data.binary) {
+    if (existing) { existing.fileType = data.fileType; setActiveTab(existing.id); }
+    else addTab(filePath, null, true, 'binary', data.size, data.fileType);
+  } else {
     if (existing) { existing.content = data.content; existing.savedContent = data.content; state.dirty.delete(filePath); setActiveTab(existing.id); }
     else addTab(filePath, data.content, true);
-  }).catch(e => toast('Failed: ' + e.message, true));
+  }
 }
 
 export function saveFile() {
