@@ -207,7 +207,7 @@ body {
   z-index: 3000; opacity: 0; transition: opacity 0.25s; pointer-events: none;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
 }
-.toast.error { background: var(--red); }
+.toast.error { background: #d20f39; color: #fff; }
 .toast.show { opacity: 1; }
 .editor-area .cm-editor { height: 100%; }
 .editor-area .cm-editor .cm-scroller { overflow: auto; }
@@ -276,6 +276,7 @@ body {
 
 <script type="module">
 import { EditorView, EditorState, basicSetup, keymap, oneDark, Compartment, javascript, python, html, css, json, markdown, xml, yaml } from '/editor.mjs';
+import { applyNesting } from '/js/file-nesting.mjs';
 
 const BASE = '';
 let HOME = '/home';
@@ -350,7 +351,8 @@ function renderTree(path) {
 function dirClick(e) {
   e.stopPropagation();
   const d = e.currentTarget;
-  renderDir(d.dataset.dir, d.parentNode);
+  currentDir = d.dataset.dir;
+  renderDir(currentDir, d.parentNode);
 }
 function fileClick(e) {
   e.stopPropagation();
@@ -377,6 +379,12 @@ function renderDir(dirPath, container) {
   }
   api('GET', `/api/list?path=${encodeURIComponent(dirPath)}`).then(items => {
     if (!Array.isArray(items)) {
+      if (items.error && items.error.includes('outside root')) {
+        currentDir = HOME;
+        renderDir(HOME, container);
+        toast('Access denied: path outside root directory', true);
+        return;
+      }
       container.innerHTML = '<div class="tree-item" style="color:var(--red);padding:8px 14px;font-size:12px;">⚠ ' + escapeHtml(items.error || 'Error') + '</div>';
       return;
     }
@@ -394,12 +402,12 @@ function renderDir(dirPath, container) {
       icon.appendChild(img);
       div.appendChild(icon);
       const name = document.createElement('span');
-name.className = 'name';
-       const isHidden = item.name.startsWith('.');
-       if (isHidden) { name.style.opacity = '0.4'; name.style.fontSize = '12px'; }
-       name.textContent = item.name;
-       name.title = item.name;
-       div.appendChild(name);
+      name.className = 'name';
+      const isHidden = item.name.startsWith('.');
+      if (isHidden) { name.style.opacity = '0.4'; name.style.fontSize = '12px'; }
+      name.textContent = item.name;
+      name.title = item.name;
+      div.appendChild(name);
       if (item.isDirectory) {
         div.dataset.dir = join(dirPath, item.name);
         div.addEventListener('click', dirClick);
@@ -739,16 +747,36 @@ function deleteItem(filePath) {
 }
 
 function renameItem(filePath) {
-  const name = basename(filePath);
-  const newName = prompt('Rename to:', name);
-  if (!newName || newName === name) return;
-  api('POST', `/api/rename?path=${encodeURIComponent(filePath)}`, { newPath: join(dirname(filePath), newName) }).then(data => {
-    if (data.error) { toast(data.error, true); return; }
-    const tab = state.tabs.find(t => t.path === filePath);
-    if (tab) { tab.path = join(dirname(filePath), newName); tab.name = newName; renderTabs(); }
-    renderDir(currentDir, document.getElementById('fileTree'));
-    toast('Renamed');
-  }).catch(e => toast('Rename failed: ' + e.message, true));
+  const oldName = basename(filePath);
+  const overlay = document.getElementById('dialogOverlay');
+  const content = document.getElementById('dialogContent');
+  content.innerHTML = `
+    <h3>Rename</h3>
+    <label for="renameInput">New name</label>
+    <input id="renameInput" value="${escapeHtml(oldName)}" autofocus />
+    <div class="btn-row">
+      <button class="cancel" id="btnRenameCancel">Cancel</button>
+      <button class="primary" id="btnRenameOk">Rename</button>
+    </div>`;
+  overlay.classList.remove('hidden');
+  const input = document.getElementById('renameInput');
+  input.focus();
+  input.select();
+  function doRename() {
+    const newName = input.value.trim();
+    if (!newName || newName === oldName) { overlay.classList.add('hidden'); return; }
+    api('POST', `/api/rename?path=${encodeURIComponent(filePath)}`, { newPath: join(dirname(filePath), newName) }).then(data => {
+      if (data.error) { toast(data.error, true); return; }
+      const tab = state.tabs.find(t => t.path === filePath);
+      if (tab) { tab.path = join(dirname(filePath), newName); tab.name = newName; renderTabs(); }
+      renderDir(currentDir, document.getElementById('fileTree'));
+      toast('Renamed');
+    }).catch(e => toast('Rename failed: ' + e.message, true));
+    overlay.classList.add('hidden');
+  }
+  document.getElementById('btnRenameOk').onclick = doRename;
+  document.getElementById('btnRenameCancel').onclick = () => overlay.classList.add('hidden');
+  input.onkeydown = e => { if (e.key === 'Enter') doRename(); if (e.key === 'Escape') overlay.classList.add('hidden'); };
 }
 
 function downloadItem(filePath) {
