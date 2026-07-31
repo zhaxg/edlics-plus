@@ -190,11 +190,17 @@ function handleAPI(req, res) {
       if (!checkPath(params.path)) return;
       fs.stat(params.path, (err, st) => {
         if (err) return fail(err.message);
-        const rm = st.isDirectory() ? fs.rm : fs.unlink;
-        rm(params.path, { recursive: true, force: true }, err => {
-          if (err) return fail(err.message);
-          ok({ ok: true });
-        });
+        if (st.isDirectory()) {
+          fs.rm(params.path, { recursive: true, force: true }, err => {
+            if (err) return fail(err.message);
+            ok({ ok: true });
+          });
+        } else {
+          fs.unlink(params.path, err => {
+            if (err) return fail(err.message);
+            ok({ ok: true });
+          });
+        }
       });
       return;
     }
