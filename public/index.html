@@ -217,6 +217,7 @@ body {
 <div class="toolbar">
   <span class="logo"><span class="logo-mark">Ed</span>Edlics</span>
   <span id="serverBadge" style="font-size:11px;color:var(--text-dimmer);margin-right:4px;white-space:nowrap;"></span>
+  <span id="rootBadge" style="display:none;font-size:10px;color:var(--yellow);font-weight:600;padding:2px 6px;border:1px solid var(--yellow);border-radius:4px;margin-right:4px;white-space:nowrap;" title="File operations are restricted to this directory">🔒 root</span>
   <span id="themeToggle" title="Toggle theme" style="cursor:pointer;font-size:14px;color:var(--text-dimmer);padding:2px 6px;border-radius:4px;user-select:none;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dimmer)'">🌙</span>
   <div class="path-bar" id="pathBar"></div>
   <span id="searchScope" title="Toggle global search" style="cursor:pointer;font-size:10px;color:var(--text-dimmer);padding:3px 5px;border-radius:3px;border:1px solid var(--border);user-select:none;white-space:nowrap;transition:color 0.15s;" onclick="this.textContent=this.textContent==='All'?'Cur':'All';document.getElementById('searchBox').focus();">Cur</span>
@@ -803,7 +804,7 @@ document.getElementById('searchBox').addEventListener('input', e => {
   const q = e.target.value.trim();
   if (!q) { renderTree(currentDir); return; }
   searchTimeout = setTimeout(() => {
-    const scope = document.getElementById('searchScope').textContent === 'All' ? '/' : currentDir;
+    const scope = document.getElementById('searchScope').textContent === 'All' ? (HOME || '/') : currentDir;
     api('GET', `/api/search?path=${encodeURIComponent(scope)}&q=${encodeURIComponent(q)}`).then(results => {
       if (!Array.isArray(results) || results.length === 0) { toast('No results', true); return; }
       const tree = document.getElementById('fileTree');
@@ -852,10 +853,17 @@ document.getElementById('btnNewDir').onclick = () => showNewFileDialog('director
 document.getElementById('btnRefresh').onclick = () => renderTree(currentDir);
 document.getElementById('btnUpload').onclick = () => uploadFiles();
 
+let rootRestricted = false;
+
 api('GET', '/api/info').then(data => {
   if (data && data.user) {
     serverInfo = data;
     if (data.home) HOME = data.home;
+    if (data.root) {
+      rootRestricted = true;
+      document.getElementById('rootBadge').style.display = 'inline';
+      document.getElementById('rootBadge').title = 'Restricted to: ' + HOME;
+    }
     document.getElementById('serverBadge').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusLeft').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusRight').textContent = data.ip;

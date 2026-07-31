@@ -120,10 +120,12 @@ edlics serve [options]
 Options:
   --hostname   Host to bind to (default: 127.0.0.1)
   --port       Port to listen on (default: 3000)
+  --root       Root directory to restrict file operations (default: no restriction)
 
 Examples:
   edlics serve
   edlics serve --hostname 0.0.0.0 --port 5000
+  edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www
 ```
 
 <br>
@@ -180,6 +182,7 @@ node bin/edlics.js serve --hostname 0.0.0.0 --port 5000
 | Browser can't connect | Check firewall / security group rules for the port |
 | Blank page / no content | Hard refresh with `Ctrl+F5` or `Cmd+Shift+R` |
 | Editor shows no syntax colors | Make sure `npm run build` completed successfully — `public/editor.mjs` should exist |
+| `root directory does not exist` | The `--root` path must exist and be a directory — check the path and try again |
 
 <br>
 

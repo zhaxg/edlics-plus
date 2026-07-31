@@ -6,6 +6,28 @@ const { URL } = require('url');
 const { exec } = require('child_process');
 
 let sudoPassword = null;
+let rootDir = null; // When set, all file operations are restricted to this directory
+
+function isPathSafe(targetPath) {
+  if (!rootDir) return true;
+  const resolved = path.resolve(targetPath);
+  if (resolved !== rootDir && !resolved.startsWith(rootDir + '/')) return false;
+  // Resolve symlinks to prevent escape via symlink traversal
+  try {
+    const real = fs.realpathSync(resolved);
+    return real === rootDir || real.startsWith(rootDir + '/');
+  } catch {
+    // Path doesn't exist yet (e.g. create) — check parent for symlink escape
+    const parent = path.dirname(resolved);
+    try {
+      const realParent = fs.realpathSync(parent);
+      const reassembled = path.join(realParent, path.basename(resolved));
+      return reassembled === rootDir || reassembled.startsWith(rootDir + '/');
+    } catch {
+      return false;
+    }
+  }
+}
 
 function sudoExec(cmd, password, cb) {
   const pw = password || sudoPassword;
@@ -48,10 +70,11 @@ const MIME = {
 function parseArgs() {
   const args = process.argv.slice(2);
   const cmd = args[0];
-  const opts = { hostname: '127.0.0.1', port: 3000 };
+  const opts = { hostname: '127.0.0.1', port: 3000, root: null };
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--hostname' && args[i + 1]) opts.hostname = args[++i];
     if (args[i] === '--port' && args[i + 1]) opts.port = parseInt(args[++i]);
+    if (args[i] === '--root' && args[i + 1]) opts.root = args[++i];
   }
   return { cmd, opts };
 }
@@ -87,7 +110,14 @@ function handleAPI(req, res) {
   function fail(msg, code) { error(res, msg, code || 500); }
 
   try {
+    // Helper: fail if the resolved path is outside the root directory
+    function checkPath(p) {
+      if (!isPathSafe(p)) { fail('Access denied: path outside root directory', 403); return false; }
+      return true;
+    }
+
     if (parts[0] === 'api' && parts[1] === 'list' && params.path) {
+      if (!checkPath(params.path)) return;
       fs.readdir(params.path, { withFileTypes: true }, (err, items) => {
         if (err) return fail(err.message);
         const result = [];
@@ -116,6 +146,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'read' && params.path) {
+      if (!checkPath(params.path)) return;
       fs.stat(params.path, (err, stat) => {
         if (err) return fail(err.message);
         if (stat.size > 50 * 1024 * 1024) return fail('File too large (>50MB)');
@@ -139,6 +170,7 @@ function handleAPI(req, res) {
       req.on('data', c => body += c);
       req.on('end', () => {
         const data = JSON.parse(body);
+        if (!checkPath(params.path)) return;
         fs.writeFile(params.path, data.content, 'utf-8', err => {
           if (err && err.code === 'EACCES' && (sudoPassword || params.sudo === '1')) {
             return sudoWriteFile(params.path, data.content, null, err2 => {
@@ -155,6 +187,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'delete' && params.path) {
+      if (!checkPath(params.path)) return;
       fs.stat(params.path, (err, st) => {
         if (err) return fail(err.message);
         const rm = st.isDirectory() ? fs.rm : fs.unlink;
@@ -171,6 +204,7 @@ function handleAPI(req, res) {
       req.on('data', c => body += c);
       req.on('end', () => {
         const data = JSON.parse(body);
+        if (!checkPath(params.path) || !checkPath(data.newPath)) return;
         fs.rename(params.path, data.newPath, err => {
           if (err) return fail(err.message);
           ok({ ok: true });
@@ -184,6 +218,7 @@ function handleAPI(req, res) {
       req.on('data', c => body += c);
       req.on('end', () => {
         const data = JSON.parse(body);
+        if (!checkPath(params.path)) return;
         if (data.type === 'directory') {
           fs.mkdir(params.path, { recursive: true }, err => err ? fail(err.message) : ok({ ok: true }));
         } else {
@@ -194,6 +229,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'stat' && params.path) {
+      if (!checkPath(params.path)) return;
       fs.stat(params.path, (err, stat) => {
         if (err) return fail(err.message);
         ok({ name: path.basename(params.path), isDirectory: stat.isDirectory(), size: stat.size, mtime: stat.mtimeMs });
@@ -226,9 +262,9 @@ function handleAPI(req, res) {
     if (parts[0] === 'api' && parts[1] === 'info') {
       const os = require('os');
       const user = process.env.SUDO_USER || process.env.USER || process.env.LOGNAME || 'unknown';
-      const homeDir = process.env.SUDO_USER
+      const homeDir = rootDir || (process.env.SUDO_USER
         ? path.resolve('/home', process.env.SUDO_USER)
-        : os.homedir();
+        : os.homedir());
       let ip = '127.0.0.1';
       try {
         const ifaces = os.networkInterfaces();
@@ -238,11 +274,13 @@ function handleAPI(req, res) {
           }
         }
       } catch {}
-      ok({ user, hostname: os.hostname(), ip, home: homeDir });
+      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir });
       return;
     }
 
     if (parts[0] === 'api' && parts[1] === 'search') {
+      const searchPath = params.path || (rootDir || '/');
+      if (!checkPath(searchPath)) return;
       const results = [];
       function walk(dir, cb) {
         fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
@@ -263,11 +301,12 @@ function handleAPI(req, res) {
           }
         });
       }
-      walk(params.path || '/', () => ok(results));
+      walk(searchPath, () => ok(results));
       return;
     }
 
     if (parts[0] === 'api' && parts[1] === 'download' && params.path) {
+      if (!checkPath(params.path)) return;
       fs.stat(params.path, (err, stat) => {
         if (err) return fail(err.message);
         const fileName = path.basename(params.path);
@@ -315,6 +354,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'upload' && params.path) {
+      if (!checkPath(params.path)) return;
       let body = '';
       req.on('data', c => { body += c; if (body.length > 55 * 1024 * 1024) { req.destroy(); } });
       req.on('end', () => {
@@ -358,10 +398,25 @@ function router(req, res) {
 }
 
 function startServer(opts) {
+  if (opts.root) {
+    rootDir = path.resolve(opts.root);
+    if (!fs.existsSync(rootDir)) {
+      console.error(`\n  Error: root directory does not exist: ${rootDir}\n`);
+      process.exit(1);
+    }
+    if (!fs.statSync(rootDir).isDirectory()) {
+      console.error(`\n  Error: root path is not a directory: ${rootDir}\n`);
+      process.exit(1);
+    }
+  }
+
   const server = http.createServer(router);
   server.listen(opts.port, opts.hostname, () => {
     console.log(`\n  Edlics running at:`);
     console.log(`  Local:   http://${opts.hostname === '0.0.0.0' ? 'localhost' : opts.hostname}:${opts.port}`);
+    if (rootDir) {
+      console.log(`  Root:    ${rootDir}`);
+    }
     if (opts.hostname === '0.0.0.0') {
       const os = require('os');
       const ifaces = os.networkInterfaces();
@@ -391,9 +446,11 @@ if (cmd === 'serve') {
   Options:
     --hostname   Host to bind to (default: 127.0.0.1)
     --port       Port to listen on (default: 3000)
+    --root       Root directory to restrict file operations (default: no restriction)
 
   Examples:
     edlics serve
-    edlics serve --hostname 0.0.0.0 --port 3000
+    edlics serve --hostname 0.0.0.0 --port 5000
+    edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www
   `);
 }

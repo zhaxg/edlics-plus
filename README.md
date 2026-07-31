@@ -55,6 +55,12 @@ Locally : Open `http://localhost:5000` in your browser.
 VPN     : Open `http://privateIP:5000` in your browser.
 public  : Open `http://publicIP:5000` in your browser.
 
+To restrict file operations to a specific directory, add `--root`:
+
+```bash
+npx edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www
+```
+
 > See [SETUP.md](SETUP.md) for all install methods and troubleshooting.
 
 <br>
@@ -72,6 +78,7 @@ public  : Open `http://publicIP:5000` in your browser.
 | **Sudo support** | Edit protected files. Password prompt for users who need it, auto-escalation for NOPASSWD users |
 | **No database** | Works directly on the filesystem — what you see is what's on disk |
 | **Async by design** | Non-blocking file I/O, handles large files without hiccups |
+| **Path protection** | `--root` flag restricts all file operations to a specific directory |
 
 <br>
 
@@ -83,10 +90,12 @@ edlics serve [options]
 Options:
   --hostname   Host to bind to (default: 127.0.0.1)
   --port       Port to listen on (default: 3000)
+  --root       Root directory to restrict file operations (default: no restriction)
 
 Examples:
   edlics serve
   edlics serve --hostname 0.0.0.0 --port 5000
+  edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www
 ```
 
 <br>
@@ -119,6 +128,7 @@ Edlics is a single Node.js file that starts a web server on your Linux machine.
 4. Click a file — it opens in the editor panel with syntax coloring
 5. Edit, save, create, rename, delete — all from the browser
 6. The server reads and writes files directly on the filesystem
+7. If `--root` is set, all operations are confined to that directory — the server won't touch anything outside it
 
 That's it. No database, no configuration, no complicated setup.
 
