@@ -102,8 +102,12 @@ body {
 }
 .tree-item:hover { background: var(--hover); }
 .tree-item .icon {
-  flex-shrink: 0; width: 18px; text-align: center; font-size: 11px;
+  flex-shrink: 0; width: 18px; height: 18px; text-align: center; font-size: 11px;
   font-family: 'SF Mono', 'Fira Code', monospace;
+  display: flex; align-items: center; justify-content: center;
+}
+.tree-item .icon .icon-img {
+  width: 16px; height: 16px; object-fit: contain;
 }
 .tree-item .name { overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-all; }
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
@@ -191,6 +195,9 @@ body {
   padding: 7px 12px; font-size: 13px; cursor: pointer; border-radius: 5px;
   display: flex; align-items: center; gap: 8px; transition: background 0.1s;
 }
+.context-menu-item .ctx-icon {
+  display: flex; align-items: center; justify-content: center; width: 15px; height: 15px; flex-shrink: 0;
+}
 .context-menu-item:hover { background: var(--hover); }
 .context-menu-item.danger { color: var(--red); }
 .toast {
@@ -217,7 +224,6 @@ body {
 <div class="toolbar">
   <span class="logo"><span class="logo-mark">Ed</span>Edlics</span>
   <span id="serverBadge" style="font-size:11px;color:var(--text-dimmer);margin-right:4px;white-space:nowrap;"></span>
-  <span id="rootBadge" style="display:none;font-size:10px;color:var(--yellow);font-weight:600;padding:2px 6px;border:1px solid var(--yellow);border-radius:4px;margin-right:4px;white-space:nowrap;" title="File operations are restricted to this directory">🔒 root</span>
   <span id="themeToggle" title="Toggle theme" style="cursor:pointer;font-size:14px;color:var(--text-dimmer);padding:2px 6px;border-radius:4px;user-select:none;transition:color 0.15s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dimmer)'">🌙</span>
   <div class="path-bar" id="pathBar"></div>
   <span id="searchScope" title="Toggle global search" style="cursor:pointer;font-size:10px;color:var(--text-dimmer);padding:3px 5px;border-radius:3px;border:1px solid var(--border);user-select:none;white-space:nowrap;transition:color 0.15s;" onclick="this.textContent=this.textContent==='All'?'Cur':'All';document.getElementById('searchBox').focus();">Cur</span>
@@ -266,6 +272,7 @@ const BASE = '';
 let HOME = '/home';
 let serverInfo = null;
 let sudoPassword = null;
+let iconManifest = null;
 const state = {
   tabs: [], activeTab: null, dirty: new Set(), editorView: null,
 };
@@ -283,17 +290,21 @@ const CM6_LANG = {
 };
 
 function getFileIcon(name, isDir) {
-  if (isDir) return '▸';
-  const ext = name.slice(name.lastIndexOf('.')).toLowerCase();
-  const icons = {
-    '.js': '■', '.jsx': '■', '.ts': '■', '.tsx': '■',
-    '.py': '▶', '.html': '◎', '.css': '◆', '.json': '{}',
-    '.md': '≡', '.sh': '>', '.yaml': '—', '.yml': '—',
-    '.xml': '◎', '.svg': '◎', '.php': '◉', '.go': '◈',
-    '.c': '⚙', '.cpp': '⚙', '.java': '☕', '.rb': '◆',
-    '.sql': '▤', '.toml': '—', '.env': '⚙',
-  };
-  return icons[ext] || '·';
+  if (!iconManifest) return isDir ? 'folder' : 'file';
+  const lower = name.toLowerCase();
+  if (isDir) {
+    return iconManifest.folderNames[lower] || iconManifest.folder;
+  }
+  // Priority 1: exact file name match (VS Code does this first)
+  if (iconManifest.fileNames[lower]) return iconManifest.fileNames[lower];
+  // Priority 2: file extension match (without dot)
+  const dotIdx = lower.lastIndexOf('.');
+  if (dotIdx !== -1) {
+    const ext = lower.slice(dotIdx + 1);
+    if (iconManifest.fileExtensions[ext]) return iconManifest.fileExtensions[ext];
+  }
+  // Priority 3: default
+  return iconManifest.file || 'file';
 }
 
 function escapeHtml(s) {
@@ -365,13 +376,13 @@ function renderDir(dirPath, container) {
       div.className = 'tree-item';
       const icon = document.createElement('span');
       icon.className = 'icon';
-      icon.textContent = getFileIcon(item.name, item.isDirectory);
-      if (item.isDirectory) icon.style.color = 'var(--dir-color)';
-      else {
-        const ext = item.name.slice(item.name.lastIndexOf('.')).toLowerCase();
-        const colors = { '.js':'var(--yellow)', '.ts':'var(--accent)', '.py':'var(--green)', '.html':'var(--peach)', '.css':'var(--accent)', '.json':'var(--mauve)', '.md':'var(--pink)', '.sh':'var(--green)', '.yaml':'var(--yellow)', '.yml':'var(--yellow)', '.xml':'var(--peach)', '.conf':'var(--yellow)', '.env':'var(--red)' };
-        if (colors[ext]) icon.style.color = colors[ext];
-      }
+      const iconId = getFileIcon(item.name, item.isDirectory);
+      const img = document.createElement('img');
+      img.src = '/icons/' + iconId + '.svg';
+      img.alt = '';
+      img.className = 'icon-img';
+      img.onerror = function() { this.style.display = 'none'; };
+      icon.appendChild(img);
       div.appendChild(icon);
       const name = document.createElement('span');
 name.className = 'name';
@@ -450,7 +461,7 @@ function renderTabs() {
     close.addEventListener('click', function(e) { e.stopPropagation(); removeTab(tab.id); });
     div.appendChild(close);
     div.addEventListener('click', function() { setActiveTab(tab.id); });
-    div.addEventListener('contextmenu', function(e) { e.preventDefault(); showContextMenu(e.clientX, e.clientY, tab.path, false); });
+    div.addEventListener('contextmenu', function(e) { e.preventDefault(); showTabContextMenu(e.clientX, e.clientY, tab); });
     container.appendChild(div);
   }
 }
@@ -769,19 +780,63 @@ function showNewFileDialog(type) {
 }
 
 // Context menu
+const ctxIcons = {
+  open:    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>',
+  folder:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/><path d="M2 10h20"/></svg>',
+  copy:    '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+  download:'<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>',
+  rename:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/></svg>',
+  delete:  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>',
+};
+function showTabContextMenu(x, y, tab) {
+  const menu = document.getElementById('contextMenu');
+  const items = [
+    { icon: 'delete', label: 'Close', action: () => removeTab(tab.id) },
+    { icon: 'delete', label: 'Close Others', action: () => {
+      const others = state.tabs.filter(t => t.id !== tab.id);
+      for (const t of others) {
+        if (state.dirty.has(t.path) && !confirm(`"${t.name}" has unsaved changes. Close anyway?`)) return;
+      }
+      state.tabs = [tab];
+      state.dirty.forEach(p => { if (p !== tab.path) state.dirty.delete(p); });
+      state.activeTab = tab.id;
+      renderTabs(); loadEditor(tab);
+    }},
+    { icon: 'delete', label: 'Close All', action: () => {
+      for (const t of state.tabs) {
+        if (state.dirty.has(t.path) && !confirm(`"${t.name}" has unsaved changes. Close anyway?`)) return;
+      }
+      state.tabs = []; state.dirty.clear(); state.activeTab = null;
+      renderTabs(); closeEditor();
+    }},
+    { icon: 'copy', label: 'Copy Path', action: () => { navigator.clipboard.writeText(tab.path); toast('Copied'); } },
+  ];
+  menu.innerHTML = items.map(item =>
+    `<div class="context-menu-item${item.danger ? ' danger' : ''}"><span class="ctx-icon">${ctxIcons[item.icon]}</span>${item.label}</div>`
+  ).join('');
+  menu.classList.remove('hidden');
+  const rect = menu.getBoundingClientRect();
+  menu.style.left = Math.min(x, window.innerWidth - rect.width - 10) + 'px';
+  menu.style.top = Math.min(y, window.innerHeight - rect.height - 10) + 'px';
+  menu.onclick = (e) => {
+    const idx = Array.from(menu.children).indexOf(e.target.closest('.context-menu-item'));
+    if (idx >= 0) items[idx].action();
+    menu.classList.add('hidden');
+  };
+}
 function showContextMenu(x, y, filePath, isDir) {
   const menu = document.getElementById('contextMenu');
   const items = [
-    { label: (isDir ? '▸ ' : '· ') + 'Open', action: () => { if (!isDir) openFile(filePath); } },
-    { label: '⬇ Download', action: () => downloadItem(filePath) },
-    { label: '↻ Rename', action: () => renameItem(filePath) },
-    { label: '✕ Delete', action: () => deleteItem(filePath), danger: true },
+    { icon: isDir ? 'folder' : 'open', label: 'Open', action: () => { if (!isDir) openFile(filePath); } },
+    { icon: 'download', label: 'Download', action: () => downloadItem(filePath) },
   ];
   if (!isDir) {
-    items.splice(1, 0, { label: '⎘ Copy Path', action: () => { navigator.clipboard.writeText(filePath); toast('Copied'); } });
+    items.splice(1, 0, { icon: 'copy', label: 'Copy Path', action: () => { navigator.clipboard.writeText(filePath); toast('Copied'); } });
   }
+  items.push({ icon: 'rename', label: 'Rename', action: () => renameItem(filePath) });
+  items.push({ icon: 'delete', label: 'Delete', action: () => deleteItem(filePath), danger: true });
   menu.innerHTML = items.map(item =>
-    `<div class="context-menu-item${item.danger ? ' danger' : ''}">${item.label}</div>`
+    `<div class="context-menu-item${item.danger ? ' danger' : ''}"><span class="ctx-icon">${ctxIcons[item.icon]}</span>${item.label}</div>`
   ).join('');
   menu.classList.remove('hidden');
   const rect = menu.getBoundingClientRect();
@@ -796,6 +851,7 @@ function showContextMenu(x, y, filePath, isDir) {
 document.addEventListener('click', e => {
   if (!e.target.closest('.context-menu')) document.getElementById('contextMenu').classList.add('hidden');
 });
+document.addEventListener('contextmenu', e => e.preventDefault());
 
 // Search
 let searchTimeout;
@@ -853,17 +909,16 @@ document.getElementById('btnNewDir').onclick = () => showNewFileDialog('director
 document.getElementById('btnRefresh').onclick = () => renderTree(currentDir);
 document.getElementById('btnUpload').onclick = () => uploadFiles();
 
+// Load icon manifest (Material Icon Theme matching)
+fetch('/icon-manifest.json').then(r => r.json()).then(m => { iconManifest = m; }).catch(() => {});
+
 let rootRestricted = false;
 
 api('GET', '/api/info').then(data => {
   if (data && data.user) {
     serverInfo = data;
     if (data.home) HOME = data.home;
-    if (data.root) {
-      rootRestricted = true;
-      document.getElementById('rootBadge').style.display = 'inline';
-      document.getElementById('rootBadge').title = 'Restricted to: ' + HOME;
-    }
+    if (data.root) rootRestricted = true;
     document.getElementById('serverBadge').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusLeft').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusRight').textContent = data.ip;
