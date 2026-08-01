@@ -151,6 +151,17 @@ function sudoWriteFile(filePath, content, password, cb) {
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+
+// Version: prefer git tag, fallback to package.json
+let _version = pkg.version;
+try {
+  const { execSync } = require('child_process');
+  const tag = execSync('git describe --tags --abbrev=0 2>/dev/null', {
+    cwd: path.join(__dirname, '..'), encoding: 'utf-8', timeout: 2000
+  }).trim();
+  if (tag) _version = tag.replace(/^v/, '');
+} catch {}
+const VERSION = _version;
 const MIME = {
   '.js': 'application/javascript',
   '.mjs': 'application/javascript',
@@ -411,7 +422,7 @@ function handleAPI(req, res) {
           }
         }
       } catch {}
-      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly, docker, version: pkg.version });
+      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly, docker, version: VERSION });
       return;
     }
 
