@@ -110,16 +110,17 @@ body {
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .tabs {
   display: flex; align-items: center; background: var(--tab-bg);
-  border-bottom: 1px solid var(--border); overflow-x: auto;
-  flex-shrink: 0; min-height: 36px;
+  border-bottom: 1px solid var(--border); overflow-x: hidden;
+  flex-shrink: 0; min-height: 36px; position: relative;
 }
-.tabs::-webkit-scrollbar { height: 3px; }
+.tabs::-webkit-scrollbar { height: 0; }
 .tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.tabs.show-scrollbar::-webkit-scrollbar { height: 4px; }
 .tab {
   display: flex; align-items: center; gap: 6px; padding: 7px 14px;
   font-size: 12px; cursor: pointer; border-right: 1px solid var(--border);
-  color: var(--text-dim); white-space: nowrap; user-select: none; min-width: 0;
-  transition: background 0.1s, color 0.1s;
+  color: var(--text-dim); white-space: nowrap; user-select: none;
+  flex-shrink: 0; transition: background 0.1s, color 0.1s;
 }
 .tab:hover { background: var(--hover); color: var(--text); }
 .tab.active {

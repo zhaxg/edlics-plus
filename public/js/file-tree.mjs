@@ -25,6 +25,11 @@ function fileClick(e) {
   openFile(d.dataset.file);
 }
 
+function fileDblClick(e) {
+  e.stopPropagation();
+  openFile(e.currentTarget.dataset.file, true);
+}
+
 export function initFileTree() {
   const container = document.getElementById('fileTree');
   container.addEventListener('contextmenu', (e) => {
@@ -84,6 +89,7 @@ export function renderDir(dirPath, container) {
       } else {
         div.dataset.file = join(dirPath, item.name);
         div.addEventListener('click', fileClick);
+        div.addEventListener('dblclick', fileDblClick);
       }
       container.appendChild(div);
     }

@@ -45,7 +45,7 @@ function showSudoDialog(callback) {
   };
 }
 
-export function openFile(filePath) {
+export function openFile(filePath, newTab) {
   const isImg = isImageFile(filePath);
   const url = `/api/read?path=${encodeURIComponent(filePath)}`;
   api('GET', url).then(data => {
@@ -53,26 +53,26 @@ export function openFile(filePath) {
       return handleSudoError(filePath, () => {
         api('GET', url + '&sudo=1').then(d2 => {
           if (d2.error) { toast(d2.error, true); return; }
-          openFileResult(filePath, d2, isImg);
+          openFileResult(filePath, d2, isImg, newTab);
         });
       });
     }
     if (data.error) { toast(data.error, true); return; }
-    openFileResult(filePath, data, isImg);
+    openFileResult(filePath, data, isImg, newTab);
   }).catch(e => toast('Failed: ' + e.message, true));
 }
 
-function openFileResult(filePath, data, isImg) {
+function openFileResult(filePath, data, isImg, newTab) {
   const existing = state.tabs.find(t => t.path === filePath);
   if (isImg) {
     const imgSrc = '/api/download?path=' + encodeURIComponent(filePath);
-    if (existing) { existing.content = imgSrc; existing.type = 'image'; existing.size = data.size; setActiveTab(existing.id); }
+    if (!newTab && existing) { existing.content = imgSrc; existing.type = 'image'; existing.size = data.size; setActiveTab(existing.id); }
     else addTab(filePath, imgSrc, true, 'image', data.size);
   } else if (data.binary) {
-    if (existing) { existing.fileType = data.fileType; setActiveTab(existing.id); }
+    if (!newTab && existing) { existing.fileType = data.fileType; setActiveTab(existing.id); }
     else addTab(filePath, null, true, 'binary', data.size, data.fileType);
   } else {
-    if (existing) { existing.content = data.content; existing.savedContent = data.content; state.dirty.delete(filePath); setActiveTab(existing.id); }
+    if (!newTab && existing) { existing.content = data.content; existing.savedContent = data.content; state.dirty.delete(filePath); setActiveTab(existing.id); }
     else addTab(filePath, data.content, true);
   }
 }

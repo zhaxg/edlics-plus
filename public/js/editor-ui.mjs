@@ -41,6 +41,19 @@ export function showTabContextMenu(x, y, tab) {
   };
 }
 
+// Tab bar: wheel scroll + hover scrollbar
+const _tabsEl = document.getElementById('tabs');
+if (_tabsEl) {
+  _tabsEl.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      _tabsEl.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+  _tabsEl.addEventListener('mouseenter', () => _tabsEl.classList.add('show-scrollbar'));
+  _tabsEl.addEventListener('mouseleave', () => _tabsEl.classList.remove('show-scrollbar'));
+}
+
 const CM6_LANG = {
   // JavaScript / TypeScript
   '.js': () => javascript(), '.jsx': () => javascript({ jsx: true }),
@@ -172,6 +185,12 @@ export function renderTabs() {
       : '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M13.5 1h-9A2.503 2.503 0 0 0 2 3.5v2.776a4.4 4.4 0 0 1 1-.226V3.499c0-.827.673-1.5 1.5-1.5h4v11.386l1.057 1.057c.157.149.274.344.35.557H13.5c1.378 0 2.5-1.122 2.5-2.5V3.5C16 2.122 14.878 1 13.5 1M15 12.5c0 .827-.673 1.5-1.5 1.5h-4V2h4c.827 0 1.5.673 1.5 1.5zm-8.71.09c.45-.58.71-1.31.71-2.09C7 8.57 5.43 7 3.5 7S0 8.57 0 10.5S1.57 14 3.5 14c.78 0 1.51-.26 2.09-.71l2.56 2.56c.09.1.22.15.35.15s.26-.05.35-.15c.2-.19.2-.51 0-.7zM5.5 12a2.5 2.5 0 0 1-2 1a2.5 2.5 0 0 1 0-5a2.5 2.5 0 0 1 2 4"/></svg>';
     mdToggle.addEventListener('click', () => toggleMdPreview(activeTab));
     container.appendChild(mdToggle);
+  }
+
+  // Scroll active tab into view
+  const activeEl = container.querySelector('.tab.active');
+  if (activeEl) {
+    activeEl.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }
 }
 
