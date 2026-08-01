@@ -161,6 +161,15 @@ const MIME = {
   '.json': 'application/json',
 };
 
+function isDocker() {
+  try { if (fs.existsSync('/.dockerenv')) return true; } catch {}
+  try {
+    const cgroup = fs.readFileSync('/proc/1/cgroup', 'utf-8');
+    if (/docker|containerd/i.test(cgroup)) return true;
+  } catch {}
+  return false;
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
   const cmd = args[0];
@@ -382,7 +391,13 @@ function handleAPI(req, res) {
 
     if (parts[0] === 'api' && parts[1] === 'info') {
       const os = require('os');
-      const user = process.env.SUDO_USER || process.env.USER || process.env.LOGNAME || 'unknown';
+      const docker = isDocker();
+      let user;
+      if (docker) {
+        user = process.env.CONTAINER_NAME || process.env.SUDO_USER || process.env.USER || process.env.LOGNAME || 'node';
+      } else {
+        user = process.env.SUDO_USER || process.env.USER || process.env.LOGNAME || 'unknown';
+      }
       const homeDir = rootDir || (process.env.SUDO_USER
         ? path.resolve('/home', process.env.SUDO_USER)
         : os.homedir());
@@ -395,7 +410,7 @@ function handleAPI(req, res) {
           }
         }
       } catch {}
-      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly });
+      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly, docker });
       return;
     }
 
