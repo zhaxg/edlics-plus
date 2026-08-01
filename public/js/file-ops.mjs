@@ -64,17 +64,74 @@ export function openFile(filePath, newTab) {
 
 function openFileResult(filePath, data, isImg, newTab) {
   const existing = state.tabs.find(t => t.path === filePath);
-  if (isImg) {
-    const imgSrc = '/api/download?path=' + encodeURIComponent(filePath);
-    if (!newTab && existing) { existing.content = imgSrc; existing.type = 'image'; existing.size = data.size; setActiveTab(existing.id); }
-    else addTab(filePath, imgSrc, true, 'image', data.size);
-  } else if (data.binary) {
-    if (!newTab && existing) { existing.fileType = data.fileType; setActiveTab(existing.id); }
-    else addTab(filePath, null, true, 'binary', data.size, data.fileType);
-  } else {
-    if (!newTab && existing) { existing.content = data.content; existing.savedContent = data.content; state.dirty.delete(filePath); setActiveTab(existing.id); }
-    else addTab(filePath, data.content, true);
+
+  // Already open in a tab — switch to it (unless force-new-tab)
+  if (!newTab && existing) {
+    if (isImg) {
+      existing.content = '/api/download?path=' + encodeURIComponent(filePath);
+      existing.type = 'image'; existing.size = data.size;
+    } else if (data.binary) {
+      existing.fileType = data.fileType;
+    } else {
+      existing.content = data.content; existing.savedContent = data.content;
+      state.dirty.delete(filePath);
+    }
+    setActiveTab(existing.id);
+    return;
   }
+
+  // Single click, no existing tab, but there IS an active tab — replace it
+  if (!newTab && state.activeTab) {
+    const activeTab = state.tabs.find(t => t.id === state.activeTab);
+    if (activeTab) {
+      if (state.dirty.has(activeTab.path)) {
+        confirmDialog(`"${activeTab.name}" has unsaved changes. Replace anyway?`).then(ok => {
+          if (!ok) return;
+          replaceActiveTab(activeTab, filePath, data, isImg);
+        });
+        return;
+      }
+      replaceActiveTab(activeTab, filePath, data, isImg);
+      return;
+    }
+  }
+
+  // Default: create new tab
+  if (isImg) {
+    addTab(filePath, '/api/download?path=' + encodeURIComponent(filePath), true, 'image', data.size);
+  } else if (data.binary) {
+    addTab(filePath, null, true, 'binary', data.size, data.fileType);
+  } else {
+    addTab(filePath, data.content, true);
+  }
+}
+
+function replaceActiveTab(tab, filePath, data, isImg) {
+  // Clean up old editor state
+  if (tab.cmView) { tab.cmView.view.destroy(); tab.cmView = null; }
+  if (tab._previewPanel) { tab._previewPanel.remove(); tab._previewPanel = null; }
+  if (tab._cmWrapper) { tab._cmWrapper.remove(); tab._cmWrapper = null; }
+  tab._updatePreview = null;
+  state.dirty.delete(tab.path);
+
+  // Update tab properties
+  tab.path = filePath;
+  tab.name = basename(filePath);
+  tab._previewMode = undefined;
+
+  if (isImg) {
+    tab.content = '/api/download?path=' + encodeURIComponent(filePath);
+    tab.savedContent = ''; tab.type = 'image'; tab.size = data.size; tab.fileType = null;
+  } else if (data.binary) {
+    tab.content = null; tab.savedContent = '';
+    tab.type = 'binary'; tab.size = data.size; tab.fileType = data.fileType;
+  } else {
+    tab.content = data.content; tab.savedContent = data.content;
+    tab.type = 'text'; tab.size = 0; tab.fileType = null;
+  }
+
+  renderTabs();
+  loadEditor(tab);
 }
 
 export function saveFile() {
