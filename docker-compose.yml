@@ -1,0 +1,13 @@
+services:
+  edlics:
+    image: node:22-alpine
+    container_name: edlics
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - /root/codings:/data
+    environment:
+      - TZ=Asia/Shanghai
+    command: >
+      sh -c "npx -y edlics-plus serve --hostname 0.0.0.0 --port 5000 --root /data"
