@@ -174,6 +174,8 @@ export function renderTabs() {
   }
 
   // Add markdown/SVG preview toggle button at the right end (VS Code style)
+  const toggleContainer = document.getElementById('tabsToggle');
+  toggleContainer.innerHTML = '';
   const activeTab = state.tabs.find(t => t.id === state.activeTab);
   if (activeTab && isPreviewableFile(activeTab.path)) {
     const mdToggle = document.createElement('div');
@@ -184,7 +186,7 @@ export function renderTabs() {
       ? '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M6.5 2a.5.5 0 0 0 0 1h1v10h-1a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-1V3h1a.5.5 0 0 0 0-1zM4 4h2.5v1H4a1 1 0 0 0-1 1v3.997a1 1 0 0 0 1 1h2.5v1H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2m8 6.997H9.5v1H12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H9.5v1H12a1 1 0 0 1 1 1v3.997a1 1 0 0 1-1 1"/></svg>'
       : '<svg width="16" height="16" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M13.5 1h-9A2.503 2.503 0 0 0 2 3.5v2.776a4.4 4.4 0 0 1 1-.226V3.499c0-.827.673-1.5 1.5-1.5h4v11.386l1.057 1.057c.157.149.274.344.35.557H13.5c1.378 0 2.5-1.122 2.5-2.5V3.5C16 2.122 14.878 1 13.5 1M15 12.5c0 .827-.673 1.5-1.5 1.5h-4V2h4c.827 0 1.5.673 1.5 1.5zm-8.71.09c.45-.58.71-1.31.71-2.09C7 8.57 5.43 7 3.5 7S0 8.57 0 10.5S1.57 14 3.5 14c.78 0 1.51-.26 2.09-.71l2.56 2.56c.09.1.22.15.35.15s.26-.05.35-.15c.2-.19.2-.51 0-.7zM5.5 12a2.5 2.5 0 0 1-2 1a2.5 2.5 0 0 1 0-5a2.5 2.5 0 0 1 2 4"/></svg>';
     mdToggle.addEventListener('click', () => toggleMdPreview(activeTab));
-    container.appendChild(mdToggle);
+    toggleContainer.appendChild(mdToggle);
   }
 
   // Scroll active tab into view

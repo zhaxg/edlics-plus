@@ -18,13 +18,6 @@ function dirClick(e) {
   renderDir(currentDir, d.parentNode);
 }
 
-function fileClick(e) {
-  e.stopPropagation();
-  const d = e.currentTarget;
-  document.getElementById('statusLeft').textContent = '→ ' + d.dataset.file;
-  openFile(d.dataset.file);
-}
-
 let _dblClickTimer = null;
 function fileDblClick(e) {
   e.stopPropagation();
@@ -33,8 +26,13 @@ function fileDblClick(e) {
   openFile(e.currentTarget.dataset.file, true);
 }
 function fileSingleClick(e) {
+  const target = e.currentTarget;
   clearTimeout(_dblClickTimer);
-  _dblClickTimer = setTimeout(() => fileClick(e), 200);
+  _dblClickTimer = setTimeout(() => {
+    if (!target) return;
+    document.getElementById('statusLeft').textContent = '→ ' + target.dataset.file;
+    openFile(target.dataset.file);
+  }, 200);
 }
 
 export function initFileTree() {
