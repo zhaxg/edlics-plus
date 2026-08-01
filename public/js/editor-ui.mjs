@@ -1,6 +1,6 @@
 // editor-ui.mjs — CodeMirror editor, tabs, path bar
 
-import { EditorView, EditorState, keymap, basicSetup, javascript, python, html, css, json, markdown, xml, yaml } from '/editor.mjs';
+import { EditorView, EditorState, keymap, basicSetup, javascript, python, html, css, json, markdown, xml, yaml, cpp, java, rust, go, sql } from '/editor.mjs';
 import { state, serverInfo } from './state.mjs';
 import { escapeHtml, basename, confirmDialog, isImageFile } from './api.mjs';
 import { themeCompartment, currentTheme } from './theme.mjs';
@@ -42,15 +42,33 @@ export function showTabContextMenu(x, y, tab) {
 }
 
 const CM6_LANG = {
+  // JavaScript / TypeScript
   '.js': () => javascript(), '.jsx': () => javascript({ jsx: true }),
   '.ts': () => javascript({ typescript: true }), '.tsx': () => javascript({ jsx: true, typescript: true }),
+  '.mjs': () => javascript(), '.cjs': () => javascript(),
+  '.mts': () => javascript({ typescript: true }), '.cts': () => javascript({ typescript: true }),
+  // Python
   '.py': () => python(),
-  '.html': () => html(), '.htm': () => html(),
+  // Web
+  '.html': () => html(), '.htm': () => html(), '.vue': () => html(), '.svelte': () => html(),
   '.css': () => css(), '.scss': () => css(), '.less': () => css(),
-  '.json': () => json(),
-  '.xml': () => xml(), '.svg': () => xml(),
-  '.md': () => markdown(),
+  '.svg': () => xml(),
+  // Data
+  '.json': () => json(), '.jsonl': () => json(),
+  '.xml': () => xml(),
   '.yml': () => yaml(), '.yaml': () => yaml(),
+  '.md': () => markdown(), '.mdx': () => markdown(),
+  // Systems
+  '.c': () => cpp(), '.h': () => cpp(), '.cpp': () => cpp(), '.hpp': () => cpp(), '.cc': () => cpp(),
+  '.rs': () => rust(),
+  '.go': () => go(),
+  // Backend
+  '.java': () => java(),
+  '.rb': () => javascript(), // rough fallback
+  '.sql': () => sql(),
+  // Shell / Config
+  '.sh': () => javascript(), '.bash': () => javascript(), '.zsh': () => javascript(),
+  '.ini': () => javascript(), '.env': () => javascript(),
 };
 
 function getCM6Lang(filename) {

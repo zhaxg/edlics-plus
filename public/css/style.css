@@ -21,8 +21,10 @@ body {
 .toolbar .logo {
   display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 15px;
   color: var(--accent); margin-right: 8px; letter-spacing: -0.3px;
-  padding: 4px 8px 4px 4px; border-radius: 6px; cursor: default;
+  padding: 4px 8px 4px 4px; border-radius: 6px; cursor: pointer;
+  transition: opacity 0.15s;
 }
+.toolbar .logo:hover { opacity: 0.8; }
 .toolbar .logo-mark {
   display: inline-flex; align-items: center; justify-content: center;
   width: 26px; height: 26px; background: var(--accent); color: var(--bg);
@@ -57,14 +59,17 @@ body {
 .toolbar .search-box::placeholder { color: var(--text-dimmer); }
 .container { display: flex; flex: 1; overflow: hidden; }
 .sidebar {
-  width: 480px; min-width: 240px; background: var(--sidebar);
+  width: 420px; min-width: 240px; background: var(--sidebar);
   border-right: 1px solid var(--border); display: flex; flex-direction: column;
-  overflow: hidden;
+  overflow: hidden; transition: width 0.2s ease, min-width 0.2s ease;
 }
+.sidebar.collapsed { width: 0; min-width: 0; border-right: none; }
 .sidebar-resize {
   width: 12px; min-width: 12px; cursor: col-resize; z-index: 10;
   display: flex; align-items: center; justify-content: center;
+  transition: width 0.2s ease, min-width 0.2s ease;
 }
+.sidebar-resize.collapsed { width: 0; min-width: 0; }
 .sidebar-resize::after {
   content: ''; width: 2px; height: 60%; background: var(--text-dim); border-radius: 1px;
 }
@@ -140,7 +145,7 @@ body {
   height: 100%; color: var(--text-dim); gap: 6px;
 }
 .editor-area .welcome .key {
-  font-size: 40px; font-weight: 800; color: var(--accent); margin-bottom: 4px;
+  font-size: 26px; font-weight: 800; color: var(--accent); margin-bottom: 4px;
   width: 56px; height: 56px; display: flex; align-items: center; justify-content: center;
   background: rgba(137,180,250,0.08); border-radius: 12px; border: 1px solid rgba(137,180,250,0.15);
 }

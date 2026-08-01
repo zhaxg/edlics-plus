@@ -12,6 +12,10 @@ import { initSidebarResize } from './sidebar.mjs';
 
 // Init
 document.getElementById('btnRefresh').onclick = () => renderTree(currentDir);
+document.querySelector('.logo').addEventListener('click', () => {
+  document.querySelector('.sidebar').classList.toggle('collapsed');
+  document.querySelector('.sidebar-resize').classList.toggle('collapsed');
+});
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {

@@ -10,3 +10,8 @@ export { json } from '@codemirror/lang-json';
 export { markdown } from '@codemirror/lang-markdown';
 export { xml } from '@codemirror/lang-xml';
 export { yaml } from '@codemirror/lang-yaml';
+export { cpp } from '@codemirror/lang-cpp';
+export { java } from '@codemirror/lang-java';
+export { rust } from '@codemirror/lang-rust';
+export { go } from '@codemirror/lang-go';
+export { sql } from '@codemirror/lang-sql';
