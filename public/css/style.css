@@ -202,7 +202,7 @@ body {
   padding: 3px 14px; background: var(--sidebar); border-top: 1px solid var(--border);
   font-size: 11px; color: var(--text-dim); flex-shrink: 0;
 }
-.statusbar span { display: flex; align-items: center; gap: 16px; }
+.statusbar span { display: flex; align-items: center; gap: 6px; }
 .context-menu {
   position: fixed; background: var(--sidebar); border: 1px solid var(--border);
   border-radius: 8px; padding: 4px; min-width: 160px; z-index: 2000;

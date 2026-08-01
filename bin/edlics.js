@@ -406,7 +406,7 @@ function handleAPI(req, res) {
       const docker = isDocker();
       let user;
       if (docker) {
-        user = process.env.CONTAINER_NAME || process.env.SUDO_USER || process.env.USER || process.env.LOGNAME || 'node';
+        user = 'docker';
       } else {
         user = process.env.SUDO_USER || process.env.USER || process.env.LOGNAME || 'unknown';
       }
