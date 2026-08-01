@@ -189,6 +189,29 @@ export function renderTabs() {
     toggleContainer.appendChild(mdToggle);
   }
 
+  // Refresh button — re-read file from disk (all file types)
+  if (activeTab) {
+    const refreshBtn = document.createElement('div');
+    refreshBtn.className = 'md-tab-toggle';
+    refreshBtn.title = 'Reload file';
+    refreshBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg>';
+    refreshBtn.addEventListener('click', () => {
+      const url = '/api/read?path=' + encodeURIComponent(activeTab.path);
+      import('./api.mjs').then(m => {
+        m.api('GET', url).then(data => {
+          if (data.error) { m.toast(data.error, true); return; }
+          activeTab.content = data.content;
+          activeTab.savedContent = data.content;
+          state.dirty.delete(activeTab.path);
+          loadEditor(activeTab);
+          renderTabs();
+          m.toast('Reloaded');
+        });
+      });
+    });
+    toggleContainer.appendChild(refreshBtn);
+  }
+
   // Scroll active tab into view
   const activeEl = container.querySelector('.tab.active');
   if (activeEl) {
@@ -321,7 +344,10 @@ export function loadEditor(tab) {
         }
       }
     });
-    const cm6Keymap = keymap.of([{ key: 'Mod-s', run: () => { import('./file-ops.mjs').then(m => m.saveFile()); return true; } }]);
+    const cm6Keymap = keymap.of([{ key: 'Mod-s', run: () => {
+      if (serverInfo && serverInfo.readonly) { import('./api.mjs').then(m => m.toast('Server is in read-only mode', true)); return true; }
+      import('./file-ops.mjs').then(m => m.saveFile()); return true;
+    } }]);
     const cm6Theme = EditorView.theme({
       '&': { height: '100%', fontSize: '13px' },
       '.cm-scroller': { overflow: 'auto' },

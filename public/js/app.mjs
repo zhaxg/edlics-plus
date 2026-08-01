@@ -45,6 +45,14 @@ api('GET', '/api/info').then(data => {
     document.getElementById('serverBadge').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusLeft').textContent = data.user + '@' + data.hostname;
     document.getElementById('statusRight').textContent = data.ip;
+    if (data.readonly) {
+      document.getElementById('sudoBadge').style.display = 'inline';
+      document.getElementById('sudoBadge').textContent = 'readonly';
+      document.getElementById('sudoBadge').style.color = 'var(--accent)';
+      document.getElementById('welcomeText').textContent = 'Select a file to view';
+    } else {
+      document.getElementById('welcomeText').textContent = 'Select a file to edit';
+    }
   }
   renderTree(HOME);
 }).catch(() => { renderTree(HOME); });

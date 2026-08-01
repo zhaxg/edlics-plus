@@ -7,6 +7,7 @@ const { exec } = require('child_process');
 
 let sudoPassword = null;
 let rootDir = null; // When set, all file operations are restricted to this directory
+let readonly = false; // When true, all write operations are blocked
 
 function isPathSafe(targetPath) {
   if (!rootDir) return true;
@@ -163,11 +164,12 @@ const MIME = {
 function parseArgs() {
   const args = process.argv.slice(2);
   const cmd = args[0];
-  const opts = { hostname: '127.0.0.1', port: 3000, root: null };
+  const opts = { hostname: '127.0.0.1', port: 3000, root: null, readonly: false };
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--hostname' && args[i + 1]) opts.hostname = args[++i];
     if (args[i] === '--port' && args[i + 1]) opts.port = parseInt(args[++i]);
     if (args[i] === '--root' && args[i + 1]) opts.root = args[++i];
+    if (args[i] === '--readonly') opts.readonly = true;
   }
   return { cmd, opts };
 }
@@ -201,6 +203,10 @@ function handleAPI(req, res) {
 
   function ok(data) { json(res, data); }
   function fail(msg, code) { error(res, msg, code || 500); }
+  function checkReadonly() {
+    if (readonly) { fail('Server is in read-only mode', 403); return true; }
+    return false;
+  }
 
   try {
     // Helper: fail if the resolved path is outside the root directory
@@ -271,6 +277,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'write') {
+      if (checkReadonly()) return;
       let body = '';
       req.on('data', c => body += c);
       req.on('end', () => {
@@ -292,6 +299,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'delete' && params.path) {
+      if (checkReadonly()) return;
       if (!checkPath(params.path)) return;
       fs.stat(params.path, (err, st) => {
         if (err) return fail(err.message);
@@ -311,6 +319,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'rename' && params.path) {
+      if (checkReadonly()) return;
       let body = '';
       req.on('data', c => body += c);
       req.on('end', () => {
@@ -325,6 +334,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'create' && params.path) {
+      if (checkReadonly()) return;
       let body = '';
       req.on('data', c => body += c);
       req.on('end', () => {
@@ -385,7 +395,7 @@ function handleAPI(req, res) {
           }
         }
       } catch {}
-      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir });
+      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly });
       return;
     }
 
@@ -466,6 +476,7 @@ function handleAPI(req, res) {
     }
 
     if (parts[0] === 'api' && parts[1] === 'upload' && params.path) {
+      if (checkReadonly()) return;
       if (!checkPath(params.path)) return;
       let body = '';
       req.on('data', c => { body += c; if (body.length > 55 * 1024 * 1024) { req.destroy(); } });
@@ -510,6 +521,7 @@ function router(req, res) {
 }
 
 function startServer(opts) {
+  readonly = opts.readonly;
   if (opts.root) {
     rootDir = path.resolve(opts.root);
     if (!fs.existsSync(rootDir)) {
@@ -559,6 +571,7 @@ if (cmd === 'serve') {
     --hostname   Host to bind to (default: 127.0.0.1)
     --port       Port to listen on (default: 3000)
     --root       Root directory to restrict file operations (default: no restriction)
+    --readonly   Enable read-only mode — blocks all write operations
 
   Examples:
     edlics serve

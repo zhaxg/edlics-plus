@@ -182,6 +182,7 @@ node bin/edlics.js serve --hostname 0.0.0.0 --port 5000
 | Browser can't connect | Check firewall / security group rules for the port |
 | Blank page / no content | Hard refresh with `Ctrl+F5` or `Cmd+Shift+R` |
 | Editor shows no syntax colors | Make sure `npm run build` completed successfully — `public/editor.mjs` should exist |
+| Markdown / SVG preview not working | Hard refresh with `Ctrl+F5` — the preview modules are loaded as ES modules |
 | `root directory does not exist` | The `--root` path must exist and be a directory — check the path and try again |
 
 <br>

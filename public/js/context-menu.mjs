@@ -1,7 +1,7 @@
 // context-menu.mjs — Context menus (file tree + tab bar)
 
 import { toast, basename, dirname, copyToClipboard } from './api.mjs';
-import { state } from './state.mjs';
+import { state, serverInfo } from './state.mjs';
 import { openFile, downloadItem, renameItem, deleteItem, showNewFileDialog, uploadFiles } from './file-ops.mjs';
 
 const ctxIcons = {
@@ -41,25 +41,32 @@ function showMenu(x, y, items) {
 
 export function showContextMenu(x, y, filePath, isDir) {
   const dir = isDir ? filePath : dirname(filePath);
+  const ro = serverInfo && serverInfo.readonly;
   const items = [
     { icon: isDir ? 'folder' : 'open', label: 'Open', action: () => { if (!isDir) openFile(filePath); } },
-    { icon: 'addfile', label: 'New File', action: () => showNewFileDialog('file') },
-    { icon: 'addfolder', label: 'New Folder', action: () => showNewFileDialog('directory') },
-    { icon: 'upload', label: 'Upload', action: () => uploadFiles() },
+    ...(!ro ? [
+      { icon: 'addfile', label: 'New File', action: () => showNewFileDialog('file') },
+      { icon: 'addfolder', label: 'New Folder', action: () => showNewFileDialog('directory') },
+      { icon: 'upload', label: 'Upload', action: () => uploadFiles() },
+    ] : []),
     { icon: 'copy', label: 'Copy Path', action: () => { copyToClipboard(filePath); toast('Copied'); } },
     { icon: 'download', label: 'Download', action: () => downloadItem(filePath) },
-    { icon: 'rename', label: 'Rename', action: () => renameItem(filePath) },
-    { icon: 'delete', label: 'Delete', action: () => deleteItem(filePath), danger: true },
+    ...(!ro ? [
+      { icon: 'rename', label: 'Rename', action: () => renameItem(filePath) },
+      { icon: 'delete', label: 'Delete', action: () => deleteItem(filePath), danger: true },
+    ] : []),
   ];
   showMenu(x, y, items);
 }
 
 export function showTreeEmptyMenu(x, y) {
-  const items = [
+  const ro = serverInfo && serverInfo.readonly;
+  const items = ro ? [] : [
     { icon: 'addfile', label: 'New File', action: () => showNewFileDialog('file') },
     { icon: 'addfolder', label: 'New Folder', action: () => showNewFileDialog('directory') },
     { icon: 'upload', label: 'Upload', action: () => uploadFiles() },
   ];
+  if (items.length === 0) return;
   showMenu(x, y, items);
 }
 

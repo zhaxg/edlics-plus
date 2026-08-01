@@ -82,7 +82,8 @@ body {
 }
 .sidebar-header button {
   background: transparent; border: none; color: var(--text-dimmer);
-  cursor: pointer; padding: 2px 6px; border-radius: 4px; font-size: 15px; transition: color 0.15s;
+  cursor: pointer; padding: 4px; border-radius: 4px; transition: color 0.15s;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .sidebar-header button:hover { color: var(--text); background: var(--hover); }
 .file-tree {
@@ -139,12 +140,13 @@ body {
 .tab .close:hover { color: var(--text); background: rgba(255,255,255,0.12); }
 .tab .close:active { background: rgba(255,255,255,0.18); }
 .tabs-toggle {
-  flex-shrink: 0; display: flex; align-items: center; border-left: 1px solid var(--border);
-  background: var(--tab-bg); min-height: 36px;
+  flex-shrink: 0; display: flex; align-items: center; gap: 2px;
+  border-left: 1px solid var(--border);
+  background: var(--tab-bg); min-height: 36px; padding: 0 6px;
 }
 .md-tab-toggle {
   display: flex; align-items: center; justify-content: center;
-  padding: 4px 8px; margin-left: auto; cursor: pointer;
+  padding: 4px; cursor: pointer;
   color: var(--text-dim); border-radius: 4px; transition: color 0.15s, background 0.15s;
   flex-shrink: 0;
 }
