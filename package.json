@@ -1,6 +1,6 @@
 {
   "name": "edlics-plus",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "description": "Web-based file browser and code editor for Linux servers — enhanced fork of Edlics",
   "bin": {
     "edlics": "./bin/edlics.js"

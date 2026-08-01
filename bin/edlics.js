@@ -150,6 +150,7 @@ function sudoWriteFile(filePath, content, password, cb) {
 }
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
 const MIME = {
   '.js': 'application/javascript',
   '.mjs': 'application/javascript',
@@ -410,7 +411,7 @@ function handleAPI(req, res) {
           }
         }
       } catch {}
-      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly, docker });
+      ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly, docker, version: pkg.version });
       return;
     }
 
