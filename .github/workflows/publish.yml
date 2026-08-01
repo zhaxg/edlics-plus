@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: read
+  id-token: write   # Required for OIDC provenance
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -29,23 +33,18 @@ jobs:
 
       - name: Smoke test
         run: |
-          # Verify build output exists
           test -f public/editor.mjs || { echo "editor.mjs not found"; exit 1; }
-          # Verify server can start (run for 3 seconds then kill)
           timeout 3 node bin/edlics.js serve --port 19999 || true
           echo "Smoke test passed"
 
       - name: Generate changelog
-        id: changelog
         run: |
-          # Get previous tag
           PREV_TAG=$(git tag --sort=-v:refname | head -2 | tail -1)
           if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$GITHUB_REF_NAME" ]; then
             CHANGELOG=$(git log --pretty=format:"- %s" "$PREV_TAG".."$GITHUB_REF_NAME" --no-merges)
           else
             CHANGELOG=$(git log --pretty=format:"- %s" --no-merges -20)
           fi
-          # Write to file for npm publish
           echo "## What's Changed" > CHANGELOG.md
           echo "" >> CHANGELOG.md
           echo "$CHANGELOG" >> CHANGELOG.md
@@ -53,7 +52,7 @@ jobs:
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG:-$(git rev-list --max-parents=0 HEAD | head -1)}...${GITHUB_REF_NAME}" >> CHANGELOG.md
           cat CHANGELOG.md
 
-      - name: Publish to npm
-        run: npm publish --access public
+      - name: Publish to npm (OIDC)
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
