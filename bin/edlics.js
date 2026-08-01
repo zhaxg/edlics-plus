@@ -95,6 +95,41 @@ function sudoExec(cmd, password, cb) {
   exec(full, { maxBuffer: 50 * 1024 * 1024 }, cb);
 }
 
+// Smart directory filtering: detect project type and exclude build/cache dirs
+const BASE_EXCLUDE = new Set(['.git', '.svn', '.hg', '.DS_Store']);
+const PROJECT_EXCLUDES = {
+  'package.json':   ['node_modules', 'dist', '.next', '.nuxt', '.cache', '.turbo'],
+  'go.mod':         ['vendor'],
+  'pom.xml':        ['target'],
+  'build.gradle':   ['target', '.gradle'],
+  'Cargo.toml':     ['target'],
+  'requirements.txt': ['__pycache__', '.venv', 'venv', '.mypy_cache', '.tox'],
+  'pyproject.toml': ['__pycache__', '.venv', 'venv', '.mypy_cache', '.tox'],
+  'Gemfile':        ['vendor', '.bundle'],
+  '.csproj':        ['bin', 'obj', '.vs', 'packages'],
+  '.sln':           ['bin', 'obj', '.vs', 'packages'],
+  '.slnx':          ['bin', 'obj', '.vs', 'packages'],
+};
+
+function getExcludes(dirPath) {
+  const excluded = new Set(BASE_EXCLUDE);
+  let entries;
+  try { entries = fs.readdirSync(dirPath); } catch { return excluded; }
+  for (const marker of Object.keys(PROJECT_EXCLUDES)) {
+    if (marker.startsWith('.')) {
+      // dot-files: check exact match (e.g. .sln won't work as startsWith, use some)
+      if (entries.some(e => e === marker || e.endsWith(marker))) {
+        for (const d of PROJECT_EXCLUDES[marker]) excluded.add(d);
+      }
+    } else {
+      if (entries.includes(marker)) {
+        for (const d of PROJECT_EXCLUDES[marker]) excluded.add(d);
+      }
+    }
+  }
+  return excluded;
+}
+
 function sudoReadFile(filePath, password, cb) {
   sudoExec(`cat ${JSON.stringify(filePath)}`, password, (err, stdout) => {
     if (err) return cb(err);
@@ -359,12 +394,13 @@ function handleAPI(req, res) {
       if (!checkPath(searchPath)) return;
       const results = [];
       function walk(dir, cb) {
+        const excluded = getExcludes(dir);
         fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
           if (err) return cb();
           let pending = entries.length;
           if (pending === 0) return cb();
           for (const e of entries) {
-            if (e.name.startsWith('.')) { if (--pending === 0) cb(); continue; }
+            if (e.name.startsWith('.') || excluded.has(e.name)) { if (--pending === 0) cb(); continue; }
             const full = path.join(dir, e.name);
             if (full.length > 4096) { if (--pending === 0) cb(); continue; }
             if (results.length >= 200) { if (--pending === 0) cb(); continue; }
