@@ -2,7 +2,7 @@
 
 import { api, toast, escapeHtml, basename, dirname, join, confirmDialog, isImageFile } from './api.mjs';
 import { state, currentDir, HOME, sudoPassword, setSudoPassword } from './state.mjs';
-import { addTab, removeTab, setActiveTab, renderTabs, closeEditor } from './editor-ui.mjs';
+import { addTab, removeTab, setActiveTab, renderTabs, closeEditor, loadEditor } from './editor-ui.mjs';
 import { renderDir } from './file-tree.mjs';
 
 function handleSudoError(filePath, action) {

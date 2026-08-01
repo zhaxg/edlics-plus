@@ -25,9 +25,16 @@ function fileClick(e) {
   openFile(d.dataset.file);
 }
 
+let _dblClickTimer = null;
 function fileDblClick(e) {
   e.stopPropagation();
+  e.preventDefault();
+  clearTimeout(_dblClickTimer);
   openFile(e.currentTarget.dataset.file, true);
+}
+function fileSingleClick(e) {
+  clearTimeout(_dblClickTimer);
+  _dblClickTimer = setTimeout(() => fileClick(e), 200);
 }
 
 export function initFileTree() {
@@ -88,7 +95,7 @@ export function renderDir(dirPath, container) {
         div.addEventListener('click', dirClick);
       } else {
         div.dataset.file = join(dirPath, item.name);
-        div.addEventListener('click', fileClick);
+        div.addEventListener('click', fileSingleClick);
         div.addEventListener('dblclick', fileDblClick);
       }
       container.appendChild(div);
