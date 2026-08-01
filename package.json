@@ -1,24 +1,24 @@
 {
-  "name": "edlics",
-  "version": "1.2.0",
-  "description": "Web-based file browser and editor for Linux servers",
+  "name": "edlics-plus",
+  "version": "1.0.0",
+  "description": "Web-based file browser and code editor for Linux servers — enhanced fork of Edlics",
   "bin": {
     "edlics": "./bin/edlics.js"
   },
   "preferGlobal": true,
   "license": "MIT",
   "author": {
-    "name": "Omkar Jagtap",
-    "url": "https://github.com/meomkarjagtap"
+    "name": "zhaxg",
+    "url": "https://github.com/zhaxg"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/opermancode/edlics.git"
+    "url": "git+https://github.com/zhaxg/edlics-plus.git"
   },
   "bugs": {
-    "url": "https://github.com/opermancode/edlics/issues"
+    "url": "https://github.com/zhaxg/edlics-plus/issues"
   },
-  "homepage": "https://github.com/opermancode/edlics#readme",
+  "homepage": "https://github.com/zhaxg/edlics-plus#readme",
   "scripts": {
     "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020",
     "postinstall": "npm run build"
@@ -33,7 +33,6 @@
     "@codemirror/lang-javascript": "^6.2.5",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.5.0",
-    "@codemirror/lang-php": "^6.0.2",
     "@codemirror/lang-python": "^6.2.1",
     "@codemirror/lang-rust": "^6.0.2",
     "@codemirror/lang-sql": "^6.10.0",
