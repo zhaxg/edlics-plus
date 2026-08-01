@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write   # Required for OIDC provenance
+  id-token: write   # Required for OIDC trusted publishing
 
 jobs:
   publish:
@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
+
+      - name: Upgrade npm to latest
+        run: npm install -g npm@latest
 
       - name: Set version from tag
         run: |
@@ -54,5 +57,4 @@ jobs:
 
       - name: Publish to npm (OIDC)
         run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # No NODE_AUTH_TOKEN needed — OIDC handles authentication
