@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/zhaxg/edlics-plus#readme",
   "scripts": {
-    "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020 && esbuild bundle/terminal.mjs --bundle --format=esm --outfile=public/terminal.mjs --target=es2020 --loader:.css=css",
+    "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020 --minify && esbuild bundle/terminal.mjs --bundle --format=esm --outfile=public/terminal.mjs --target=es2020 --minify --loader:.css=css",
     "postinstall": "npm run build"
   },
   "dependencies": {

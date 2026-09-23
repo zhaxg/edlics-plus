@@ -227,7 +227,9 @@ apk add make g++ python3
 
 ```bash
 npm version patch     # 或 minor / major，例如升到 1.3.0
-git push --tags       # 推送 tag 触发 GitHub Actions 发布到 npm
+git push --tags       # 推送 tag 触发 GitHub Actions 发布
 ```
 
-`.github/workflows/publish.yml` 会在 tag `v*` 推送时自动：设置版本 → `npm install` → `npm run build` → 冒烟测试 → 生成 CHANGELOG → 通过 **OIDC Trusted Publishing** 发布到 npm（无需手动配置 token）。
+`.github/workflows/publish.yml` 会在 tag `v*` 推送时自动：设置版本 → `npm install` → `npm run build` → 冒烟测试 → 生成 CHANGELOG → 通过 **OIDC Trusted Publishing** 发布到 npm（无需手动配置 token）→ **自动创建同名 GitHub Release**（正文为 CHANGELOG）。
+
+为已存在的旧 tag 补发 Release：GitHub 仓库 **Actions → Create Release (manual / backfill) → Run workflow**，填写 tag（如 `v1.2.4`）即可。
