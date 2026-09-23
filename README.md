@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/opermancode/edlics/main/brand/logo.svg" width="80" height="80" alt="Edlics-Plus">
+  <img src="https://raw.githubusercontent.com/zhaxg/edlics-plus/main/docs/logo.svg" width="80" height="80" alt="Edlics-Plus">
 </p>
 
 <h1 align="center">Edlics-Plus</h1>
@@ -245,7 +245,7 @@ edlics-plus/
 │   ├── icons/                 # Material Design 图标（600+ SVG）
 │   ├── editor.mjs             # esbuild 产物（勿手改）
 │   └── terminal.mjs/.css      # esbuild 产物（勿手改）
-├── docs/screenshots/          # README 截图
+├── docs/                      # README 截图与 logo（logo.svg）
 ├── .github/workflows/         # publish.yml：tag 触发发 npm（OIDC）
 ├── install.sh                 # 依赖安装 + symlink 安装
 └── package.json
