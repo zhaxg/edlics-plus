@@ -65,10 +65,11 @@ npx edlics-plus serve --hostname 0.0.0.0 --port 5000 --readonly
 | **提交时间线 Graph** | **PTY 终端** |
 | ![git-graph](docs/screenshots/git-graph.png) | ![terminal](docs/screenshots/terminal.png) |
 
-| | |
-|---|---|
-| **登录保护** | **浅色 / 深色主题** |
-| ![login](docs/screenshots/login.png) | 点击工具栏月亮/太阳一键切换 |
+**登录保护** —— 打开页面先验证密码（连续输错 5 次锁定 15 分钟，HttpOnly 会话 7 天）：
+
+![login](docs/screenshots/login.png)
+
+> 点击工具栏的 🌙 / ☀ 图标可一键切换 **深色 / 浅色主题**，编辑器、终端与全部面板同步换肤。
 
 <br>
 
