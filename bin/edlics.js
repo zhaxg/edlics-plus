@@ -968,7 +968,12 @@ function router(req, res) {
   if (req.url.startsWith('/api/')) {
     return handleAPI(req, res);
   }
-  let filePath = path.join(PUBLIC_DIR, req.url === '/' ? 'index.html' : req.url);
+  const urlPath = req.url.split('?')[0];
+  let filePath = path.resolve(path.join(PUBLIC_DIR, urlPath === '/' ? 'index.html' : urlPath));
+  // Containment: never serve anything outside public/ (blocks /../ traversal)
+  if (filePath !== PUBLIC_DIR && !filePath.startsWith(PUBLIC_DIR + path.sep)) {
+    filePath = path.join(PUBLIC_DIR, 'index.html');
+  }
   fs.stat(filePath, (err, stat) => {
     if (!err && stat.isFile()) {
       serveStatic(req, res, filePath);
