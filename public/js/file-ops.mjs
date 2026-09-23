@@ -45,7 +45,7 @@ function showSudoDialog(callback) {
   };
 }
 
-export function openFile(filePath, newTab) {
+export function openFile(filePath, newTab, pos) {
   const isImg = isImageFile(filePath);
   const url = `/api/read?path=${encodeURIComponent(filePath)}`;
   api('GET', url).then(data => {
@@ -53,16 +53,16 @@ export function openFile(filePath, newTab) {
       return handleSudoError(filePath, () => {
         api('GET', url + '&sudo=1').then(d2 => {
           if (d2.error) { toast(d2.error, true); return; }
-          openFileResult(filePath, d2, isImg, newTab);
+          openFileResult(filePath, d2, isImg, newTab, pos);
         });
       });
     }
     if (data.error) { toast(data.error, true); return; }
-    openFileResult(filePath, data, isImg, newTab);
+    openFileResult(filePath, data, isImg, newTab, pos);
   }).catch(e => toast('Failed: ' + e.message, true));
 }
 
-function openFileResult(filePath, data, isImg, newTab) {
+function openFileResult(filePath, data, isImg, newTab, pos) {
   const existing = state.tabs.find(t => t.path === filePath);
 
   // Already open in a tab — switch to it (unless force-new-tab)
@@ -76,6 +76,7 @@ function openFileResult(filePath, data, isImg, newTab) {
       existing.content = data.content; existing.savedContent = data.content;
       state.dirty.delete(filePath);
     }
+    if (pos) existing._pendingReveal = pos;
     setActiveTab(existing.id);
     return;
   }
@@ -87,26 +88,37 @@ function openFileResult(filePath, data, isImg, newTab) {
       if (state.dirty.has(activeTab.path)) {
         confirmDialog(`"${activeTab.name}" has unsaved changes. Replace anyway?`).then(ok => {
           if (!ok) return;
-          replaceActiveTab(activeTab, filePath, data, isImg);
+          replaceActiveTab(activeTab, filePath, data, isImg, pos);
         });
         return;
       }
-      replaceActiveTab(activeTab, filePath, data, isImg);
+      replaceActiveTab(activeTab, filePath, data, isImg, pos);
       return;
     }
   }
 
   // Default: create new tab
+  // Note: for text files we must set _pendingReveal BEFORE the tab becomes active,
+  // because addTab(..., switchTo=true) triggers loadEditor immediately. So when a
+  // position is requested, create the tab inactive, attach the reveal, then activate.
+  const activate = !pos;
+  let tab = null;
   if (isImg) {
-    addTab(filePath, '/api/download?path=' + encodeURIComponent(filePath), true, 'image', data.size);
+    tab = addTab(filePath, '/api/download?path=' + encodeURIComponent(filePath), activate, 'image', data.size);
   } else if (data.binary) {
-    addTab(filePath, null, true, 'binary', data.size, data.fileType);
+    tab = addTab(filePath, null, activate, 'binary', data.size, data.fileType);
   } else {
-    addTab(filePath, data.content, true);
+    tab = addTab(filePath, data.content, activate);
+  }
+  if (tab) {
+    if (pos) {
+      tab._pendingReveal = pos;
+      setActiveTab(tab.id); // now loadEditor consumes _pendingReveal
+    }
   }
 }
 
-function replaceActiveTab(tab, filePath, data, isImg) {
+function replaceActiveTab(tab, filePath, data, isImg, pos) {
   // Clean up old editor state
   if (tab.cmView) { tab.cmView.view.destroy(); tab.cmView = null; }
   if (tab._previewPanel) { tab._previewPanel.remove(); tab._previewPanel = null; }
@@ -118,6 +130,7 @@ function replaceActiveTab(tab, filePath, data, isImg) {
   tab.path = filePath;
   tab.name = basename(filePath);
   tab._previewMode = undefined;
+  tab._pendingReveal = pos || null;
 
   if (isImg) {
     tab.content = '/api/download?path=' + encodeURIComponent(filePath);
@@ -137,6 +150,7 @@ function replaceActiveTab(tab, filePath, data, isImg) {
 export function saveFile() {
   const tab = state.tabs.find(t => t.id === state.activeTab);
   if (!tab) return;
+  if (tab.type === 'diff') { toast('Diff view is read-only', true); return; }
   const content = tab.content;
   function doSave(sudo) {
     const qs = sudo ? '&sudo=1' : '';

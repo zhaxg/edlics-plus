@@ -5,7 +5,16 @@ const BASE = '';
 export function api(method, url, body) {
   const opts = { method, headers: {} };
   if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-  return fetch(BASE + url, opts).then(r => r.json());
+  return fetch(BASE + url, opts).then(r => {
+    if (r.status === 401 && url !== '/api/login') {
+      // Session expired — pop the login gate (lazy import avoids circular dep)
+      import('./auth.mjs').then(m => m.showLogin()).catch(() => {});
+      const err = new Error('Unauthorized');
+      err.status = 401;
+      throw err;
+    }
+    return r.json();
+  });
 }
 
 export function toast(msg, isError = false) {

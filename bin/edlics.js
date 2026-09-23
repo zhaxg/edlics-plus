@@ -2,28 +2,86 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { URL } = require('url');
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 
 let sudoPassword = null;
 let rootDir = null; // When set, all file operations are restricted to this directory
 let readonly = false; // When true, all write operations are blocked
 
+// --- Auth: every /api/* route requires a session cookie except login/session/logout ---
+let authPasswordHash = null; // sha256 Buffer (32 bytes) for timing-safe compare
+const sessions = new Map();      // token -> expiry epoch ms
+const loginAttempts = new Map(); // ip -> { fails, lockedUntil }
+const SESSION_TTL = 7 * 24 * 3600 * 1000; // 7 days
+const MAX_LOGIN_FAILS = 5;
+const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+function sha256(s) { return crypto.createHash('sha256').update(String(s)).digest(); }
+
+function parseCookies(req) {
+  const out = {};
+  const raw = req.headers.cookie;
+  if (!raw) return out;
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0) out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
+function isAuthed(req) {
+  const token = parseCookies(req).edlics_session;
+  if (!token) return false;
+  const exp = sessions.get(token);
+  if (!exp) return false;
+  if (exp < Date.now()) { sessions.delete(token); return false; }
+  return true;
+}
+
+function pruneSessions() {
+  const now = Date.now();
+  for (const [t, exp] of sessions) if (exp < now) sessions.delete(t);
+}
+
+// Terminal (node-pty) state — one real TTY shell per logged-in session,
+// wede-style: the shell itself does echo/line-editing/tab-stops over the PTY;
+// the browser only passes raw keystrokes through.
+const termSessions = new Map(); // session token -> { pty, parts, len, stream, exited }
+let _pty = null;
+function getPty() {
+  if (!_pty) _pty = require('node-pty');
+  return _pty;
+}
+function termKey(req) { return parseCookies(req).edlics_session || 'anon'; }
+process.on('exit', () => {
+  for (const s of termSessions.values()) { try { s.pty.kill(); } catch {} }
+});
+
+// Cross-platform containment check: target is base itself or a descendant.
+// path.relative handles OS separators and Windows case-insensitivity,
+// unlike prefixing with '/' which breaks on Windows (rootDir + '/' never matches '\').
+function isWithinRoot(base, target) {
+  const rel = path.relative(base, target);
+  return rel === '' || (!path.isAbsolute(rel) && rel !== '..' && !rel.startsWith('..' + path.sep));
+}
+
 function isPathSafe(targetPath) {
   if (!rootDir) return true;
   const resolved = path.resolve(targetPath);
-  if (resolved !== rootDir && !resolved.startsWith(rootDir + '/')) return false;
+  if (!isWithinRoot(rootDir, resolved)) return false;
   // Resolve symlinks to prevent escape via symlink traversal
   try {
     const real = fs.realpathSync(resolved);
-    return real === rootDir || real.startsWith(rootDir + '/');
+    return isWithinRoot(rootDir, real);
   } catch {
     // Path doesn't exist yet (e.g. create) — check parent for symlink escape
     const parent = path.dirname(resolved);
     try {
       const realParent = fs.realpathSync(parent);
       const reassembled = path.join(realParent, path.basename(resolved));
-      return reassembled === rootDir || reassembled.startsWith(rootDir + '/');
+      return isWithinRoot(rootDir, reassembled);
     } catch {
       return false;
     }
@@ -185,11 +243,12 @@ function isDocker() {
 function parseArgs() {
   const args = process.argv.slice(2);
   const cmd = args[0];
-  const opts = { hostname: '127.0.0.1', port: 3000, root: null, readonly: false };
+  const opts = { hostname: '127.0.0.1', port: 3000, root: null, readonly: false, password: null };
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--hostname' && args[i + 1]) opts.hostname = args[++i];
     if (args[i] === '--port' && args[i + 1]) opts.port = parseInt(args[++i]);
     if (args[i] === '--root' && args[i + 1]) opts.root = args[++i];
+    if (args[i] === '--password' && args[i + 1]) opts.password = args[++i];
     if (args[i] === '--readonly') opts.readonly = true;
   }
   return { cmd, opts };
@@ -230,6 +289,52 @@ function handleAPI(req, res) {
   }
 
   try {
+    // --- Auth routes (public) ---
+    if (parts[0] === 'api' && parts[1] === 'session') {
+      return ok({ authenticated: isAuthed(req) });
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'login') {
+      const ip = req.socket.remoteAddress || 'unknown';
+      const attempt = loginAttempts.get(ip);
+      if (attempt && attempt.lockedUntil > Date.now()) {
+        return fail('Too many failed attempts. Try again later.', 429);
+      }
+      let body = '';
+      req.on('data', c => { body += c; if (body.length > 4096) { req.destroy(); } });
+      req.on('end', () => {
+        let data;
+        try { data = JSON.parse(body); } catch { return fail('Invalid JSON', 400); }
+        const given = sha256(data.password || '');
+        const pass = authPasswordHash && given.length === authPasswordHash.length &&
+          crypto.timingSafeEqual(given, authPasswordHash);
+        if (!pass) {
+          const a = attempt || { fails: 0, lockedUntil: 0 };
+          a.fails++;
+          if (a.fails >= MAX_LOGIN_FAILS) { a.lockedUntil = Date.now() + LOCKOUT_MS; a.fails = 0; }
+          loginAttempts.set(ip, a);
+          return fail('Wrong password', 401);
+        }
+        loginAttempts.delete(ip);
+        pruneSessions();
+        const token = crypto.randomBytes(32).toString('hex');
+        sessions.set(token, Date.now() + SESSION_TTL);
+        res.setHeader('Set-Cookie', `edlics_session=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(SESSION_TTL / 1000)}`);
+        return ok({ ok: true });
+      });
+      return;
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'logout') {
+      const token = parseCookies(req).edlics_session;
+      if (token) sessions.delete(token);
+      res.setHeader('Set-Cookie', 'edlics_session=; HttpOnly; Path=/; Max-Age=0');
+      return ok({ ok: true });
+    }
+
+    // --- Everything below requires an authenticated session ---
+    if (!isAuthed(req)) return fail('Unauthorized', 401);
+
     // Helper: fail if the resolved path is outside the root directory
     function checkPath(p) {
       if (!isPathSafe(p)) { fail('Access denied: path outside root directory', 403); return false; }
@@ -454,6 +559,301 @@ function handleAPI(req, res) {
       return;
     }
 
+    // Full-text content search: returns [{ path, line, column, text }] grouped downstream
+    if (parts[0] === 'api' && parts[1] === 'search-content') {
+      const searchPath = params.path || (rootDir || '/');
+      if (!checkPath(searchPath)) return;
+      const q = params.q || '';
+      if (!q) return ok([]);
+      const caseSensitive = params.case === '1';
+      const needle = caseSensitive ? q : q.toLowerCase();
+      const results = [];
+      const MAX_RESULTS = 500;
+      const MAX_FILE_SIZE = 2 * 1024 * 1024; // skip files > 2MB
+      let done = false;
+
+      function searchFile(filePath) {
+        if (done) return;
+        let buf;
+        try { buf = fs.readFileSync(filePath); } catch { return; }
+        if (buf.length > MAX_FILE_SIZE) return;
+        // Skip binary (null byte in first 8KB)
+        const probe = Math.min(buf.length, 8192);
+        for (let i = 0; i < probe; i++) if (buf[i] === 0) return;
+        const content = buf.toString('utf-8');
+        const hay = caseSensitive ? content : content.toLowerCase();
+        if (!hay.includes(needle)) return;
+        const lines = content.split('\n');
+        for (let li = 0; li < lines.length; li++) {
+          const lineText = lines[li];
+          const hayLine = caseSensitive ? lineText : lineText.toLowerCase();
+          let from = 0; let col;
+          while ((col = hayLine.indexOf(needle, from)) !== -1) {
+            results.push({ path: filePath, line: li + 1, column: col + 1, text: lineText.slice(0, 300) });
+            if (results.length >= MAX_RESULTS) { done = true; return; }
+            from = col + needle.length;
+            if (needle.length === 0) break;
+          }
+        }
+      }
+
+      function walk(dir, cb) {
+        if (done) return cb();
+        const excluded = getExcludes(dir);
+        fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
+          if (err) return cb();
+          let pending = entries.length;
+          if (pending === 0) return cb();
+          for (const ent of entries) {
+            if (ent.name.startsWith('.') || excluded.has(ent.name)) { if (--pending === 0) cb(); continue; }
+            const full = path.join(dir, ent.name);
+            if (full.length > 4096) { if (--pending === 0) cb(); continue; }
+            if (done) { if (--pending === 0) cb(); continue; }
+            if (ent.isDirectory()) {
+              walk(full, () => { if (--pending === 0) cb(); });
+            } else {
+              searchFile(full);
+              if (--pending === 0) cb();
+            }
+          }
+        });
+      }
+
+      fs.stat(searchPath, (err, stat) => {
+        if (err) return fail(err.message);
+        if (stat.isFile()) { searchFile(searchPath); return ok(results); }
+        walk(searchPath, () => ok(results));
+      });
+      return;
+    }
+
+    // ---------- Git API (read-only; all commands run with cwd=workspace, no shell) ----------
+    function gitWorkspace() {
+      const ws = params.path;
+      if (!ws) return null;
+      if (!isPathSafe(ws)) return null;
+      try { if (!fs.statSync(ws).isDirectory()) return null; } catch { return null; }
+      return ws;
+    }
+    function gitRun(ws, args, cb) {
+      execFile('git', args, {
+        cwd: ws, timeout: 15000, maxBuffer: 16 * 1024 * 1024, windowsHide: true,
+      }, (err, stdout, stderr) => {
+        if (err) {
+          const msg = (stderr || err.message || '').toString().trim().slice(0, 500);
+          return cb(null, { ok: false, error: msg || 'git command failed' });
+        }
+        cb(null, { ok: true, out: stdout });
+      });
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'git' && parts[2] === 'status') {
+      const ws = gitWorkspace();
+      if (!ws) return fail('Invalid workspace', 400);
+      gitRun(ws, ['status', '--porcelain=v1', '-z', '-b'], (e, r) => {
+        if (!r.ok) return ok({ repo: false, error: r.error });
+        // -z output: first NUL-terminated field is the "## branch" header, rest are entries
+        const chunks = r.out.split('\0');
+        const header = chunks[0] || '';
+        let branch = 'HEAD';
+        const m = header.match(/^##\s+(?:No commits yet on|Initial commit on)\s+(\S+)/);
+        if (m) branch = m[1];
+        else {
+          branch = header.replace(/^##\s*/, '').split('...')[0].split(' ')[0] || 'HEAD';
+        }
+        const changes = [];
+        for (let i = 1; i < chunks.length; i++) {
+          const entry = chunks[i];
+          if (!entry) continue;
+          const xy = entry.slice(0, 2);
+          let file = entry.slice(3);
+          // Renames/copies in -z: entry holds the new path; the next field is the old path
+          if ((xy[0] === 'R' || xy[0] === 'C' || xy[1] === 'R' || xy[1] === 'C') && i + 1 < chunks.length) {
+            i++;
+          }
+          if (file) changes.push({ xy, path: file });
+        }
+        ok({ repo: true, branch, changes });
+      });
+      return;
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'git' && parts[2] === 'log') {
+      const ws = gitWorkspace();
+      if (!ws) return fail('Invalid workspace', 400);
+      const n = Math.min(parseInt(params.n) || 50, 200);
+      gitRun(ws, ['log', '-n', String(n), '--pretty=format:%H%x1f%h%x1f%an%x1f%aI%x1f%s'], (e, r) => {
+        if (!r.ok) return ok({ repo: false, error: r.error, commits: [] });
+        const commits = r.out.split('\n').filter(Boolean).map(line => {
+          const [hash, short, author, date, ...subject] = line.split('\x1f');
+          return { hash, short, author, date, subject: subject.join('\x1f') };
+        });
+        ok({ repo: true, commits });
+      });
+      return;
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'git' && parts[2] === 'commit-files') {
+      const ws = gitWorkspace();
+      if (!ws) return fail('Invalid workspace', 400);
+      const sha = params.sha || '';
+      if (!/^[0-9a-f]{4,40}$/i.test(sha)) return fail('Invalid commit sha', 400);
+      gitRun(ws, ['diff-tree', '--no-commit-id', '--name-status', '-r', '-z', '--root', sha], (e, r) => {
+        if (!r.ok) return ok({ repo: false, error: r.error, files: [] });
+        const chunks = r.out.split('\0').filter(Boolean);
+        const files = [];
+        for (let i = 0; i < chunks.length; i++) {
+          const status = chunks[i];
+          if (!/^[AMDRTC]\d?$/.test(status)) continue;
+          const file = chunks[++i];
+          if (file) files.push({ status: status[0], path: file });
+        }
+        ok({ repo: true, files });
+      });
+      return;
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'git' && parts[2] === 'diff') {
+      const ws = gitWorkspace();
+      if (!ws) return fail('Invalid workspace', 400);
+      const file = params.file;
+      if (!file) return fail('file required', 400);
+      const args = ['diff', '--no-color'];
+      if (params.staged === '1') args.push('--cached');
+      args.push('--', file);
+      gitRun(ws, args, (e, r) => {
+        if (!r.ok) return fail(r.error, 500);
+        ok({ diff: r.out });
+      });
+      return;
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'git' && parts[2] === 'show') {
+      const ws = gitWorkspace();
+      if (!ws) return fail('Invalid workspace', 400);
+      const sha = params.sha || '';
+      const file = params.file;
+      if (!/^[0-9a-f]{4,40}$/i.test(sha)) return fail('Invalid commit sha', 400);
+      if (!file) return fail('file required', 400);
+      gitRun(ws, ['show', '--no-color', '--format=', sha, '--', file], (e, r) => {
+        if (!r.ok) return fail(r.error, 500);
+        ok({ diff: r.out });
+      });
+      return;
+    }
+
+    // ---------- Terminal (node-pty — real TTY; wede-style, xterm passes raw keys) ----------
+    function termKeyOf(req) { return termKey(req); }
+    function termBufAppend(sess, data) {
+      sess.parts.push(data);
+      sess.len += data.length;
+      while (sess.len > 256 * 1024 && sess.parts.length > 1) sess.len -= sess.parts.shift().length;
+    }
+    function readJsonBody(req, cb, max = 64 * 1024) {
+      let body = '';
+      req.on('data', c => { body += c; if (body.length > max) req.destroy(); });
+      req.on('end', () => {
+        let data = {};
+        try { data = JSON.parse(body || '{}'); } catch { return cb(null); }
+        cb(data);
+      });
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'term' && parts[2] === 'open') {
+      return readJsonBody(req, data => {
+        if (!data) return fail('Invalid JSON', 400);
+        const key = termKeyOf(req);
+        const existing = termSessions.get(key);
+        if (existing) {
+          if (existing.stream && !existing.stream.writableEnded) { try { existing.stream.end(); } catch {} }
+          try { existing.pty.kill(); } catch {}
+          termSessions.delete(key);
+        }
+
+        let cwd = data.cwd || rootDir || process.cwd();
+        if (!isPathSafe(cwd)) return fail('Access denied: path outside root directory', 403);
+        try { if (!fs.statSync(cwd).isDirectory()) cwd = rootDir || process.cwd(); }
+        catch { cwd = rootDir || process.cwd(); }
+
+        const cols = Math.min(500, Math.max(20, parseInt(data.cols) || 80));
+        const rows = Math.min(200, Math.max(5, parseInt(data.rows) || 24));
+        const isWin = process.platform === 'win32';
+        const file = isWin ? (process.env.ComSpec || 'cmd.exe') : (process.env.SHELL || '/bin/bash');
+
+        let pty;
+        try {
+          pty = getPty().spawn(file, [], {
+            name: 'xterm-256color', cols, rows, cwd,
+            env: { ...process.env, TERM: 'xterm-256color' },
+          });
+        } catch (e) { return fail('Failed to start shell: ' + e.message, 500); }
+
+        const sess = { pty, parts: [], len: 0, stream: null, exited: false, cwd };
+        termSessions.set(key, sess);
+        pty.onData(d => {
+          termBufAppend(sess, d);
+          if (sess.stream && !sess.stream.writableEnded) sess.stream.write(d);
+        });
+        pty.onExit(() => {
+          sess.exited = true;
+          if (termSessions.get(key) === sess) termSessions.delete(key);
+          if (sess.stream && !sess.stream.writableEnded) {
+            try { sess.stream.write('\r\n[process exited]\r\n'); sess.stream.end(); } catch {}
+          }
+        });
+        return ok({ ok: true, cwd });
+      });
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'term' && parts[2] === 'stream') {
+      const sess = termSessions.get(termKeyOf(req));
+      if (!sess || sess.exited) return fail('No terminal session', 410);
+      // Single viewer: a new stream takes over from any previous one
+      if (sess.stream && !sess.stream.writableEnded) { try { sess.stream.end(); } catch {} }
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Cache-Control': 'no-cache',
+        'X-Accel-Buffering': 'no',
+      });
+      for (const chunk of sess.parts) res.write(chunk);
+      sess.stream = res;
+      res.on('close', () => { if (sess.stream === res) sess.stream = null; });
+      return; // stays open, fed by pty.onData above
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'term' && parts[2] === 'input') {
+      return readJsonBody(req, data => {
+        if (!data) return fail('Invalid JSON', 400);
+        const sess = termSessions.get(termKeyOf(req));
+        if (!sess || sess.exited) return fail('No terminal session', 410);
+        if (typeof data.data === 'string' && data.data) { try { sess.pty.write(data.data); } catch {} }
+        return ok({ ok: true });
+      });
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'term' && parts[2] === 'resize') {
+      return readJsonBody(req, data => {
+        if (!data) return fail('Invalid JSON', 400);
+        const sess = termSessions.get(termKeyOf(req));
+        if (!sess || sess.exited) return fail('No terminal session', 410);
+        const cols = Math.min(500, Math.max(20, parseInt(data.cols) || 80));
+        const rows = Math.min(200, Math.max(5, parseInt(data.rows) || 24));
+        try { sess.pty.resize(cols, rows); } catch {}
+        return ok({ ok: true });
+      }, 1024);
+    }
+
+    if (parts[0] === 'api' && parts[1] === 'term' && parts[2] === 'close') {
+      const key = termKeyOf(req);
+      const sess = termSessions.get(key);
+      if (sess) {
+        if (sess.stream && !sess.stream.writableEnded) { try { sess.stream.end(); } catch {} }
+        try { sess.pty.kill(); } catch {}
+        termSessions.delete(key);
+      }
+      return ok({ ok: true });
+    }
+
     if (parts[0] === 'api' && parts[1] === 'download' && params.path) {
       if (!checkPath(params.path)) return;
       fs.stat(params.path, (err, stat) => {
@@ -549,6 +949,16 @@ function router(req, res) {
 
 function startServer(opts) {
   readonly = opts.readonly;
+
+  // Password: --password flag > EDLICS_PASSWORD env > auto-generated (printed once)
+  let password = opts.password || process.env.EDLICS_PASSWORD;
+  let generatedPassword = false;
+  if (!password) {
+    password = crypto.randomBytes(12).toString('base64url');
+    generatedPassword = true;
+  }
+  authPasswordHash = sha256(password);
+
   if (opts.root) {
     rootDir = path.resolve(opts.root);
     if (!fs.existsSync(rootDir)) {
@@ -565,6 +975,9 @@ function startServer(opts) {
   server.listen(opts.port, opts.hostname, () => {
     console.log(`\n  Edlics running at:`);
     console.log(`  Local:   http://${opts.hostname === '0.0.0.0' ? 'localhost' : opts.hostname}:${opts.port}`);
+    if (generatedPassword) {
+      console.log(`  Password: ${password}  (auto-generated — set --password or EDLICS_PASSWORD to choose your own)`);
+    }
     if (rootDir) {
       console.log(`  Root:    ${rootDir}`);
     }
@@ -598,11 +1011,12 @@ if (cmd === 'serve') {
     --hostname   Host to bind to (default: 127.0.0.1)
     --port       Port to listen on (default: 3000)
     --root       Root directory to restrict file operations (default: no restriction)
+    --password   Login password (or set EDLICS_PASSWORD; auto-generated if omitted)
     --readonly   Enable read-only mode — blocks all write operations
 
   Examples:
     edlics serve
-    edlics serve --hostname 0.0.0.0 --port 5000
+    edlics serve --hostname 0.0.0.0 --port 5000 --password secret
     edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www
   `);
 }

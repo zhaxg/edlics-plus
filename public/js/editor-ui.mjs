@@ -189,8 +189,8 @@ export function renderTabs() {
     toggleContainer.appendChild(mdToggle);
   }
 
-  // Refresh button — re-read file from disk (all file types)
-  if (activeTab) {
+  // Refresh button — re-read file from disk (all file types except diffs)
+  if (activeTab && activeTab.type !== 'diff') {
     const refreshBtn = document.createElement('div');
     refreshBtn.className = 'md-tab-toggle';
     refreshBtn.title = 'Reload file';
@@ -222,7 +222,7 @@ export function renderTabs() {
 export function closeEditor() {
   if (state.editorView) { state.editorView.destroy(); state.editorView = null; }
   const area = document.getElementById('editorArea');
-  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper').forEach(el => el.remove());
+  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper, .diff-view').forEach(el => el.remove());
   const welcome = document.getElementById('welcome');
   if (welcome) welcome.classList.remove('hidden');
   document.getElementById('pathBar').innerHTML = '';
@@ -243,7 +243,32 @@ export function loadEditor(tab) {
   if (!tab) return;
   if (state.editorView) { state.editorView.destroy(); state.editorView = null; }
   // Clear previous content (textareas, images, binary previews, md toggle, etc.)
-  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper').forEach(el => el.remove());
+  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper, .diff-view').forEach(el => el.remove());
+
+  // Read-only unified diff view (git panel)
+  if (tab.type === 'diff') {
+    const container = document.createElement('div');
+    container.className = 'diff-view';
+    const html = (tab.content || '').split('\n').map(line => {
+      let cls = 'diff-ctx';
+      if (line.startsWith('diff ') || line.startsWith('index ') || line.startsWith('+++') || line.startsWith('---')) cls = 'diff-meta';
+      else if (line.startsWith('@@')) cls = 'diff-hunk';
+      else if (line.startsWith('+')) cls = 'diff-add';
+      else if (line.startsWith('-')) cls = 'diff-del';
+      return `<div class="${cls}">${escapeHtml(line) || '&nbsp;'}</div>`;
+    }).join('');
+    container.innerHTML = html;
+    area.appendChild(container);
+    // Diff tabs use a virtual path — show just the label, never a clickable breadcrumb
+    const pb = document.getElementById('pathBar');
+    pb.innerHTML = '';
+    const label = document.createElement('span');
+    label.textContent = '⑂ ' + tab.name;
+    label.style.color = 'var(--accent)';
+    pb.appendChild(label);
+    updateStatus();
+    return;
+  }
 
   // Image preview
   if (tab.type === 'image') {
@@ -385,6 +410,20 @@ export function loadEditor(tab) {
     }
 
     tab.cmView = { view: state.editorView };
+    // Reveal position requested by search results / go-to-line
+    if (tab._pendingReveal) {
+      const { line, column } = tab._pendingReveal;
+      tab._pendingReveal = null;
+      try {
+        const doc = state.editorView.state.doc;
+        const targetLine = doc.line(Math.min(Math.max(1, line), doc.lines));
+        const col = Math.min(Math.max(1, column || 1) - 1, targetLine.to - targetLine.from);
+        state.editorView.dispatch({
+          selection: { anchor: targetLine.from + col },
+          effects: EditorView.scrollIntoView(targetLine.from, { y: 'center' }),
+        });
+      } catch {}
+    }
     state.editorView.focus();
     updatePathBar(tab.path);
     updateStatus();
@@ -406,7 +445,7 @@ export function updatePathBar(filePath) {
     if (parts[i] !== basename(filePath)) {
       span.style.cursor = 'pointer';
       const dir = current;
-      span.addEventListener('click', function () { import('./file-tree.mjs').then(m => m.renderTree(dir)); });
+      span.addEventListener('click', function () { import('./file-tree.mjs').then(m => m.revealPath(dir)); });
     }
     el.appendChild(span);
   }

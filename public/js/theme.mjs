@@ -54,6 +54,8 @@ export function applyTheme(isLight) {
       tab.cmView.view.dispatch({ effects: themeCompartment.reconfigure(currentTheme) });
     }
   }
+  // Let other editors (xterm terminal) sync their own palette
+  document.dispatchEvent(new CustomEvent('theme-changed', { detail: { light: isLight } }));
 }
 
 export function initTheme() {
