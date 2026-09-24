@@ -134,7 +134,8 @@ test('terminal PTY round-trip: open → stream echoes a command', async () => {
   const open = await fetchJson('/api/term/open', {
     method: 'POST', headers: { cookie }, body: JSON.stringify({ cols: 80, rows: 24, cwd: ROOT }),
   });
-  assert.strictEqual(open.status, 200);
+  // include the server's error body so CI failures are self-explaining
+  assert.strictEqual(open.status, 200, 'term/open body: ' + JSON.stringify(open.body));
   assert.ok(open.data.ok);
 
   // Attach the stream and start reading in the background

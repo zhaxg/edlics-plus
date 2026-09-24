@@ -175,7 +175,17 @@ function handleOpen(ctx) {
     const cols = Math.min(500, Math.max(20, parseInt(data.cols) || 80));
     const rows = Math.min(200, Math.max(5, parseInt(data.rows) || 24));
     const isWin = process.platform === 'win32';
-    const file = isWin ? (process.env.ComSpec || 'cmd.exe') : (process.env.SHELL || '/bin/bash');
+    let file = isWin ? (process.env.ComSpec || 'cmd.exe') : (process.env.SHELL || '/bin/bash');
+    if (!isWin) {
+      // $SHELL can point at a non-existent path on CI images — fall back to
+      // the standard shells rather than failing the spawn.
+      const candidates = [file, '/bin/bash', '/bin/sh'];
+      const found = candidates.find(c => {
+        try { return fs.existsSync(c) && fs.statSync(c).isFile(); } catch { return false; }
+      });
+      if (!found) return fail('No usable shell found (checked $SHELL, /bin/bash, /bin/sh)', 500);
+      file = found;
+    }
 
     let pty;
     try {

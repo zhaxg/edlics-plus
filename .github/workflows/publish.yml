@@ -34,6 +34,21 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # node-pty's npm tarball ships prebuilds for win/darwin only — Linux
+      # needs the install script to fetch/compile one. npm install can exit 0
+      # while skipping lifecycle scripts (allow-scripts policy), which yields
+      # a green install but a 500 on /api/term/open at test time.
+      - name: Ensure node-pty has a Linux binding
+        run: |
+          if node -e "require('node-pty')" 2>/dev/null; then
+            echo "node-pty binding OK"
+          else
+            echo "node-pty binding missing — building…"
+            (cd node_modules/node-pty && node scripts/prebuild.js) \
+              || (cd node_modules/node-pty && npx -y node-gyp rebuild)
+            node -e "require('node-pty')"
+          fi
+
       - name: Build editor bundle
         run: npm run build
 
