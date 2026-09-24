@@ -105,6 +105,9 @@ body {
   border-right: 1px solid var(--border); display: flex; flex-direction: column;
   overflow: hidden; transition: width 0.2s ease, min-width 0.2s ease;
 }
+/* During a resize drag the width transition must be off, otherwise every
+   mousemove restarts a 200ms animation and the panel lags behind the cursor. */
+.sidebar.resizing { transition: none; }
 .sidebar .panel { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .sidebar .panel.hidden { display: none; }
 .panel-body { flex: 1; overflow-y: auto; padding: 6px 0; }
