@@ -34,9 +34,76 @@ async function loadMarked() {
   });
 }
 
-export async function renderMarkdown(content) {
+export async function renderMarkdown(content, filePath) {
   const marked = await loadMarked();
-  return marked.parse(content || '');
+  return rewriteImages(marked.parse(content || ''), filePath);
+}
+
+function dirnamePosix(p) {
+  const s = String(p || '').replace(/\\/g, '/');
+  const i = s.lastIndexOf('/');
+  return i > 0 ? s.slice(0, i) : '';
+}
+
+/** Collapse `.`/`..` segments in a POSIX-ish path (keeps drive letters intact). */
+function normalizePosix(p) {
+  const rooted = p.startsWith('/') || /^[a-zA-Z]:\//.test(p);
+  const out = [];
+  for (const seg of p.split('/')) {
+    if (seg === '' || seg === '.') continue;
+    if (seg === '..') {
+      if (out.length && out[out.length - 1] !== '..') { out.pop(); continue; }
+      if (rooted) continue;
+      out.push(seg);
+      continue;
+    }
+    out.push(seg);
+  }
+  let joined = out.join('/');
+  if (!/^[a-zA-Z]:/.test(joined) && rooted) joined = '/' + joined;
+  return joined;
+}
+
+/**
+ * Resolve one <img src> for preview. Relative paths must resolve against the
+ * markdown FILE's directory (not the page URL) and be fetched through
+ * /api/download (auth + root containment + correct MIME).
+ * Pure — exported for unit tests.
+ * @param {string} src
+ * @param {string} [filePath] absolute path of the .md file
+ * @returns {string} src to render
+ */
+export function resolveImgSrc(src, filePath) {
+  const s = (src || '').trim();
+  if (!s) return s;
+  if (/^(data:|https?:|\/\/)/i.test(s)) return s;   // data-URI / external URL
+  if (s.startsWith('/api/')) return s;              // already an endpoint
+  const dir = dirnamePosix(filePath);
+  let resolved;
+  if (/^[a-zA-Z]:[\\/]/.test(s)) {
+    resolved = s.replace(/\\/g, '/');               // windows absolute E:\a\b
+  } else if (s.startsWith('/')) {
+    resolved = s;                                   // server absolute path
+  } else if (dir) {
+    resolved = dir + '/' + s;                       // relative to the .md file
+  } else {
+    return s;                                       // no context — leave as-is
+  }
+  return '/api/download?path=' + encodeURIComponent(normalizePosix(resolved));
+}
+
+function rewriteImages(html, filePath) {
+  if (typeof DOMParser === 'undefined') return html; // non-DOM fallback (tests)
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  let changed = 0;
+  for (const img of doc.querySelectorAll('img')) {
+    const next = resolveImgSrc(img.getAttribute('src'), filePath);
+    if (next !== img.getAttribute('src')) {
+      img.setAttribute('src', next);
+      changed++;
+    }
+  }
+  return changed ? doc.body.innerHTML : html;
 }
 
 // Render SVG content as a preview (direct DOM insert, no iframe needed)

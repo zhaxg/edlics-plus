@@ -197,7 +197,7 @@ export function loadEditor(tab) {
               renderSvgPreview(previewPanel, tab.content);
             } else {
               // Markdown: render as HTML
-              previewPanel.innerHTML = await renderMarkdown(tab.content);
+              previewPanel.innerHTML = await renderMarkdown(tab.content, tab.path);
             }
           } catch (e) {
             previewPanel.innerHTML = '<p style="color:var(--red);">Preview error: ' + escapeHtml(e.message) + '</p>';
