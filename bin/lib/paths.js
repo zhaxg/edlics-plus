@@ -10,6 +10,17 @@ let rootDir = null; // When set, all file operations are restricted to this dire
 function setRootDir(p) { rootDir = p ? path.resolve(p) : null; }
 function getRootDir() { return rootDir; }
 
+/**
+ * Canonical external path form: POSIX forward slashes everywhere
+ * (`E:\temp/edlics-plus` → `E:/temp/edlics-plus`). Windows fs/path accept
+ * '/' natively; Linux output is already POSIX so this is a no-op there.
+ * Internal fs calls may keep native separators — only client-facing
+ * strings (info/search/term results, breadcrumbs) must go through this.
+ */
+function toPosix(p) {
+  return typeof p === 'string' ? p.replace(/\\/g, '/') : p;
+}
+
 // Cross-platform containment check: target is base itself or a descendant.
 // path.relative handles OS separators and Windows case-insensitivity,
 // unlike prefixing with '/' which breaks on Windows (rootDir + '/' never matches '\').
@@ -137,4 +148,4 @@ function getExcludes(dirPath) {
   return excluded;
 }
 
-module.exports = { setRootDir, getRootDir, isWithinRoot, isPathSafe, detectFileType, getExcludes };
+module.exports = { setRootDir, getRootDir, toPosix, isWithinRoot, isPathSafe, detectFileType, getExcludes };

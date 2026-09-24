@@ -4,7 +4,14 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { setRootDir, isWithinRoot, isPathSafe } = require('../bin/lib/paths');
+const { setRootDir, isWithinRoot, isPathSafe, toPosix } = require('../bin/lib/paths');
+
+test('toPosix: backslashes → forward slashes, POSIX input unchanged', () => {
+  assert.strictEqual(toPosix('E:\\temp/edlics-plus'), 'E:/temp/edlics-plus');
+  assert.strictEqual(toPosix('E:\\temp\\edlics-plus'), 'E:/temp/edlics-plus');
+  assert.strictEqual(toPosix('/home/user/project'), '/home/user/project');
+  assert.strictEqual(toPosix(null), null);
+});
 
 test('isWithinRoot: base itself and descendants pass, siblings/escapes fail', () => {
   const base = path.resolve(path.sep + 'proj');

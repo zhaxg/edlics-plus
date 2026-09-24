@@ -65,6 +65,9 @@ export function confirmDialog(msg) {
 
 export function basename(p) { return p.split('/').filter(Boolean).pop() || p; }
 
+/** Canonical path form: POSIX forward slashes (Windows \ → /). */
+export function toPosix(p) { return typeof p === 'string' ? p.replace(/\\/g, '/') : p; }
+
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.avif', '.bmp', '.ico', '.tiff', '.tif']);
 export function isImageFile(name) {
   const dot = name.lastIndexOf('.');

@@ -1,13 +1,13 @@
 // workspace.mjs — Open-a-project-folder flow + persistence (localStorage)
 
-import { api, toast, escapeHtml, basename } from './api.mjs';
+import { api, toast, escapeHtml, basename, toPosix } from './api.mjs';
 import { state, HOME, serverInfo, saveWorkspace, loadWorkspace } from './state.mjs';
 import { renderTree } from './file-tree.mjs';
 import { getFileIcon } from './icons.mjs';
 
 // Root the folder picker may not navigate above (when --root is set, home === rootDir)
 function pickerCeiling() {
-  if (serverInfo && serverInfo.root) return serverInfo.home;
+  if (serverInfo && serverInfo.root) return toPosix(serverInfo.home);
   return '/';
 }
 
@@ -121,18 +121,21 @@ export function openFolderDialog() {
 function joinPath(a, b) { return (a.replace(/[\\/]+$/, '') + '/' + b); }
 
 export function setWorkspace(path) {
-  saveWorkspace(path);
+  const ws = toPosix(path);
+  saveWorkspace(ws);
   updateExplorerHeader();
   renderTree();
-  toast('Opened ' + basename(path));
+  toast('Opened ' + basename(ws));
   // Notify other panels (git/search) that the workspace changed
-  document.dispatchEvent(new CustomEvent('workspace-changed', { detail: path }));
+  document.dispatchEvent(new CustomEvent('workspace-changed', { detail: ws }));
 }
 
 // On boot: restore from localStorage (validate it), or show the open-folder prompt.
 export function initWorkspace() {
-  const saved = loadWorkspace();
-  if (saved) {
+  const raw = loadWorkspace();
+  if (raw) {
+    const saved = toPosix(raw);
+    if (saved !== raw) saveWorkspace(saved); // migrate legacy mixed-separator value
     api('GET', `/api/list?path=${encodeURIComponent(saved)}`).then(items => {
       if (Array.isArray(items)) {
         state.workspace = saved;

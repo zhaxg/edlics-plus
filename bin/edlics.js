@@ -124,7 +124,7 @@ function startServer(opts) {
     }
     const rootDir = paths.getRootDir();
     if (rootDir) {
-      console.log(`  Root:    ${rootDir}`);
+      console.log(`  Root:    ${paths.toPosix(rootDir)}`);
     }
     if (opts.hostname === '0.0.0.0') {
       const os = require('os');

@@ -58,6 +58,9 @@ docs/                README 截图与 logo
 7. **前端响应形状**：成功=数据本体，失败=`{ error: string }` + 对应 status。
    会话 Cookie：`HttpOnly; SameSite=Strict`，7 天。
 8. **密码**：`--password` > `EDLICS_PASSWORD` > 自动生成并打印；sha256 + `timingSafeEqual`。
+9. **对外路径一律 POSIX 正斜杠**：返回给客户端的路径（info.home、搜索结果、term cwd、
+   面包屑）必须过 `paths.toPosix()`；Windows 的 `fs`/`path` 原生接受 `/`，内部计算可保留
+   系统分隔符。localStorage 里旧的混合分隔符工作区在 `workspace.mjs` 加载时自动迁移。
 
 ## 如何新增一个 API 端点
 

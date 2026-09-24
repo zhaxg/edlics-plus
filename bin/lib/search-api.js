@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const fsp = fs.promises;
-const { getRootDir, getExcludes } = require('./paths');
+const { getRootDir, getExcludes, toPosix } = require('./paths');
 
 /**
  * @typedef {Object} ContentMatch
@@ -32,7 +32,7 @@ function handleFilenameSearch(ctx) {
         const full = path.join(dir, e.name);
         if (full.length > 4096) { if (--pending === 0) cb(); continue; }
         if (results.length >= 200) { if (--pending === 0) cb(); continue; }
-        if (e.name.toLowerCase().includes((params.q || '').toLowerCase())) results.push(full);
+        if (e.name.toLowerCase().includes((params.q || '').toLowerCase())) results.push(toPosix(full));
         if (e.isDirectory()) {
           walk(full, () => { if (--pending === 0) cb(); });
         } else {
@@ -82,7 +82,8 @@ async function searchOneFile(filePath, needle, caseSensitive) {
   // Skip binary (null byte in first 8KB)
   const probe = Math.min(buf.length, 8192);
   for (let i = 0; i < probe; i++) if (buf[i] === 0) return [];
-  return collectMatches(filePath, buf.toString('utf-8'), needle, caseSensitive, MAX_RESULTS);
+  // report the path in POSIX form (read uses the native path as-is)
+  return collectMatches(toPosix(filePath), buf.toString('utf-8'), needle, caseSensitive, MAX_RESULTS);
 }
 
 async function walkContent(dir, state) {

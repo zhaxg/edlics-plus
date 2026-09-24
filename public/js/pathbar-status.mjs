@@ -6,10 +6,14 @@ export function updatePathBar(filePath) {
   const el = document.getElementById('pathBar');
   el.innerHTML = '';
   const parts = filePath.split('/').filter(Boolean);
+  // POSIX paths split cleanly; Windows drive paths arrive as 'E:/…' so the
+  // first segment ('E:') must not get a leading slash prepended.
+  const hasDrive = /^[A-Za-z]:$/.test(parts[0] || '');
   let current = '';
   for (let i = 0; i < parts.length; i++) {
     if (i > 0) { const s = document.createElement('span'); s.className = 'sep'; s.textContent = '/'; el.appendChild(s); }
-    current += '/' + parts[i];
+    if (i === 0) current = hasDrive ? parts[0] : '/' + parts[0];
+    else current += '/' + parts[i];
     const span = document.createElement('span');
     span.textContent = parts[i];
     if (parts[i] !== basename(filePath)) {

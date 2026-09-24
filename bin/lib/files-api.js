@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
-const { getRootDir, detectFileType } = require('./paths');
+const { getRootDir, detectFileType, toPosix } = require('./paths');
 const { VERSION } = require('./version');
 
 /**
@@ -246,7 +246,7 @@ function handleInfo(ctx) {
       }
     }
   } catch {}
-  ok({ user, hostname: os.hostname(), ip, home: homeDir, root: !!rootDir, readonly, docker, version: VERSION });
+  ok({ user, hostname: os.hostname(), ip, home: toPosix(homeDir), root: !!rootDir, readonly, docker, version: VERSION });
 }
 
 /** Route table — see CLAUDE.md. `parts[0] === 'api'` is guaranteed by the dispatcher. */

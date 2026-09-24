@@ -81,6 +81,7 @@ test('auth gate: 401 without session, login flow issues a working cookie', async
   // spawned without --root so search/traversal cases can reach arbitrary paths
   assert.strictEqual(authed.data.root, false, 'no --root → root:false');
   assert.ok(authed.data.version, 'version present');
+  assert.ok(!String(authed.data.home).includes('\\'), 'info.home must use POSIX separators');
 });
 
 test('static path traversal regression: /../ stays inside public/', async () => {
@@ -118,6 +119,7 @@ test('search-content: finds a needle in a temp workspace file (async path)', asy
     assert.strictEqual(r.data[0].line, 2);
     assert.strictEqual(r.data[0].column, 1);
     assert.ok(r.data[0].text.includes('needle-here'));
+    assert.ok(!r.data[0].path.includes('\\'), 'search results must use POSIX separators');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

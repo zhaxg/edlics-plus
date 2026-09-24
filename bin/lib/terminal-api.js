@@ -6,7 +6,7 @@
 // don't outlive the browser tab forever (see CLAUDE.md).
 const fs = require('fs');
 const { parseCookies } = require('./auth');
-const { getRootDir, isPathSafe } = require('./paths');
+const { getRootDir, isPathSafe, toPosix } = require('./paths');
 
 /**
  * @typedef {Object} TermSession
@@ -116,7 +116,7 @@ function handleOpen(ctx) {
         try { sess.stream.write('\r\n[process exited]\r\n'); sess.stream.end(); } catch {}
       }
     });
-    return ok({ ok: true, cwd });
+    return ok({ ok: true, cwd: toPosix(cwd) });
   });
 }
 
