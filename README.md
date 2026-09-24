@@ -217,19 +217,31 @@ node bin/edlics.js serve --root . --password dev123
 
 > `--root .` 把文件操作限制在仓库目录内，本地开发更安全。
 
+> **AI / 新人先读 [CLAUDE.md](CLAUDE.md)**：模块地图、安全不变量、"如何加端点/加面板"配方、已知坑。
+
 ### 目录结构
 
 ```text
 edlics-plus/
 ├── bin/
-│   └── edlics.js              # 后端：http 服务 + 认证 + 文件 API + Git API + PTY 终端（单文件）
+│   ├── edlics.js              # 入口：CLI、启动、API 调度 + 声明式路由表（~170 行）
+│   └── lib/                   # 后端领域模块（每个 ≤270 行，见 CLAUDE.md 地图）
+│       ├── paths.js           #   路径安全原语 / 目录排除规则 / 二进制嗅探
+│       ├── auth.js            #   密码登录、会话、IP 锁定
+│       ├── static.js          #   静态服务（ETag 304 + gzip）+ 路由与穿越防护
+│       ├── files-api.js       #   文件 CRUD / stat / sudo / info
+│       ├── transfer-api.js    #   下载（tar.gz）/ 上传
+│       ├── search-api.js      #   文件名搜索 + 全文搜索（async fs）
+│       ├── git-api.js         #   Git 只读 API + 纯解析器（可单测）
+│       ├── terminal-api.js    #   node-pty 会话 + 空闲回收
+│       └── version.js         #   版本号解析
 ├── bundle/
 │   ├── editor.mjs             # CodeMirror 6 打包入口 → public/editor.mjs
 │   ├── terminal.mjs           # xterm.js 打包入口 → public/terminal.mjs + terminal.css
 │   └── build-icons.mjs        # Material 图标 manifest 生成
 ├── public/                    # 前端静态资源（原样由服务器托管）
 │   ├── index.html             # 页面骨架：活动栏 / 侧栏面板 / 编辑区 / 终端 / 登录遮罩
-│   ├── css/style.css          # 全部样式（CSS 变量实现明暗主题）
+│   ├── css/style.css          # 全部样式（CSS 变量实现明暗主题；滚动条全局统一）
 │   ├── js/
 │   │   ├── app.mjs            # 主入口：快捷键、初始化、登录后 boot
 │   │   ├── auth.mjs           # 登录遮罩与会话
@@ -239,14 +251,18 @@ edlics-plus/
 │   │   ├── search.mjs         # 文件名快搜 + 全文搜索面板
 │   │   ├── git.mjs            # Git 面板（Changes / Graph 时间线 / diff）
 │   │   ├── terminal-ui.mjs    # xterm + PTY 流式输入输出
-│   │   ├── editor-ui.mjs      # CodeMirror 标签页、路径栏、diff 视图
+│   │   ├── editor-ui.mjs      # CodeMirror 宿主：语言映射/预览/diff/跳转
+│   │   ├── tabs.mjs           # 标签页状态、渲染、右键菜单
+│   │   ├── pathbar-status.mjs # 面包屑路径栏 + 状态栏
 │   │   ├── file-ops.mjs       # 打开/保存/重命名/删除（支持跳转行列）
 │   │   ├── state.mjs api.mjs theme.mjs …
 │   ├── icons/                 # Material Design 图标（600+ SVG）
 │   ├── editor.mjs             # esbuild 产物（勿手改）
 │   └── terminal.mjs/.css      # esbuild 产物（勿手改）
+├── test/                      # node --test：单测 + 服务集成冒烟
 ├── docs/                      # README 截图与 logo（logo.svg）
-├── .github/workflows/         # publish.yml：tag 触发发 npm（OIDC）
+├── .github/workflows/         # publish.yml（tag→npm+Release）、release.yml（手动补发）
+├── CLAUDE.md                  # AI/新人协作文档（地图、不变量、配方）
 ├── install.sh                 # 依赖安装 + symlink 安装
 └── package.json
 ```
@@ -282,10 +298,9 @@ npm install
 ### 质量检查（提交前）
 
 ```bash
-node --check bin/edlics.js        # 后端语法
-node --check public/js/*.mjs      # 前端语法
-npm run build                     # bundle 可构建
-timeout 3 node bin/edlics.js serve --port 19999 || true   # 冒烟：能启动
+npm test                          # 首选：22 个单测 + 集成冒烟（认证/穿越/PTY/gzip）
+npm run build                     # 两个 bundle 可构建
+timeout 3 node bin/edlics.js serve --port 19999 || true   # CI 同款冒烟：能启动
 ```
 
 ### 发布流程
