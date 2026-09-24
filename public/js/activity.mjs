@@ -1,6 +1,7 @@
 // activity.mjs — Left activity bar: switch sidebar views, toggle terminal panel
 
-import { state } from './state.mjs';
+import { state, serverInfo } from './state.mjs';
+import { toast } from './api.mjs';
 
 const VIEW_TO_PANEL = {
   explorer: 'panel-explorer',
@@ -26,6 +27,12 @@ export function toggleTerminal(force) {
   const panel = document.getElementById('terminalPanel');
   const btn = document.querySelector('.act-btn[data-view="terminal"]');
   const show = force !== undefined ? force : panel.classList.contains('hidden');
+  // Terminal is disabled by default server-side — give a friendly hint instead
+  // of opening a panel that would immediately403.
+  if (show && serverInfo && serverInfo.terminal === false) {
+    toast('Terminal is disabled — start the server with --terminal to enable it', true);
+    return;
+  }
   panel.classList.toggle('hidden', !show);
   btn.classList.toggle('active', show);
   state.terminalOpen = show;

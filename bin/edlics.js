@@ -25,7 +25,10 @@ const ROUTES = [
   ...terminalApi.routes,
 ];
 
-let readonly = false; // When true, all write operations are blocked (--readonly)
+let readonly = false; // When true, all write operations are blocked
+// Terminal is OFF by default: it grants a full shell, so enabling it must be
+// a deliberate act (--terminal). --readonly always wins and disables it.
+let terminalEnabled = false; (--readonly)
 
 function json(res, data, status = 200) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' });
@@ -56,7 +59,7 @@ function handleAPI(req, res) {
   /** Shared request context handed to every route handler. */
   const ctx = {
     req, res, parts, params, ok, fail, checkReadonly, checkPath,
-    readonly, rootDir: paths.getRootDir(),
+    readonly, rootDir: paths.getRootDir(), terminal: terminalEnabled,
   };
 
   try {
@@ -68,6 +71,10 @@ function handleAPI(req, res) {
 
     const route = ROUTES.find(r => r.match(parts, params));
     if (!route) return fail('Not found', 404);
+    // The terminal is a full shell — gated behind an explicit opt-in flag.
+    if (route.name.startsWith('api/term') && !terminalEnabled) {
+      return fail('Terminal is disabled. Start the server with --terminal to enable it (not compatible with --readonly).', 403);
+    }
     route.handle(ctx);
   } catch (e) {
     fail(e.message);
@@ -79,19 +86,21 @@ const router = staticFiles.makeRouter(handleAPI);
 function parseArgs() {
   const args = process.argv.slice(2);
   const cmd = args[0];
-  const opts = { hostname: '127.0.0.1', port: 3000, root: null, readonly: false, password: null };
+  const opts = { hostname: '127.0.0.1', port: 3000, root: null, readonly: false, password: null, terminal: false };
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--hostname' && args[i + 1]) opts.hostname = args[++i];
     if (args[i] === '--port' && args[i + 1]) opts.port = parseInt(args[++i]);
     if (args[i] === '--root' && args[i + 1]) opts.root = args[++i];
     if (args[i] === '--password' && args[i + 1]) opts.password = args[++i];
     if (args[i] === '--readonly') opts.readonly = true;
+    if (args[i] === '--terminal') opts.terminal = true;
   }
   return { cmd, opts };
 }
 
 function startServer(opts) {
   readonly = opts.readonly;
+  terminalEnabled = !!opts.terminal && !opts.readonly;
 
   // Password: --password flag > EDLICS_PASSWORD env > auto-generated (printed once)
   let password = opts.password || process.env.EDLICS_PASSWORD;
@@ -158,10 +167,12 @@ if (cmd === 'serve') {
     --root       Root directory to restrict file operations (default: no restriction)
     --password   Login password (or set EDLICS_PASSWORD; auto-generated if omitted)
     --readonly   Enable read-only mode — blocks all write operations
+    --terminal   Enable the built-in terminal — OFF by default, grants a full
+                 shell (read README「安全说明」before using; not with --readonly)
 
   Examples:
     edlics serve
     edlics serve --hostname 0.0.0.0 --port 5000 --password secret
-    edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www
+    edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www --terminal
   `);
 }

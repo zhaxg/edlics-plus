@@ -40,7 +40,7 @@ async function fetchJson(pathname, options = {}) {
 }
 
 before(async () => {
-  child = spawn(process.execPath, [path.join(ROOT, 'bin', 'edlics.js'), 'serve', '--port', String(PORT), '--password', PASSWORD], {
+  child = spawn(process.execPath, [path.join(ROOT, 'bin', 'edlics.js'), 'serve', '--port', String(PORT), '--password', PASSWORD, '--terminal'], {
     cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'],
   });
   let ready = false;
