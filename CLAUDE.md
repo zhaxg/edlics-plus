@@ -7,9 +7,10 @@ Edlics-Plus：浏览器里的 VSCode 式 IDE。单文件 Node 后端 + 原生 ES
 
 ```bash
 npm install            # 装依赖 + postinstall 自动构建两个 bundle
-npm test               # node --test：22 个单测 + 集成冒烟（含 PTY 往返）
+npm test               # node --test：单测 + 集成冒烟（认证/穿越/PTY/终端门闸/输入策略）
 npm run build          # 仅两个 bundle 需要构建：public/editor.mjs + public/terminal.mjs
 node bin/edlics.js serve --root . --password dev123   # 本地跑（--root 限制在仓库内）
+#                                              需要终端时追加 --terminal
 node --check bin/edlics.js            # 后端语法检查（每个 bin/lib/*.js 同理）
 ```
 
@@ -53,8 +54,13 @@ docs/                README 截图与 logo
 4. **写操作门闸**：`--readonly` 时经 `ctx.checkReadonly()` 拒绝所有写路由。
 5. **Git 命令**：只用 `execFile`（无 shell）；sha 必须匹配 `/^[0-9a-f]{4,40}$/i`；
    pathspec 放在 `--` 之后；cwd 必须是校验过的 workspace。
-6. **终端**：一个登录会话一个 PTY；输出缓冲上限 256KB；空闲 30 分钟自杀
-   (`terminal-api.sweepIdle`)；浏览器只透传原始字节（行编辑在 shell/TTY 内完成）。
+6. **终端**：**默认关闭**——`terminalEnabled = --terminal && !readonly`，调度层按
+   `route.name` 前缀 `api/term` 拦截（`/api/info` 上报 `terminal` 供前端提示）。
+   启用后：一个登录会话一个 PTY；输出缓冲上限 256KB；空闲 30 分钟自杀
+   (`sweepIdle`)；浏览器只透传原始字节（行编辑在 shell/TTY 内完成）。
+   **输入策略（防手滑，非防黑客）**：`classifyInput` 拒绝多行 payload（整包不转发）；
+   Enter 边界用 `checkHighRisk` 拦截高危行（命中 → 吞掉 Enter 并发 ^C 丢行）；
+   `trackLine` 做尽力而为的行跟踪（退格/历史键），详见 `terminal-api.js` 顶部注释。
 7. **前端响应形状**：成功=数据本体，失败=`{ error: string }` + 对应 status。
    会话 Cookie：`HttpOnly; SameSite=Strict`，7 天。
 8. **密码**：`--password` > `EDLICS_PASSWORD` > 自动生成并打印；sha256 + `timingSafeEqual`。

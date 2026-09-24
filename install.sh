@@ -54,4 +54,6 @@ echo "    edlics serve --hostname 0.0.0.0 --port 5000 --password 'your-password'
 echo ""
 echo "  Then open http://localhost:5000 in your browser and sign in."
 echo "  (Omit --password to auto-generate one — it is printed at startup.)"
+echo "  (Optional) append --terminal to enable the built-in terminal —"
+echo "   it grants a full shell; read the README「安全说明」section first.)"
 echo ""

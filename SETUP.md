@@ -141,11 +141,12 @@ edlics serve [options]
   --root       限制文件操作的根目录（默认: 无限制）
   --password   登录密码（或设置环境变量 EDLICS_PASSWORD；省略则自动生成并打印）
   --readonly   只读模式，禁止所有写操作
+  --terminal   启用内置终端 —— **默认关闭**（完整 shell 权限，先读 README「安全说明」；不能与 --readonly 同用）
 
 示例：
   edlics serve
   edlics serve --hostname 0.0.0.0 --port 5000 --password 'secret'
-  edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www --password 'secret'
+  edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www --password 'secret' --terminal
   edlics serve --readonly --root /var/www
 ```
 
@@ -183,7 +184,7 @@ node bin/edlics.js serve --hostname 0.0.0.0 --port 5000 --password '你的密码
 
 ## 终端功能说明（node-pty）
 
-内置终端基于 **node-pty**（原生模块），提供真实 TTY（回显、制表符、`ls` 分栏、Ctrl+C、颜色）。
+内置终端**默认关闭**，需要 `--terminal` 显式启用（且不能与 `--readonly` 同用）——它提供的是完整 shell 权限，开启前请阅读 README 的「安全说明」。终端基于 **node-pty**（原生模块），提供真实 TTY（回显、制表符、`ls` 分栏、Ctrl+C、颜色）。
 
 - 主流平台（Linux x64/arm64、macOS、Windows）安装时通常直接使用预编译二进制，无需编译
 - 若 `npm install` 阶段 node-pty 编译失败，安装编译工具后重试：
@@ -215,6 +216,7 @@ apk add make g++ python3
 | 编辑器没有语法高亮 | 确认 `npm run build` 成功——`public/editor.mjs` 必须存在 |
 | Markdown / SVG 预览不工作 | 强制刷新 `Ctrl+F5`（预览模块按 ES Module 加载） |
 | `root directory does not exist` | `--root` 路径必须存在且是目录 |
+| 打开终端提示 Terminal is disabled | 重启服务并加 `--terminal`（默认关闭；`--readonly` 下不可用） |
 | 登录提示被锁定 | 输错 5 次后锁定 15 分钟；或重启服务立即解除 |
 | 忘记登录密码 | 用 `--password` 重启服务设置新密码 |
 | 安装时报 node-pty 编译失败 | 见上文「终端功能说明」安装编译工具 |
