@@ -5,7 +5,9 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const BASE_PORT = 19600 + (process.pid % 200);
+// Keep this range disjoint from smoke.test.js (18800–19699) so the test
+// files, which node --test runs in parallel child processes, never collide.
+const BASE_PORT = 19700 + (process.pid % 100);
 const P_DISABLED = BASE_PORT;
 const P_READONLY = BASE_PORT + 1;
 let childA = null;

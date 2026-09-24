@@ -15,7 +15,8 @@ node --check bin/edlics.js            # 后端语法检查（每个 bin/lib/*.js
 ```
 
 发布：**只走 tag**（无 push/PR CI）——`npm version patch && git push --tags` →
-`publish.yml` 自动：装依赖 → 构建 → 冒烟 → CHANGELOG → npm(OIDC) → 创建 GitHub Release。
+`publish.yml` 自动：装依赖 → 构建 → **`npm test` 硬闸门（全绿才继续）** → 冒烟 → CHANGELOG →
+npm(OIDC) → 创建 GitHub Release。
 旧 tag 补发 Release 用 `release.yml`（Actions 手动 Run workflow 填 tag）。
 
 ## 架构地图

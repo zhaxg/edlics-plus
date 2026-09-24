@@ -313,7 +313,7 @@ npm install
 ### 质量检查（提交前）
 
 ```bash
-npm test                          # 首选：22 个单测 + 集成冒烟（认证/穿越/PTY/gzip）
+npm test                          # 首选：单测 + 集成冒烟（认证/穿越/PTY/终端门闸/输入策略）
 npm run build                     # 两个 bundle 可构建
 timeout 3 node bin/edlics.js serve --port 19999 || true   # CI 同款冒烟：能启动
 ```
@@ -325,7 +325,7 @@ npm version patch    # 或 minor / major
 git push --tags      # 推 tag → Actions 自动发 npm + 创建 GitHub Release
 ```
 
-`.github/workflows/publish.yml`（仅 `v*` tag 触发）：设版本 → `npm install` → `npm run build`（bundle 已 `--minify`）→ 冒烟测试 → 生成 CHANGELOG → OIDC Trusted Publishing 发布到 npm → **用 CHANGELOG 自动创建同名 GitHub Release**。直接 push main 不会触发发布；历史 tag 可用 `release.yml`（Actions 里手动 Run workflow 填 tag）补发 Release。
+`.github/workflows/publish.yml`（仅 `v*` tag 触发）：设版本 → `npm install` → `npm run build`（bundle 已 `--minify`）→ **`npm test` 硬闸门（全绿才继续，失败则不发 npm、不建 Release）** → 冒烟测试 → 生成 CHANGELOG → OIDC Trusted Publishing 发布到 npm → **用 CHANGELOG 自动创建同名 GitHub Release**。直接 push main 不会触发发布；历史 tag 可用 `release.yml`（Actions 里手动 Run workflow 填 tag）补发 Release。
 
 <br>
 

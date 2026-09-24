@@ -37,6 +37,11 @@ jobs:
       - name: Build editor bundle
         run: npm run build
 
+      # Hard gate: nothing below (changelog / npm publish / GitHub Release)
+      # runs unless the full unit + integration suite is green.
+      - name: Run tests (gate — must pass before publish)
+        run: npm test
+
       - name: Smoke test
         run: |
           test -f public/editor.mjs || { echo "editor.mjs not found"; exit 1; }
