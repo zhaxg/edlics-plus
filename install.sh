@@ -3,13 +3,21 @@ set -e
 
 EDLICS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "  Installing Edlics..."
+echo "  Installing Edlics-Plus..."
 echo ""
 
-# Install npm dependencies and build the editor bundle
+# Install npm dependencies and build the bundles (editor + terminal)
 if [ -f "$EDLICS_DIR/package.json" ]; then
-  echo "  → Installing dependencies..."
-  (cd "$EDLICS_DIR" && npm install)
+  echo "  → Installing dependencies (CodeMirror, xterm, node-pty)..."
+  (cd "$EDLICS_DIR" && npm install) || {
+    echo ""
+    echo "  ✗ npm install failed."
+    echo "    node-pty is a native module — if its build failed, install the toolchain first:"
+    echo "      Debian/Ubuntu: sudo apt install -y build-essential python3"
+    echo "      Alpine:        apk add make g++ python3"
+    echo "    See SETUP.md →「终端功能说明（node-pty）」, then re-run this script."
+    exit 1
+  }
   echo ""
 fi
 
@@ -39,10 +47,11 @@ if ! echo "$PATH" | tr ':' '\n' | grep -qx "$TARGET"; then
 fi
 
 echo ""
-echo "  ✓ Edlics installed!"
+echo "  ✓ Edlics-Plus installed!"
 echo ""
 echo "  Quick start:"
-echo "    edlics serve --hostname 0.0.0.0 --port 5000"
+echo "    edlics serve --hostname 0.0.0.0 --port 5000 --password 'your-password'"
 echo ""
-echo "  Then open http://localhost:5000 in your browser."
+echo "  Then open http://localhost:5000 in your browser and sign in."
+echo "  (Omit --password to auto-generate one — it is printed at startup.)"
 echo ""
