@@ -1,6 +1,6 @@
 // context-menu.mjs — Context menus (file tree + tab bar)
 
-import { toast, basename, dirname, copyToClipboard } from './api.mjs';
+import { toast, basename, dirname, copyToClipboard, workspaceRelative } from './api.mjs';
 import { state, serverInfo } from './state.mjs';
 import { openFile, downloadItem, renameItem, deleteItem, showNewFileDialog, uploadFiles } from './file-ops.mjs';
 
@@ -49,7 +49,7 @@ export function showContextMenu(x, y, filePath, isDir) {
       { icon: 'addfolder', label: 'New Folder', action: () => showNewFileDialog('directory') },
       { icon: 'upload', label: 'Upload', action: () => uploadFiles() },
     ] : []),
-    { icon: 'copy', label: 'Copy Path', action: () => { copyToClipboard(filePath); toast('Copied'); } },
+    { icon: 'copy', label: 'Copy Path', action: () => { copyToClipboard(workspaceRelative(filePath)); toast('Copied'); } },
     { icon: 'download', label: 'Download', action: () => downloadItem(filePath) },
     ...(!ro ? [
       { icon: 'rename', label: 'Rename', action: () => renameItem(filePath) },

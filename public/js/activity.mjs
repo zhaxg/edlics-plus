@@ -40,7 +40,8 @@ export function toggleTerminal(force) {
 }
 
 export function initActivityBar() {
-  document.querySelectorAll('.act-btn').forEach(btn => {
+  // buttons only — .act-btn-bottom is an <a> (GitHub link), not a view switcher
+  document.querySelectorAll('button.act-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
       if (view === 'terminal') {

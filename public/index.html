@@ -12,7 +12,7 @@
 <body>
 <div class="toolbar">
   <div style="display:flex;align-items:center;gap:4px;margin-right:8px;">
-    <span class="logo"><span class="logo-mark">Ed</span>Edlics</span>
+    <span class="logo"><span class="logo-mark">Ed</span>Edlics<a id="appVersion" href="https://github.com/zhaxg/edlics-plus" target="_blank" rel="noopener" title="View on GitHub" style="font-size:11px;font-weight:500;color:var(--text-dimmer);white-space:nowrap;margin-left:2px;text-decoration:none;"></a></span>
     <span id="serverBadge" style="font-size:11px;color:var(--text-dimmer);white-space:nowrap;padding-left:4px;"></span>
     <span style="color:var(--text-dimmer);margin:0 2px;">·</span>
     <span id="themeToggle" title="Toggle theme" style="cursor:pointer;color:var(--text-dimmer);padding:2px;border-radius:4px;user-select:none;transition:color 0.15s;display:flex;align-items:center;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dimmer)'"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg></span>
@@ -30,6 +30,7 @@
     <button class="act-btn" data-view="search" title="Search (Ctrl+Shift+F)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
     <button class="act-btn" data-view="git" title="Source Control (Ctrl+Shift+G)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></button>
     <button class="act-btn" data-view="terminal" title="Terminal (Ctrl+`)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg></button>
+    <a class="act-btn act-btn-bottom" href="https://github.com/zhaxg/edlics-plus" target="_blank" rel="noopener" title="GitHub repository"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg></a>
   </div>
   <div class="sidebar" id="sidebar">
     <div class="panel" id="panel-explorer">
@@ -94,7 +95,6 @@
 </div>
 <div class="statusbar">
   <span id="statusLeft"></span>
-  <span id="statusGit" style="color:var(--accent);"></span>
   <span id="statusRight"></span>
 </div>
 <div class="context-menu hidden" id="contextMenu"></div>

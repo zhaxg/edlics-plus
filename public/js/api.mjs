@@ -1,5 +1,7 @@
 // api.mjs — API calls, toast notifications, utility functions
 
+import { state } from './state.mjs';
+
 const BASE = '';
 
 export function api(method, url, body) {
@@ -75,3 +77,13 @@ export function isImageFile(name) {
 }
 export function dirname(p) { const i = p.lastIndexOf('/'); return i > 0 ? p.slice(0, i) : '/'; }
 export function join(...parts) { return parts.join('/').replace(/\/+/g, '/').replace(/\/$/, '') || '/'; }
+
+/** Path relative to the workspace root (POSIX). Root itself → '.', outside → full path. */
+export function workspaceRelative(p) {
+  const norm = toPosix(p);
+  const root = state.workspace ? toPosix(state.workspace).replace(/\/+$/, '') : null;
+  if (!root) return norm;
+  if (norm === root) return '.';
+  if (norm.startsWith(root + '/')) return norm.slice(root.length + 1);
+  return norm;
+}

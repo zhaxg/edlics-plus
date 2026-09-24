@@ -66,7 +66,7 @@ function bootApp() {
       if (data.home) setHOME(data.home);
       if (data.root) setRootRestricted(true);
       document.getElementById('serverBadge').textContent = data.user + '@' + data.hostname;
-      document.getElementById('statusLeft').innerHTML = 'Edlics-plus <a href="https://www.npmjs.com/package/edlics-plus" target="_blank" style="color:inherit;text-decoration:none;">v' + data.version + '</a>';
+      document.getElementById('appVersion').textContent = 'v' + data.version;
       document.getElementById('statusRight').textContent = data.ip;
       if (data.readonly) {
         document.getElementById('sudoBadge').style.display = 'inline';

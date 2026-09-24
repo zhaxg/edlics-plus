@@ -24,7 +24,6 @@ export const state = {
   terminalOpen: false,
   onTerminalShow: null,      // set by terminal-ui.mjs
   workspace: null,           // absolute path of the opened project folder
-  gitBranch: null,           // current branch shown in status bar
 };
 
 export let currentDir = '/home';

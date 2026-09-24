@@ -1,8 +1,9 @@
 // git-api.js — read-only Git endpoints. All commands run via execFile with
 // cwd = workspace (no shell), sha values whitelisted, pathspecs after '--'.
 const fs = require('fs');
+const path = require('path');
 const { execFile } = require('child_process');
-const { isPathSafe } = require('./paths');
+const { isPathSafe, isWithinRoot } = require('./paths');
 
 /**
  * @typedef {Object} GitStatusEntry
@@ -133,18 +134,61 @@ function handleCommitFiles(ctx) {
   });
 }
 
+/**
+ * Synthesize a unified diff presenting a brand-new (untracked) file as all
+ * additions — `git diff` cannot show untracked files because they are not in
+ * the index. Pure; unit-tested.
+ * @param {string} relPath repo-relative POSIX path
+ * @param {Buffer} buf file content
+ * @returns {string} unified diff text
+ */
+function newFileDiff(relPath, buf) {
+  const header = `diff --git a/${relPath} b/${relPath}\nnew file mode 100644\n--- /dev/null\n+++ b/${relPath}\n`;
+  // Untracked binary cannot be rendered textually — emit a git-style notice
+  if (buf.subarray(0, 8000).includes(0)) return header + `Binary file ${relPath} (new)\n`;
+  let text = buf.toString('utf8');
+  const noNewline = text.length > 0 && !text.endsWith('\n');
+  if (text.endsWith('\n')) text = text.slice(0, -1);
+  const lines = text.length ? text.split('\n') : [];
+  if (lines.length === 0) return header; // empty file: header only, like git
+  let out = header + `@@ -0,0 +1,${lines.length} @@\n`;
+  out += lines.map(l => '+' + l).join('\n') + '\n';
+  if (noNewline) out += '\\ No newline at end of file\n';
+  return out;
+}
+
+const MAX_DIFF_BYTES = 2 * 1024 * 1024; // same cap as search-content
+
 function handleDiff(ctx) {
   const { params, ok, fail } = ctx;
   const ws = gitWorkspace(ctx);
   if (!ws) return fail('Invalid workspace', 400);
   const file = params.file;
   if (!file) return fail('file required', 400);
+  const staged = params.staged === '1';
   const args = ['diff', '--no-color'];
-  if (params.staged === '1') args.push('--cached');
+  if (staged) args.push('--cached');
   args.push('--', file);
   gitRun(ws, args, (e, r) => {
     if (!r.ok) return fail(r.error, 500);
-    ok({ diff: r.out });
+    if (r.out || staged) return ok({ diff: r.out });
+    // Empty worktree diff on a listed change usually means an untracked file:
+    // git diff only compares tracked blobs. Confirm, then synthesize all-added.
+    gitRun(ws, ['ls-files', '--others', '--exclude-standard', '--', file], (e2, r2) => {
+      if (!r2.ok || !r2.out.split('\n').some(l => l === file || l === file.replace(/\\/g, '/'))) {
+        return ok({ diff: '' }); // tracked, genuinely no textual change
+      }
+      const abs = path.resolve(ws, file);
+      if (!isPathSafe(abs) || !isWithinRoot(path.resolve(ws), abs)) return fail('Invalid file', 400);
+      fs.stat(abs, (e3, st) => {
+        if (e3 || !st.isFile()) return ok({ diff: '' });
+        if (st.size > MAX_DIFF_BYTES) return ok({ diff: `# File too large to diff (${st.size} bytes)\n` });
+        fs.readFile(abs, (e4, buf) => {
+          if (e4) return ok({ diff: '' });
+          ok({ diff: newFileDiff(file.replace(/\\/g, '/'), buf) });
+        });
+      });
+    });
   });
 }
 
@@ -162,6 +206,43 @@ function handleShow(ctx) {
   });
 }
 
+/**
+ * Convert a git remote URL into a browsable web URL (ssh → https).
+ * @param {string} remote
+ * @returns {string|null} null when empty; passthrough for unknown/local forms
+ */
+function toWebUrl(remote) {
+  const u = String(remote || '').trim();
+  if (!u) return null;
+  const stripGit = p => p.replace(/^\/+/, '').replace(/\.git\/?$/, '');
+  let m = u.match(/^(https?):\/\/(.+)$/i);
+  if (m) return m[1].toLowerCase() + '://' + m[2].replace(/\.git\/?$/, '');
+  m = u.match(/^ssh:\/\/(?:[^@/]+@)?([^/:]+)(?::\d+)?\/(.+)$/i);   // ssh://git@host[:port]/path
+  if (m) return 'https://' + m[1] + '/' + stripGit(m[2]);
+  m = u.match(/^git:\/\/(.+)$/i);                                   // git://host/path
+  if (m) return 'https://' + stripGit(m[1]);
+  m = u.match(/^[^@/\s]+@([^:]+):(.+)$/);                          // scp-like: user@host:path
+  if (m) return 'https://' + m[1] + '/' + stripGit(m[2]);
+  return u;                                                         // local path or unrecognized
+}
+
+function handleRemote(ctx) {
+  const { params, ok, fail } = ctx;
+  const ws = gitWorkspace(ctx);
+  if (!ws) return fail('Invalid workspace', 400);
+  gitRun(ws, ['remote', 'get-url', 'origin'], (e, r) => {
+    if (r.ok && r.out.trim()) return ok({ url: toWebUrl(r.out.trim()) });
+    // No origin — fall back to the first configured remote
+    gitRun(ws, ['remote'], (e2, r2) => {
+      const first = r2.ok ? r2.out.split('\n').map(s => s.trim()).filter(Boolean)[0] : '';
+      if (!first) return ok({ url: null });
+      gitRun(ws, ['remote', 'get-url', first], (e3, r3) => {
+        ok({ url: r3.ok && r3.out.trim() ? toWebUrl(r3.out.trim()) : null });
+      });
+    });
+  });
+}
+
 /** Route table — see CLAUDE.md. */
 const routes = [
   { name: 'api/git/status',        match: p => p[1] === 'git' && p[2] === 'status',        handle: handleStatus },
@@ -169,6 +250,7 @@ const routes = [
   { name: 'api/git/commit-files',  match: p => p[1] === 'git' && p[2] === 'commit-files',  handle: handleCommitFiles },
   { name: 'api/git/diff',          match: p => p[1] === 'git' && p[2] === 'diff',          handle: handleDiff },
   { name: 'api/git/show',          match: p => p[1] === 'git' && p[2] === 'show',          handle: handleShow },
+  { name: 'api/git/remote',        match: p => p[1] === 'git' && p[2] === 'remote',        handle: handleRemote },
 ];
 
-module.exports = { routes, parseStatusZ, parseLog, parseCommitFilesZ };
+module.exports = { routes, parseStatusZ, parseLog, parseCommitFilesZ, toWebUrl, newFileDiff };

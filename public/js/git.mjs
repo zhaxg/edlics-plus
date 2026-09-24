@@ -54,7 +54,8 @@ function loadWorktreeDiff(file, staged) {
   api('GET', `/api/git/diff?path=${encodeURIComponent(ws)}&file=${encodeURIComponent(file)}&staged=${staged ? 1 : 0}`)
     .then(data => {
       if (data.error) { toast(data.error, true); return; }
-      if (!data.diff) { toast('No textual changes for ' + basename(file)); return; }
+      // Everything in the changes list is viewable — empty diff still opens a tab
+      if (!data.diff) { openDiffTab(basename(file), '# No textual changes for ' + file); return; }
       openDiffTab(basename(file), data.diff);
     })
     .catch(e => toast('Diff failed: ' + e.message, true));
@@ -65,7 +66,7 @@ function loadCommitDiff(sha, file) {
   api('GET', `/api/git/show?path=${encodeURIComponent(ws)}&sha=${encodeURIComponent(sha)}&file=${encodeURIComponent(file)}`)
     .then(data => {
       if (data.error) { toast(data.error, true); return; }
-      if (!data.diff) { toast('No textual changes for ' + basename(file)); return; }
+      if (!data.diff) { openDiffTab(basename(file), '# No textual changes for ' + file + ' in ' + sha.slice(0, 7)); return; }
       openDiffTab(basename(file), data.diff);
     })
     .catch(e => toast('Diff failed: ' + e.message, true));
@@ -80,14 +81,12 @@ function renderPanel(info) {
 
   if (!info || !info.repo) {
     body.innerHTML = `<div class="panel-placeholder">⚠ Not a git repository<br><span style="color:var(--text-dimmer);font-size:11px;">${escapeHtml((info && info.error) || 'open a folder that contains .git')}</span></div>`;
-    state.gitBranch = null;
     return;
   }
 
-  state.gitBranch = info.branch;
-  document.dispatchEvent(new CustomEvent('git-branch', { detail: info.branch }));
-  const statusGit = document.getElementById('statusGit');
-  if (statusGit) statusGit.textContent = '⑂ ' + info.branch;
+  // Remote opener at the end of the branch row (generic glyph — remote may be any host)
+  const remoteHtml = `
+    <button class="git-remote-btn" title="Open remote repository in browser"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M2 11.5v-1h3v1zm3.054 5.666l-.708-.72l2.1-2.1l.72.708zm1.392-9.512l-2.1-2.1l.708-.72l2.112 2.112zM16.962 18.5l-4.443-4.442l-.942 2.903l-2.193-7.23l7.308 2.192l-2.892 1.03l4.354 4.355zM10.116 6V3h1v3zm4.669 1.654l-.72-.708l2.112-2.111l.708.707z"/></svg></button>`;
 
   const changes = info.changes || [];
   let changesHtml;
@@ -112,6 +111,7 @@ function renderPanel(info) {
     <div class="git-branch" title="Current branch">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
       <span>${escapeHtml(info.branch)}</span>
+      ${remoteHtml}
     </div>
     <div class="git-toggle">
       <button class="git-toggle-btn${activeGitView === 'changes' ? ' active' : ''}" data-gview="changes">Changes <span class="git-count">${changes.length}</span></button>
@@ -119,6 +119,9 @@ function renderPanel(info) {
     </div>
     <div class="git-view${activeGitView === 'changes' ? '' : ' hidden'}" id="gitViewChanges">${changesHtml}</div>
     <div class="git-view git-timeline${activeGitView === 'graph' ? '' : ' hidden'}" id="gitViewGraph"><div class="git-empty">Loading…</div></div>`;
+
+  // Remote button lives in the branch row (re-rendered each refresh)
+  body.querySelector('.git-remote-btn')?.addEventListener('click', openRemote);
 
   // Segmented toggle
   body.querySelectorAll('.git-toggle-btn').forEach(btn => {
@@ -191,6 +194,17 @@ export function refreshGit() {
   api('GET', `/api/git/status?path=${encodeURIComponent(state.workspace)}`)
     .then(renderPanel)
     .catch(() => { if (body) body.innerHTML = '<div class="panel-placeholder">⚠ Failed to load git status</div>'; });
+}
+
+function openRemote() {
+  if (!state.workspace) { toast('Open a folder first', true); return; }
+  api('GET', `/api/git/remote?path=${encodeURIComponent(state.workspace)}`)
+    .then(data => {
+      if (data.error) { toast(data.error, true); return; }
+      if (!data.url) { toast('No remote configured', true); return; }
+      window.open(data.url, '_blank', 'noopener');
+    })
+    .catch(e => toast('Remote failed: ' + e.message, true));
 }
 
 export function initGit() {

@@ -25,7 +25,7 @@ export function showTabContextMenu(x, y, tab) {
       for (const t of state.tabs) { if (state.dirty.has(t.path) && !await confirmDialog(`"${t.name}" has unsaved changes. Close anyway?`)) return; }
       state.tabs = []; state.dirty.clear(); state.activeTab = null; renderTabs(); closeEditor();
     }},
-    { icon: 'copy', label: 'Copy Path', action: () => { import('./api.mjs').then(m => { m.copyToClipboard(tab.path); m.toast('Copied'); }); } },
+    { icon: 'copy', label: 'Copy Path', action: () => { import('./api.mjs').then(m => { m.copyToClipboard(m.workspaceRelative(tab.path)); m.toast('Copied'); }); } },
   ];
   menu.innerHTML = items.map(item =>
     `<div class="context-menu-item"><span class="ctx-icon">${_tabCtxIcons[item.icon]}</span>${item.label}</div>`
