@@ -38,7 +38,7 @@ export function openFolderDialog() {
   content.style.width = '440px';
   content.innerHTML = `
     <h3>Open Folder</h3>
-    <div class="folder-breadcrumb" id="folderCrumb" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:8px;max-height:32px;overflow-y:auto;"></div>
+    <div class="folder-breadcrumb" id="folderCrumb" style="display:flex;flex-wrap:nowrap;gap:2px;margin-bottom:8px;overflow-x:auto;white-space:nowrap;"></div>
     <div class="folder-list" id="folderList" style="height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;background:rgba(0,0,0,0.2);"></div>
     <div class="btn-row" style="margin-top:14px;">
       <button class="cancel" id="btnFolderCancel">Cancel</button>
@@ -47,17 +47,25 @@ export function openFolderDialog() {
   overlay.classList.remove('hidden');
 
   function crumbHtml(p) {
-    const ceilingLabel = basename(ceiling) || ceiling;
     const parts = [];
-    let acc = '';
-    // Show path from ceiling downward
+    // Show path from ceiling downward; long paths collapse to first/****/last
     const rel = p.startsWith(ceiling) ? p.slice(ceiling.length).replace(/^[\\/]/, '') : '';
-    parts.push(`<span class="crumb" data-path="${escapeHtml(ceiling)}" style="cursor:pointer;color:var(--accent);">${escapeHtml(ceilingLabel)}</span>`);
-    if (rel) {
-      for (const seg of rel.split(/[\\/]/).filter(Boolean)) {
+    const segs = rel ? rel.split(/[\\/]/).filter(Boolean) : [];
+    // full ceiling (e.g. E:/temp) keeps the root context visible
+    parts.push(`<span class="crumb" data-path="${escapeHtml(ceiling)}" style="cursor:pointer;color:var(--accent);">${escapeHtml(ceiling)}</span>`);
+    const crumb = (segPath, label) =>
+      `<span style="color:var(--text-dimmer)">/</span><span class="crumb" data-path="${escapeHtml(segPath)}" style="cursor:pointer;">${escapeHtml(label)}</span>`;
+    if (segs.length <= 3) {
+      let acc = '';
+      for (const seg of segs) {
         acc = acc ? acc + '/' + seg : seg;
-        parts.push(`<span style="color:var(--text-dimmer)">/</span><span class="crumb" data-path="${escapeHtml(ceiling + '/' + acc)}" style="cursor:pointer;">${escapeHtml(seg)}</span>`);
+        parts.push(crumb(ceiling + '/' + acc, seg));
       }
+    } else {
+      // long path → E:/temp/****/myfolder (middle collapsed; hover shows it)
+      parts.push(crumb(ceiling + '/' + segs[0], segs[0]));
+      parts.push(`<span style="color:var(--text-dimmer)">/</span><span style="color:var(--text-dimmer);cursor:default;" title="${escapeHtml(segs.slice(1, -1).join('/'))}">****</span>`);
+      parts.push(crumb(ceiling + '/' + segs.join('/'), segs[segs.length - 1]));
     }
     return parts.join('');
   }
@@ -80,7 +88,7 @@ export function openFolderDialog() {
       if (cursor !== ceiling) {
         const up = document.createElement('div');
         up.className = 'tree-item';
-        up.innerHTML = '<span class="chevron placeholder">▸</span><span class="icon" style="color:var(--text-dimmer)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></span><span class="name" style="color:var(--text-dim)">..</span>';
+        up.innerHTML = `<span class="chevron placeholder">▸</span><span class="icon"><img src="/icons/${getFileIcon('..', true)}.svg" class="icon-img" alt="" onerror="this.style.display='none'"></span><span class="name" style="color:var(--text-dim)">..</span>`;
         up.addEventListener('click', () => {
           const idx = cursor.lastIndexOf('/');
           cursor = idx > 0 ? cursor.slice(0, idx) : ceiling;
