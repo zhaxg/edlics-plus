@@ -10,9 +10,51 @@ export function isSvgFile(path) {
   return /\.svg$/i.test(path);
 }
 
-// Files that support preview/edit toggle (md + svg)
+export function isHtmlFile(path) {
+  return /\.html?$/i.test(path);
+}
+
+// Files that support preview/edit toggle (md + svg + html)
 export function isPreviewableFile(path) {
-  return isMarkdownFile(path) || isSvgFile(path);
+  return isMarkdownFile(path) || isSvgFile(path) || isHtmlFile(path);
+}
+
+/**
+ * URL for the inline preview endpoint. The absolute path goes into the URL
+ * *segments* (/api/preview/<token>/<abs path>) — encodeURIComponent would
+ * flatten it (every '/' becomes %2F), so each segment is encoded separately and
+ * the separators stay real. That shape is what lets relative
+ * <link>/<img>/<script> in the document resolve against the file's own
+ * directory, and it carries the preview token along with them.
+ * Pure — exported for unit tests.
+ * @param {string} filePath absolute path of the file being previewed
+ * @param {string} token token from /api/preview-token
+ */
+export function buildPreviewUrl(filePath, token) {
+  const encoded = String(filePath || '')
+    .replace(/\\/g, '/')
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/');
+  // The path keeps its own leading separator, so a POSIX absolute target
+  // stays recognizable after the token segment is stripped (/api/preview/<t>//var/www).
+  return '/api/preview/' + encodeURIComponent(token) + '/' + encoded;
+}
+
+// The sandboxed iframe never sends the session cookie with its subresource
+// requests, so those requests authenticate with this token instead. It is
+// re-minted shortly before it expires (see bin/lib/preview-api.js).
+let _previewToken = null;
+let _previewTokenExpiresAt = 0;
+
+export async function getPreviewToken() {
+  if (_previewToken && Date.now() < _previewTokenExpiresAt - 30000) return _previewToken;
+  const res = await fetch('/api/preview-token', { credentials: 'same-origin' });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data || !data.token) throw new Error((data && data.error) || 'Preview authorization failed');
+  _previewToken = data.token;
+  _previewTokenExpiresAt = Date.now() + (data.expiresIn || 0);
+  return _previewToken;
 }
 
 async function loadMarked() {
@@ -121,4 +163,27 @@ export function renderSvgPreview(container, content) {
     }
   }
   container.appendChild(wrapper);
+}
+
+/**
+ * Render an HTML file into `container` via a sandboxed iframe pointed at the
+ * inline preview endpoint. The document is read from disk: that keeps the frame
+ * an opaque origin (a blob: URL would inherit *our* origin and hand the page the
+ * app's session) and lets relative <link>/<img>/<script> resolve against the
+ * file's own directory. Unsaved edits are therefore not reflected until save,
+ * which re-runs the preview.
+ * @param {HTMLElement} container
+ * @param {string} filePath absolute path of the .html file
+ */
+export async function renderHtmlPreview(container, filePath) {
+  const url = buildPreviewUrl(filePath, await getPreviewToken());
+  container.innerHTML = '';
+  const frame = document.createElement('iframe');
+  frame.className = 'html-render';
+  // allow-scripts: real pages run their own JS. Without allow-same-origin the
+  // frame is opaque, so it cannot read the app's session cookie or DOM.
+  frame.setAttribute('sandbox', 'allow-scripts');
+  frame.src = url;
+  container.appendChild(frame);
+  return frame;
 }

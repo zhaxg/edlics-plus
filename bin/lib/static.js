@@ -48,6 +48,12 @@ function serveStatic(req, res, filePath) {
       'Cache-Control': 'no-cache', // may be stored, must revalidate → 304 when unchanged
       Vary: 'Accept-Encoding',
     };
+    // The app UI (login form, terminal) must never be framed — not even by a
+    // sandboxed preview iframe rendering an untrusted document from disk.
+    if (ext === '.html') {
+      headers['Content-Security-Policy'] = "frame-ancestors 'none'";
+      headers['X-Frame-Options'] = 'DENY';
+    }
     const acceptGzip = /\bgzip\b/.test(String(req.headers['accept-encoding'] || ''));
     if (acceptGzip && GZIP_EXTS.has(ext) && stat.size > 1024) {
       headers['Content-Encoding'] = 'gzip';

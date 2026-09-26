@@ -9,10 +9,14 @@ Edlics-Plus：浏览器里的 VSCode 式 IDE。单文件 Node 后端 + 原生 ES
 npm install            # 装依赖 + postinstall 自动构建两个 bundle
 npm test               # node --test：单测 + 集成冒烟（认证/穿越/PTY/终端门闸/输入策略）
 npm run build          # 仅两个 bundle 需要构建：public/editor.mjs + public/terminal.mjs
-node bin/edlics.js serve --root . --password dev123   # 本地跑（--root 限制在仓库内）
+node bin/edlics.js serve --root . --password 1234   # 本地跑（--root 限制在仓库内）
 #                                              需要终端时追加 --terminal
 node --check bin/edlics.js            # 后端语法检查（每个 bin/lib/*.js 同理）
 ```
+
+**本地起服务的密码统一写 `1234`**——包括临时探针/Playwright 脚本/浏览器手工验证里
+spawn 出来的服务器。用户会跟着一起点，换花样就没法直接登录复现。（`test/smoke.test.js`
+这类自动化冒烟里自用的口令不受此约定约束，那些进程用户碰不到。）
 
 发布：**只走 tag**（无 push/PR CI）——`npm version patch && git push --tags` →
 `publish.yml` 自动：装依赖 → 构建 → **`npm test` 硬闸门（全绿才继续）** → 冒烟 → CHANGELOG →
@@ -29,6 +33,7 @@ bin/lib/
   static.js          静态服务(ETag 304 + gzip)、router(含 public/ 路径穿越防护)
   files-api.js       list/read/write/delete/rename/create/stat/sudo-*/info + sudo 提权
   transfer-api.js    download(含 tar.gz 打包)/upload
+  preview-api.js     HTML 预览：preview-token 领 token + preview 按 inline 出文件
   search-api.js      文件名搜索 + 全文搜索(async fs，不阻塞事件循环)
   git-api.js         status/log/commit-files/diff/show(execFile 无 shell) + 纯解析器(可单测)
   terminal-api.js    node-pty 会话 open/stream/input/resize/close + 30 分钟空闲回收
@@ -48,8 +53,11 @@ docs/                README 截图与 logo
 
 1. **认证**：`bin/edlics.js` 调度里，除 `session/login/logout` 外**所有** `/api/*` 必须先过
    `auth.isAuthed()` → 401。新增端点自动受保护，勿绕过。
+   唯一例外：`/api/preview/*` 自己在 handler 内鉴权（Cookie 或 URL 段里的短时效 token，
+   见不变量 10），因此在会话门之前手工分发；**领 token 的 `/api/preview-token` 仍在门后**。
 2. **路径安全**：任何来自客户端的文件路径必须过 `ctx.checkPath()`（= `paths.isPathSafe`：
    root containment + 符号链接 realpath 双检）。root 未配置时放行。
+   `/api/preview` 是手工分发的，同样要 `checkPath`——`ctx` 里带了 `checkPath`，别漏。
 3. **静态穿越**：`static.js` 的 router 必须 resolve 后校验仍在 `PUBLIC_DIR` 内（曾出过
    `/../bin/edlics.js` 源码泄露 CVE 级漏洞，`test/smoke.test.js` 有回归用例）。
 4. **写操作门闸**：`--readonly` 时经 `ctx.checkReadonly()` 拒绝所有写路由。
@@ -68,6 +76,27 @@ docs/                README 截图与 logo
 9. **对外路径一律 POSIX 正斜杠**：返回给客户端的路径（info.home、搜索结果、term cwd、
    面包屑）必须过 `paths.toPosix()`；Windows 的 `fs`/`path` 原生接受 `/`，内部计算可保留
    系统分隔符。localStorage 里旧的混合分隔符工作区在 `workspace.mjs` 加载时自动迁移。
+10. **HTML 预览（`/api/preview`）**：沙箱 iframe 用 `sandbox="allow-scripts"`（**不给**
+    `allow-same-origin`）→ origin 是 opaque 的，因此 ① 它的子资源请求属于跨站请求，
+    `SameSite=Strict` 会话 Cookie 不会被发送，只能靠 URL 段里的 token 鉴权；② 响应用
+    `Cross-Origin-Resource-Policy: cross-origin` + `Access-Control-Allow-Origin: *` 才能过
+    Chrome 的 ORB。要点：
+    - **路径与 token 必须是 URL 段**（`/api/preview/<token>/<绝对路径>`），不能用
+      `?path=`；相对解析取的是文档 URL 的目录，写成段兄弟 css/img/js 才自动带上 token。
+      每段单独 `encodeURIComponent`（整体编码会把 `/` 压平）。
+    - token = `crypto.randomBytes(16).base64url`，10 分钟时效、可复用、前端到期前 30 秒
+      续签。它是**带内凭证**：泄漏（复制的链接、访问日志）即可读 root 下的文件，故响应带
+      `Referrer-Policy: no-referrer`，且只走 `checkPath` 校验过的路径。
+    - token 铸造时记下签发者的 `--terminal` 状态，handler 用 `ctx.terminal = auth.terminal`
+      降级，防预览文档借 token 打到 `/api/term*`。
+    - MIME：html/htm 出 `text/html`，css/js/png 等保留真实类型（页面的 `<script>` 需要），
+      其余一律降级 `text/plain`；限 20MB、拒绝目录。
+    - **框架限制方向别写反**：预览响应**不能**带 `frame-ancestors`/`X-Frame-Options`
+      （它就是要被我们自己的 iframe 框住）；拒绝被框的是 app 自身，见 `static.js` 里
+      `.html` 的 `frame-ancestors 'none'` + `X-Frame-Options: DENY`。
+    - 预览**从磁盘渲染**（不是编辑器缓冲区）：HTML 标签页默认停在编辑态，保存后
+      `file-ops.mjs` 调 `tab._updatePreview()` 刷新；不要用 `blob:` URL 渲染未保存内容——
+      blob 继承父窗口 origin，等于把会话交给被预览的页面。
 
 ## 如何新增一个 API 端点
 

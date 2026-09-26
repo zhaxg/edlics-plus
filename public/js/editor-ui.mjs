@@ -6,7 +6,7 @@ import { EditorView, EditorState, keymap, basicSetup, javascript, python, html, 
 import { state, serverInfo } from './state.mjs';
 import { escapeHtml, basename } from './api.mjs';
 import { themeCompartment, currentTheme } from './theme.mjs';
-import { isMarkdownFile, isSvgFile, renderMarkdown, renderSvgPreview } from './markdown-preview.mjs';
+import { isMarkdownFile, isSvgFile, isHtmlFile, renderMarkdown, renderSvgPreview, renderHtmlPreview } from './markdown-preview.mjs';
 import { renderTabs } from './tabs.mjs';                 // runtime cycle — see CLAUDE.md
 import { updatePathBar, updateStatus } from './pathbar-status.mjs';
 
@@ -79,7 +79,7 @@ export function toggleMdPreview(tab) {
 export function closeEditor() {
   if (state.editorView) { state.editorView.destroy(); state.editorView = null; }
   const area = document.getElementById('editorArea');
-  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper, .diff-view').forEach(el => el.remove());
+  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .html-preview, .cm-wrapper, .diff-view').forEach(el => el.remove());
   const welcome = document.getElementById('welcome');
   if (welcome) welcome.classList.remove('hidden');
   document.getElementById('pathBar').innerHTML = '';
@@ -100,7 +100,7 @@ export function loadEditor(tab) {
   if (!tab) return;
   if (state.editorView) { state.editorView.destroy(); state.editorView = null; }
   // Clear previous content (textareas, images, binary previews, md toggle, etc.)
-  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .cm-wrapper, .diff-view').forEach(el => el.remove());
+  area.querySelectorAll('textarea, .image-preview, .binary-preview, .md-preview, .svg-preview, .html-preview, .cm-wrapper, .diff-view').forEach(el => el.remove());
 
   // Read-only unified diff view (git panel)
   if (tab.type === 'diff') {
@@ -169,22 +169,24 @@ export function loadEditor(tab) {
   try {
     const isMd = isMarkdownFile(tab.path);
     const isSvg = isSvgFile(tab.path);
-    const isPreviewable = isMd || isSvg;
+    const isHtml = isHtmlFile(tab.path);
+    const isPreviewable = isMd || isSvg || isHtml;
     let updatePreview = null;
 
-    // For .md/.svg files, create preview panel (toggle is in the tab bar)
+    // For .md/.svg/.html files, create preview panel (toggle is in the tab bar)
     if (isPreviewable) {
       // Create preview panel with appropriate class
       const previewPanel = document.createElement('div');
-      previewPanel.className = isSvg ? 'svg-preview' : 'md-preview';
+      previewPanel.className = isHtml ? 'html-preview' : (isSvg ? 'svg-preview' : 'md-preview');
       previewPanel.style.display = 'none';
       area.appendChild(previewPanel);
 
       // Store references on tab for the tab bar toggle button
       tab._previewPanel = previewPanel;
-      // Default to preview mode for md and svg files
+      // Default to preview mode for md and svg files; html opens in the editor
+      // so the preview renders from disk and is not mistaken for live editing.
       if (tab._previewMode === undefined) {
-        tab._previewMode = 'preview';
+        tab._previewMode = isHtml ? 'edit' : 'preview';
       }
 
       let _previewTimer = null;
@@ -192,7 +194,11 @@ export function loadEditor(tab) {
         clearTimeout(_previewTimer);
         _previewTimer = setTimeout(async () => {
           try {
-            if (isSvg) {
+            if (isHtml) {
+              // HTML: sandboxed iframe pointed at the inline preview endpoint.
+              // Awaited: the token fetch can fail, and that must land in the catch.
+              await renderHtmlPreview(previewPanel, tab.path);
+            } else if (isSvg) {
               // SVG: render directly in DOM
               renderSvgPreview(previewPanel, tab.content);
             } else {
@@ -220,8 +226,9 @@ export function loadEditor(tab) {
         else state.dirty.delete(tab.path);
         renderTabs();
         updateStatus();
-        // Live-update preview if open
-        if (isPreviewable && tab._previewMode === 'preview' && updatePreview) {
+        // Live-update preview if open. HTML renders from disk, so typing must
+        // not rebuild the iframe — it refreshes on save instead.
+        if (!isHtml && isPreviewable && tab._previewMode === 'preview' && updatePreview) {
           updatePreview();
         }
       }

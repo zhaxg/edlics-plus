@@ -158,6 +158,8 @@ export function saveFile() {
       if (data.error === 'Permission denied' && !sudo) return handleSudoError(tab.path, () => doSave(true));
       if (data.error) { toast(data.error, true); return; }
       tab.savedContent = content; state.dirty.delete(tab.path);
+      // The HTML preview is served from disk, so refresh it once the write lands.
+      if (tab._previewMode === 'preview' && tab._updatePreview) tab._updatePreview();
       renderTabs(); toast('Saved ' + basename(tab.path));
     }).catch(e => toast('Save failed: ' + e.message, true));
   }

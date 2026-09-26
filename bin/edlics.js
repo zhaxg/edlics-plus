@@ -12,6 +12,7 @@ const auth = require('./lib/auth');
 const paths = require('./lib/paths');
 const filesApi = require('./lib/files-api');
 const transferApi = require('./lib/transfer-api');
+const previewApi = require('./lib/preview-api');
 const searchApi = require('./lib/search-api');
 const gitApi = require('./lib/git-api');
 const terminalApi = require('./lib/terminal-api');
@@ -20,6 +21,7 @@ const terminalApi = require('./lib/terminal-api');
 const ROUTES = [
   ...filesApi.routes,
   ...transferApi.routes,
+  ...previewApi.routes,
   ...searchApi.routes,
   ...gitApi.routes,
   ...terminalApi.routes,
@@ -60,14 +62,20 @@ function handleAPI(req, res) {
   const ctx = {
     req, res, parts, params, ok, fail, checkReadonly, checkPath,
     readonly, rootDir: paths.getRootDir(), terminal: terminalEnabled,
+    authed: auth.isAuthed(req),
   };
 
   try {
     // Public auth routes (session/login/logout) handle themselves
     if (auth.handleAuthRoutes(parts, req, res, ok, fail)) return;
 
+    // --- HTML preview files authenticate themselves (token in the URL segment,
+    // because a sandboxed iframe never sends the SameSite=Strict cookie), so they
+    // run ahead of the session gate. Token *issuance* stays behind it.
+    if (parts[0] === 'api' && parts[1] === 'preview') return previewApi.handlePreview(ctx);
+
     // --- Everything below requires an authenticated session ---
-    if (!auth.isAuthed(req)) return fail('Unauthorized', 401);
+    if (!ctx.authed) return fail('Unauthorized', 401);
 
     const route = ROUTES.find(r => r.match(parts, params));
     if (!route) return fail('Not found', 404);
