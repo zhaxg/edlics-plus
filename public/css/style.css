@@ -719,3 +719,52 @@ body {
 .proc-act button:hover { color: var(--red); border-color: var(--red); }
 .proc-head .active { color: var(--accent); }
 .proc-head [data-sort] { cursor: pointer; }
+
+/* --- Console mode: full-width single-column pages (P0.1) ---------------- */
+.page-title { display: none; }
+body.console-mode .page-title { display: inline-block; font-size: 12px; color: var(--text-dim); margin-right: auto; }
+body.console-mode #pathBar,
+body.console-mode #searchScope,
+body.console-mode .search-box-wrap { display: none; }
+
+/* Console pages replace the editor chrome — no left/right split. */
+body.console-mode .sidebar,
+body.console-mode .sidebar-resize { display: none !important; }
+body.console-mode #tabsBar,
+body.console-mode .editor-area { display: none !important; }
+
+.console-area { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.page-header {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+}
+.page-h1 { font-size: 15px; font-weight: 600; margin-right: auto; }
+.page-actions { display: flex; align-items: center; gap: 8px; }
+.page-actions .search-input-wrap { min-width: 180px; }
+.page-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px; }
+
+.icon-btn {
+  display: flex; align-items: center; background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; cursor: pointer;
+}
+.icon-btn:hover { color: var(--text); border-color: var(--text-dimmer); }
+
+/* Cards */
+.card { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--sidebar); }
+.card-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 6px; }
+
+/* Dashboard: KPI/info cards + chart grid */
+.dash-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.dash-cards .ov-row {
+  flex-direction: column; gap: 3px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--sidebar);
+}
+.dash-cards .ov-k { flex: none; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.dash-cards .ov-v { font-size: 13px; }
+.dash-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+.chart-card { min-width: 0; }
+
+/* Full-width list pages: keep rows from stretching awkwardly */
+.page-body .services-list,
+.page-body .net-content { max-width: 1100px; }

@@ -53,7 +53,7 @@ function chartOpts(el, seriesSpec) {
   const p = palette();
   return {
     width: Math.max(120, el.clientWidth || el.parentElement.clientWidth || 240),
-    height: 84,
+    height: 150,
     padding: [6, 8, 2, 2],
     legend: { show: false },
     cursor: { show: false, x: false, y: false },
@@ -87,7 +87,7 @@ function buildCharts() {
 function resizeCharts() {
   for (const [chart, id] of [[cpuChart, 'ovCpu'], [memChart, 'ovMem'], [netChart, 'ovNet']]) {
     const el = document.getElementById(id);
-    if (chart && el) chart.setSize({ width: Math.max(120, el.clientWidth), height: 84 });
+    if (chart && el) chart.setSize({ width: Math.max(120, el.clientWidth), height: 150 });
   }
 }
 
