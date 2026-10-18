@@ -17,6 +17,22 @@ const openLogs = new Set();
 const canWrite = () => !!(serverInfo && serverInfo.adminWrite) && !(serverInfo && serverInfo.readonly);
 const WHALE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>';
 
+// Inline SVG icons for the action buttons.
+const S = (inner) => `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const IC = {
+  ports: S('<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>'),
+  logs: S('<path d="M4 6h16M4 12h16M4 18h10"/>'),
+  console: S('<polyline points="5 7 10 12 5 17"/><line x1="12" y1="17" x2="19" y2="17"/>'),
+  start: S('<path d="M7 4l12 8-12 8z" fill="currentColor"/>'),
+  restart: S('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+  stop: S('<rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor" stroke="none"/>'),
+  build: S('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'),
+  clean: S('<path d="M12 4v11M7 10l5 5 5-5M4 20h16"/>'),
+  del: S('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>'),
+};
+const ibtn = (attr, key, title, danger) =>
+  `<button class="icon-btn sm ctr-ibtn${danger ? ' danger' : ''}" ${attr} title="${escapeHtml(title)}">${IC[key]}</button>`;
+
 const dotClass = state => state === 'running' ? 'ok' : state === 'exited' ? 'off' : 'warn';
 
 function badge(state, title) {
@@ -72,13 +88,13 @@ function portLinks(c) {
 
 function containerActions(c) {
   const b = [];
-  if (c.ports && c.ports.length) b.push(`<button class="btn sm" data-act="ports" title="Mapped ports">Ports ▾</button>`);
-  b.push(`<button class="btn sm" data-act="logs">Logs</button>`);
-  b.push(`<button class="btn sm" data-act="console" title="docker exec -it ${escapeHtml(c.name)} sh">Console</button>`);
+  if (c.ports && c.ports.length) b.push(ibtn('data-act="ports"', 'ports', 'Mapped ports'));
+  b.push(ibtn('data-act="logs"', 'logs', 'Logs'));
+  b.push(ibtn('data-act="console"', 'console', `Console — docker exec -it ${c.name} sh`));
   if (canWrite()) {
-    if (c.state !== 'running') b.push(`<button class="btn sm" data-act="start">Start</button>`);
-    b.push(`<button class="btn sm" data-act="restart">Restart</button>`);
-    b.push(`<button class="btn sm danger" data-act="stop">Stop</button>`);
+    if (c.state !== 'running') b.push(ibtn('data-act="start"', 'start', 'Start'));
+    b.push(ibtn('data-act="restart"', 'restart', 'Restart'));
+    b.push(ibtn('data-act="stop"', 'stop', 'Stop', true));
   }
   return `<div class="ctr-actions">${b.join('')}</div>`;
 }
@@ -126,11 +142,11 @@ function composeItem(p) {
   const running = /(^|\()up|running/i.test(p.status || '');
   const actions = canWrite()
     ? `<div class="ctr-actions">
-         <button class="btn sm" data-cact="up">Start</button>
-         <button class="btn sm" data-cact="stop">Stop</button>
-         <button class="btn sm" data-cact="build">Build</button>
-         <button class="btn sm" data-cact="down">Clean up</button>
-         <button class="btn sm danger" data-cact="downv">Delete</button>
+         ${ibtn('data-cact="up"', 'start', 'Start (up -d)')}
+         ${ibtn('data-cact="stop"', 'stop', 'Stop')}
+         ${ibtn('data-cact="build"', 'build', 'Build images')}
+         ${ibtn('data-cact="down"', 'clean', 'Clean up (down)')}
+         ${ibtn('data-cact="downv"', 'del', 'Delete (down -v)', true)}
        </div>`
     : '<div class="ctr-actions"></div>';
   return `<div class="ilist-item ctr" data-project="${escapeHtml(p.name)}">

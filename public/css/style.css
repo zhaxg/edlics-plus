@@ -1056,3 +1056,21 @@ pre.logs .log-warn { color: var(--yellow); }
   grid-column: 3; grid-row: 1 / -1; align-self: center; margin: 0;
   display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end;
 }
+
+/* Icon action buttons in container items; bigger status dot */
+.ctr-ibtn { width: 30px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--text-dim); }
+.ctr-ibtn:hover { color: var(--text); }
+.ctr-ibtn.danger { color: var(--red); border-color: var(--border); }
+.ctr-ibtn.danger:hover { background: var(--red); color: var(--bg); border-color: var(--red); }
+.ctr-badge { width: 38px; height: 38px; }
+.ctr-badge-dot { width: 14px; height: 14px; right: -4px; bottom: -4px; }
+
+/* Container action buttons: square, borderless */
+.ctr-actions .ctr-ibtn {
+  width: 30px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; background: transparent; border-radius: 6px; color: var(--text-dim);
+}
+.ctr-actions .ctr-ibtn:hover { background: var(--hover); color: var(--text); }
+.ctr-actions .ctr-ibtn.danger { color: var(--red); }
+.ctr-actions .ctr-ibtn.danger:hover { background: var(--red); color: var(--bg); }
