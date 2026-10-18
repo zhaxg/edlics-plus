@@ -43,7 +43,7 @@ bin/lib/
   network-api.js     网络只读视图：接口/路由/DNS/监听端口/nftables（ip -j、ss、nft -j + 文本兜底）
   users-api.js       用户/组/会话只读（/etc/passwd、/etc/group、who）
   cron-api.js        定时任务只读（crontab、/etc/crontab、/etc/cron.d、systemd timers）
-  container-api.js   Docker 容器/compose 只读（docker ps/logs、docker compose ls）
+  container-api.js   Docker 容器/compose：列表(含 stats/project/ports)+日志+启停/compose up|stop|build|down(|-v)（--admin-write+审计；引用先校验枚举）
   processes-api.js   进程列表(top 式 CPU%/MEM%/RSS/STAT/CMD) + 发信号(--admin-write + 白名单 + 审计)
   db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
   audit.js           审计写入/查询/裁剪（登录与写操作的不可篡改记录）
@@ -61,7 +61,7 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   network.mjs        网络四列看板：接口/路由/监听端口/防火墙（每列一张卡+滚动 item 列表，只读）
   users.mjs          Access 三列看板：Users/Groups/Sessions（每列一张卡+滚动列表，只读）
   cron.mjs           Services 页 Scheduled tab：cron/timers 列表 → 右侧详情日志（cron 看守护单元日志）
-  containers.mjs     Docker 看板（tab：Containers/Compose，卡片式 + 日志抽屉，只读；扩展点见文件内 TABS）
+  containers.mjs     Docker 看板（tab：Containers/Compose）；容器项含 stats/项目/端口菜单(打开/日志/控制台/重启/停止)；compose 项含 up/stop/build/down/down-v
   processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
 bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)

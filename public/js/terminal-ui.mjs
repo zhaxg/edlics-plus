@@ -232,3 +232,19 @@ export function initTerminal() {
   const kill = document.getElementById('terminalKill');
   if (kill) kill.addEventListener('click', restartTerminal);
 }
+
+/**
+ * Open the terminal panel and run a command in the shell (used for
+ * "container console": docker exec -it <ref> sh).
+ * @param {string} cmd
+ */
+export function runCommandInTerminal(cmd) {
+  if (serverInfo && serverInfo.terminal === false) {
+    import('./api.mjs').then(m => m.toast('Terminal is disabled — start the server with --terminal', true));
+    return;
+  }
+  import('./activity.mjs').then(m => m.toggleTerminal(true));
+  const go = () => sendInput(cmd + '\r');
+  if (term) { try { fit.fit(); } catch {} ensureSession(); setTimeout(go, 250); }
+  else setTimeout(() => { ensureInit(); setTimeout(go, 500); }, 250);
+}

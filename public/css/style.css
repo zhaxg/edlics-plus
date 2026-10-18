@@ -990,3 +990,29 @@ pre.logs .log-warn { color: var(--yellow); }
 .btn.sm:hover { border-color: var(--text-dimmer); }
 .btn.sm.danger { color: var(--red); border-color: var(--red); }
 .btn.sm.danger:hover { background: var(--red); color: var(--bg); }
+
+/* Containers: rich items + floating menu */
+.ctr-ico { color: var(--accent); display: flex; align-items: center; }
+.ctr-actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+.icon-btn.sm { padding: 2px 7px; font-size: 11px; line-height: 1.2; }
+.ctr-sub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ctr-tag {
+  font-size: 10px; background: var(--hover); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; color: var(--text-dim);
+}
+.ctr-metric { font-size: 11px; color: var(--text-dim); }
+.ctr-metric b { color: var(--text-dimmer); font-weight: 600; margin-right: 3px; }
+
+.floating-menu {
+  position: fixed; z-index: 3000; min-width: 180px;
+  background: var(--sidebar); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.35); padding: 4px;
+}
+.floating-menu .menu-item {
+  display: block; width: 100%; text-align: left; background: transparent; border: none;
+  color: var(--text); font-size: 12px; padding: 7px 10px; border-radius: 5px; cursor: pointer;
+}
+.floating-menu .menu-item:hover { background: var(--hover); }
+.floating-menu .menu-item.danger { color: var(--red); }
+.floating-menu .menu-item.danger:hover { background: var(--red); color: var(--bg); }
+.floating-menu .menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }
