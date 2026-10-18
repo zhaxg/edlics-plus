@@ -765,9 +765,7 @@ body.console-mode .editor-area { display: none !important; }
 .dash-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
 .chart-card { min-width: 0; }
 
-/* Full-width list pages: keep rows from stretching awkwardly */
-.page-body .services-list,
-.page-body .net-content { max-width: 1100px; }
+/* Full width: list pages and the dashboard use the whole content area. */
 
 /* Section separator inside a page-body (e.g. Access: accounts + scheduled) */
 .section-sep {
@@ -833,3 +831,80 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
 
 /* .hidden must win over any later component display rule (pages/console-area are appended after .hidden) */
 .hidden { display: none !important; }
+
+/* Processes table inside the Dashboard: own scroll region + sticky header */
+.proc-scroll {
+  max-height: 460px; overflow: auto;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
+}
+#procContent .proc-head {
+  position: sticky; top: 0; z-index: 2; background: var(--sidebar);
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
+  padding: 7px 10px; margin: 0; border-bottom: 1px solid var(--border);
+}
+#procContent .proc-row { padding: 3px 10px; }
+#procContent .net-card { margin-bottom: 8px; }
+
+/* --- Item list / cards: replaces cramped multi-column rows -------------- */
+.ilist { display: flex; flex-direction: column; gap: 8px; }
+.ilist-item {
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--sidebar); padding: 10px 12px;
+}
+.ilist-head { display: flex; align-items: center; gap: 8px; }
+.ilist-title { font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ilist-title.mono { font-family: var(--font-mono); font-weight: 500; font-size: 12px; }
+.ilist-meta { margin-left: auto; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.ilist-sub { font-size: 11px; color: var(--text-dim); margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ilist-sub.mono { font-family: var(--font-mono); color: var(--text); }
+.ilist-fields { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.ilist-field { display: flex; gap: 10px; font-size: 11px; }
+.ilist-k { flex: 0 0 64px; color: var(--text-dim); }
+.ilist-v { flex: 1; color: var(--text); font-family: var(--font-mono); word-break: break-all; }
+.ilist-addrs { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+.ilist-addr { font-family: var(--font-mono); font-size: 12px; color: var(--text); }
+.ilist-addr.muted { color: var(--text-dimmer); }
+
+/* Network tabs: content uses the item list; keep tabs compact */
+.net-content .ilist { max-width: 100%; }
+
+/* Dashboard info cards: let long values WRAP instead of truncating */
+.dash-cards { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-items: stretch; }
+.dash-cards .ov-row { justify-content: center; }
+.dash-cards .ov-v {
+  white-space: normal; overflow: visible; text-overflow: clip;
+  overflow-wrap: anywhere; font-size: 12.5px; line-height: 1.35;
+}
+
+/* Compact security row (2FA) — no big card */
+.sec-card { margin-bottom: 16px; }
+.sec-line { display: flex; align-items: center; gap: 10px; font-size: 12px; flex-wrap: wrap; }
+.sec-state { font-weight: 600; }
+.sec-state.on { color: var(--green); }
+.sec-state.off { color: var(--text-dim); }
+.sec-hint { color: var(--text-dim); flex: 1; min-width: 160px; }
+.sec-btn {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  border-radius: 6px; padding: 5px 12px; cursor: pointer; font-size: 12px;
+}
+.sec-btn:hover { border-color: var(--text-dimmer); }
+.sec-btn.danger { color: var(--red); border-color: var(--red); }
+.sec-btn.danger:hover { background: var(--red); color: var(--bg); }
+
+/* Security card lives in the info grid and spans three small cards */
+.dash-info { display: contents; }
+.sec-card { grid-column: span 3; align-self: start; margin-bottom: 0; }
+@media (max-width: 760px) { .sec-card { grid-column: span 1; } }
+
+/* Info cards: fixed 6-column design (with responsive fallbacks) */
+.dash-cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1200px) { .dash-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } .sec-card { grid-column: span 2; } }
+@media (max-width: 860px)  { .dash-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sec-card { grid-column: span 2; } }
+@media (max-width: 540px)  { .dash-cards { grid-template-columns: 1fr; } .sec-card { grid-column: span 1; } }
+
+/* Section header: title + summary + filter on one row */
+.section-head-left { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0; }
+.section-head-left .section-h2 { margin-right: 0; }
+.section-sub { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.section-sep { flex-wrap: wrap; }
+.section-sep .search-input-wrap { min-width: 200px; }

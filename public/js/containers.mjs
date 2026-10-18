@@ -16,28 +16,31 @@ function render() {
   if (!data.available) { box.innerHTML = '<div class="panel-placeholder">Docker is not available</div>'; return; }
 
   const composeHtml = data.compose.length
-    ? `<div class="svc-desc" style="margin:2px 0;">Compose projects (${data.compose.length})</div>
-       <div class="net-table">${data.compose.map(p =>
-        `<div class="net-row"><span class="net-dst">${escapeHtml(p.name)}</span><span class="net-proc" title="${escapeHtml(p.configFiles)}">${escapeHtml(p.status)}</span></div>`
-      ).join('')}</div>`
+    ? `<div class="ilist-sub" style="margin:0 0 6px;">Compose projects (${data.compose.length})</div>
+       <div class="ilist">${data.compose.map(p => `
+        <div class="ilist-item">
+          <div class="ilist-head"><span class="ilist-title">${escapeHtml(p.name)}</span><span class="ilist-meta">${escapeHtml(p.status)}</span></div>
+          <div class="ilist-sub mono">${escapeHtml(p.configFiles)}</div>
+        </div>`).join('')}</div>`
     : '';
 
   const listHtml = data.containers.length
-    ? data.containers.map(c => {
+    ? '<div class="ilist">' + data.containers.map(c => {
         const open = openLogs.has(c.id);
-        return `<div class="service-row">
-          <div class="svc-head">${stateDot(c.state)}
-            <span class="svc-name" title="${escapeHtml(c.id)}">${escapeHtml(c.name)}</span>
-            <span class="svc-sub">${escapeHtml(c.state)}</span>
+        return `<div class="ilist-item">
+          <div class="ilist-head">${stateDot(c.state)}
+            <span class="ilist-title">${escapeHtml(c.name)}</span>
+            <span class="ilist-meta">${escapeHtml(c.state)}</span>
             <button class="svc-logs-btn" data-clogs="${escapeHtml(c.id)}">log</button>
           </div>
-          <div class="svc-desc" title="${escapeHtml(c.image)}">${escapeHtml(c.image)}${c.ports ? ' · ' + escapeHtml(c.ports) : ''}</div>
+          <div class="ilist-sub mono">${escapeHtml(c.image)}</div>
+          ${c.ports ? `<div class="ilist-sub">${escapeHtml(c.ports)}</div>` : ''}
           <pre class="svc-logs${open ? '' : ' hidden'}" data-clogbox="${escapeHtml(c.id)}"></pre>
         </div>`;
-      }).join('')
+      }).join('') + '</div>'
     : '<div class="panel-placeholder">No containers</div>';
 
-  box.innerHTML = composeHtml + `<div class="svc-desc" style="margin:10px 0 2px;">Containers (${data.containers.length})</div>` + listHtml;
+  box.innerHTML = composeHtml + `<div class="ilist-sub" style="margin:6px 0;">Containers (${data.containers.length})</div>` + listHtml;
 
   box.querySelectorAll('.svc-logs-btn').forEach(btn => {
     btn.addEventListener('click', () => toggleLogs(btn.dataset.clogs));

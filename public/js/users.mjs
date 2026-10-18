@@ -7,32 +7,37 @@ let q = '';
 
 function renderUsers() {
   const rows = data.users.filter(u => !q || u.name.toLowerCase().includes(q));
-  return '<div class="net-table">' + rows.map(u =>
-    `<div class="net-row">
-      <span class="net-dst">${escapeHtml(u.name)}</span>
-      <span class="net-via">${u.uid}:${u.gid}</span>
-      <span class="net-dev" title="${escapeHtml(u.shell)}">${escapeHtml(u.group)}</span>
-      <span class="net-proc" title="${escapeHtml(u.home)}">${u.system ? 'system' : escapeHtml(u.gecos || u.home)}</span>
+  if (!rows.length) return '<div class="panel-placeholder">No matches</div>';
+  return '<div class="ilist">' + rows.map(u => `
+    <div class="ilist-item">
+      <div class="ilist-head">
+        <span class="ilist-title">${escapeHtml(u.name)}</span>
+        <span class="ilist-meta">uid ${u.uid} · gid ${u.gid}${u.system ? ' · system' : ''}</span>
+      </div>
+      <div class="ilist-fields">
+        <div class="ilist-field"><span class="ilist-k">group</span><span class="ilist-v">${escapeHtml(u.group)}${u.groups.length ? ' + ' + escapeHtml(u.groups.join(', ')) : ''}</span></div>
+        <div class="ilist-field"><span class="ilist-k">home</span><span class="ilist-v">${escapeHtml(u.home)}</span></div>
+        <div class="ilist-field"><span class="ilist-k">shell</span><span class="ilist-v">${escapeHtml(u.shell)}</span></div>
+      </div>
     </div>`).join('') + '</div>';
 }
 
 function renderGroups() {
   const rows = data.groups.filter(g => !q || g.name.toLowerCase().includes(q));
-  return '<div class="net-table">' + rows.map(g =>
-    `<div class="net-row">
-      <span class="net-dst">${escapeHtml(g.name)}</span>
-      <span class="net-via">${g.gid}</span>
-      <span class="net-proc" title="${escapeHtml(g.members.join(', '))}">${escapeHtml(g.members.join(', ') || '—')}</span>
+  if (!rows.length) return '<div class="panel-placeholder">No matches</div>';
+  return '<div class="ilist">' + rows.map(g => `
+    <div class="ilist-item">
+      <div class="ilist-head"><span class="ilist-title">${escapeHtml(g.name)}</span><span class="ilist-meta">gid ${g.gid}</span></div>
+      <div class="ilist-sub">${g.members.length ? escapeHtml(g.members.join(', ')) : 'no members'}</div>
     </div>`).join('') + '</div>';
 }
 
 function renderSessions() {
   if (!data.sessions.length) return '<div class="panel-placeholder">No interactive sessions</div>';
-  return '<div class="net-table">' + data.sessions.map(s =>
-    `<div class="net-row">
-      <span class="net-dst">${escapeHtml(s.user)}</span>
-      <span class="net-via">${escapeHtml(s.tty)}</span>
-      <span class="net-proc" title="${escapeHtml(s.since)}">${escapeHtml(s.from || s.since)}</span>
+  return '<div class="ilist">' + data.sessions.map(s => `
+    <div class="ilist-item">
+      <div class="ilist-head"><span class="ilist-title">${escapeHtml(s.user)}</span><span class="ilist-meta">${escapeHtml(s.tty)}</span></div>
+      <div class="ilist-sub">${escapeHtml(s.from || 'local')}${s.since ? ' · ' + escapeHtml(s.since) : ''}</div>
     </div>`).join('') + '</div>';
 }
 

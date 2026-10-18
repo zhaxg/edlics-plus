@@ -23,11 +23,11 @@ const CONSOLE_VIEWS = {
   network: { page: 'page-network', title: 'Network' },
   access: { page: 'page-access', title: 'Access' },
   containers: { page: 'page-containers', title: 'Containers' },
-  processes: { page: 'page-processes', title: 'Processes' },
 };
 
-// Older deep links still resolve (users/cron were merged into access).
-const VIEW_ALIAS = { users: 'access', cron: 'access' };
+// Older deep links still resolve (users/cron merged into access; the process
+// table now lives under the Dashboard).
+const VIEW_ALIAS = { users: 'access', cron: 'access', processes: 'overview' };
 
 function el(id) { return document.getElementById(id); }
 

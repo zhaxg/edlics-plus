@@ -161,10 +161,13 @@ docs/                README 截图与 logo
 ## 前端关键约定
 
 - **两种视图族**：IDE（explorer/search/git，侧栏 + 编辑器）与 Console（Dashboard/Services/Network/
-  Access/Containers/Processes，`index.html` 的 `#consoleArea` 内**单列全宽页**，不左右分栏）；
-  `activity.mjs` 按 `location.hash`（`#/services`）路由，切换时派发 `view-changed`
-  （供 processes 等自刷新/自停轮询）。新增 Console 页 = `index.html` 加 `<section class="page" id="page-x">`
-  + `activity.mjs` 的 `CONSOLE_VIEWS` 映射 + `app.mjs` init。
+  Access/Containers，`index.html` 的 `#consoleArea` 内**单列全宽页**，不左右分栏）；**进程表并入
+  Dashboard 下方**（`#procContent`，自身滚动 + 粘顶表头 + 过滤框；统计与过滤同一行）；**Scheduled
+  tasks（cron + timers）在 Services 页内**，Access 页仅账号。列表一律用 `.ilist`/`.ilist-item` 卡片式
+  （不要多列拥挤）；Dashboard 信息卡固定 **6 列**（`.dash-cards`，窄屏降 4/2/1），Security 卡
+  `grid-column: span 3`。`activity.mjs` 按 `location.hash`（`#/services`）路由，切换时派发 `view-changed`；
+  旧 `#/processes`、`#/cron`、`#/users` 通过 `VIEW_ALIAS` 重定向。新增 Console 页 = `index.html` 加
+  `<section class="page" id="page-x">` + `activity.mjs` 的 `CONSOLE_VIEWS` 映射 + `app.mjs` init。
 - **业务代码零构建**：只改 `public/js/*.mjs` 即生效；改 `bundle/editor.mjs`（CodeMirror）或
   `bundle/terminal.mjs`（xterm）才需要 `npm run build`。
 - **`public/editor.mjs`、`public/terminal.*` 是构建产物，禁止手改。**

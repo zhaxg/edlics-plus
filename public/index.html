@@ -35,7 +35,6 @@
     <button class="act-btn" data-view="network" id="btnNetwork" title="Network" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18z"/></svg></button>
     <button class="act-btn" data-view="access" id="btnUsers" title="Access (accounts & scheduled tasks)" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></button>
     <button class="act-btn" data-view="containers" id="btnContainers" title="Containers" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg></button>
-    <button class="act-btn" data-view="processes" id="btnProcesses" title="Processes" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h10M4 18h13"/><circle cx="18.5" cy="12" r="1.5"/></svg></button>
     <span class="act-sep"></span>
     <button class="act-btn" data-view="search" title="Search (Ctrl+Shift+F)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
     <button class="act-btn" data-view="git" title="Source Control (Ctrl+Shift+G)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></button>
@@ -100,7 +99,14 @@
           </div>
         </header>
         <div class="page-body" id="overviewBody">
-          <div class="dash-cards" id="ovInfo"></div>
+          <div class="dash-cards">
+            <div id="ovInfo" class="dash-info"></div>
+            <div class="card sec-card">
+              <div class="card-title">Security — two-factor authentication</div>
+              <div id="ovTotp" class="ov-info"></div>
+            </div>
+          </div>
+
           <div class="dash-charts">
             <div class="card chart-card">
               <div class="card-title">CPU <span class="ov-unit">%</span></div>
@@ -114,11 +120,17 @@
               <div class="card-title">Network <span class="ov-unit">KB/s</span></div>
               <div id="ovNet" class="ov-chart"></div>
             </div>
-            <div class="card chart-card">
-              <div class="card-title">Security</div>
-              <div id="ovTotp" class="ov-info"></div>
-            </div>
           </div>
+
+          <div class="section-sep">
+            <div class="section-head-left">
+              <h2 class="section-h2">Processes</h2>
+              <span class="section-sub" id="procSummary"></span>
+            </div>
+            <div class="search-input-wrap"><input id="procFilter" placeholder="Filter by name, command or PID…" spellcheck="false" /></div>
+            <button id="btnProcessesRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
+          </div>
+          <div id="procContent" class="net-content"></div>
         </div>
       </section>
 
@@ -130,7 +142,15 @@
             <button id="btnServicesRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
           </div>
         </header>
-        <div class="page-body"><div id="servicesList" class="services-list"></div></div>
+        <div class="page-body">
+          <div id="servicesList" class="services-list"></div>
+
+          <div class="section-sep">
+            <h2 class="section-h2">Scheduled tasks</h2>
+            <button id="btnCronRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
+          </div>
+          <div id="cronContent" class="net-content"></div>
+        </div>
       </section>
 
       <section class="page hidden" id="page-network">
@@ -164,12 +184,6 @@
             <button data-utab="sessions">Sessions</button>
           </div>
           <div id="usersContent" class="net-content"></div>
-
-          <div class="section-sep">
-            <h2 class="section-h2">Scheduled tasks</h2>
-            <button id="btnCronRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
-          </div>
-          <div id="cronContent" class="net-content"></div>
         </div>
       </section>
 
@@ -181,16 +195,6 @@
         <div class="page-body"><div id="containersContent" class="net-content"></div></div>
       </section>
 
-      <section class="page hidden" id="page-processes">
-        <header class="page-header">
-          <h1 class="page-h1">Processes</h1>
-          <div class="page-actions">
-            <div class="search-input-wrap"><input id="procFilter" placeholder="Filter processes…" spellcheck="false" /></div>
-            <button id="btnProcessesRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
-          </div>
-        </header>
-        <div class="page-body"><div id="procContent" class="net-content"></div></div>
-      </section>
     </div>
     <div class="editor-area" id="editorArea">
       <div class="welcome" id="welcome">

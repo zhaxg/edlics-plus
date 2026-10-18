@@ -29,7 +29,9 @@ function fmtTime(sec) {
 function render() {
   const box = document.getElementById('procContent');
   if (!box) return;
-  const head = `<div class="net-card"><div class="svc-desc">${total} processes · load ${summary.load.join(' ')} · ${summary.cores} cores</div></div>`;
+  // Summary lives in the section header row, next to the filter.
+  const sum = document.getElementById('procSummary');
+  if (sum) sum.textContent = `${total} processes · load ${summary.load.join(' ')} · ${summary.cores} cores`;
   const cols = `<div class="proc-head">
       <span data-sort="pid" class="proc-col proc-pid">PID</span>
       <span class="proc-col proc-user">USER</span>
@@ -50,7 +52,7 @@ function render() {
       <span class="proc-col proc-cmd">${escapeHtml(p.cmd || p.name)}</span>
       ${canWrite() ? `<span class="proc-col proc-act"><button data-kill="${p.pid}" data-name="${escapeHtml(p.name)}" title="Signal ${escapeHtml(p.name)}">kill</button></span>` : ''}
     </div>`).join('');
-  box.innerHTML = head + cols + `<div class="proc-table">${body || '<div class="panel-placeholder">No matches</div>'}</div>`;
+  box.innerHTML = `<div class="proc-scroll">${cols}<div class="proc-table">${body || '<div class="panel-placeholder">No matches</div>'}</div></div>`;
 
   box.querySelectorAll('[data-sort]').forEach(el => el.addEventListener('click', () => { sort = el.dataset.sort; load(); }));
   box.querySelectorAll('[data-kill]').forEach(btn => btn.addEventListener('click', () => signalDialog(parseInt(btn.dataset.kill, 10), btn.dataset.name)));
@@ -95,9 +97,10 @@ export function initProcesses() {
   const btn = document.getElementById('btnProcessesRefresh');
   if (btn) btn.addEventListener('click', load);
   document.querySelector('.act-btn[data-view="processes"]')?.addEventListener('click', () => setTimeout(load, 0));
-  // Only poll while the panel is actually visible.
+  // Only poll while the panel is actually visible. The table now lives inside
+  // the Dashboard (overview) page.
   document.addEventListener('view-changed', e => {
-    visible = e.detail && e.detail.view === 'processes';
+    visible = e.detail && e.detail.view === 'overview';
     if (visible) { load(); startTimer(); } else stopTimer();
   });
 }

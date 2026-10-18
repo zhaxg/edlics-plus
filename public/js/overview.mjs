@@ -60,7 +60,7 @@ function chartOpts(el, seriesSpec) {
     scales: { x: { time: true }, y: { range: (u, min, max) => [0, max <= 0 ? 1 : max * 1.15] } },
     axes: [
       { stroke: p.dim, grid: { stroke: p.grid }, ticks: { stroke: p.grid }, font: '9px system-ui', size: 22 },
-      { stroke: p.dim, grid: { stroke: p.grid }, ticks: { stroke: p.grid }, font: '9px system-ui', size: 34 },
+      { stroke: p.dim, grid: { stroke: p.grid }, ticks: { stroke: p.grid }, font: '9px system-ui', size: 46 },
     ],
     series: [{}, ...seriesSpec],
   };
@@ -172,27 +172,28 @@ function loadInfo() {
 function renderTotp(status) {
   const box = document.getElementById('ovTotp');
   if (!box) return;
-  if (status && status.enabled) {
-    box.innerHTML = `<div class="ov-row"><span class="ov-k">2FA</span><span class="ov-v" style="color:var(--green)">enabled</span></div>
-      <div class="svc-actions" style="margin:4px 0 0 0;"><button id="ovTotpDisable">disable 2FA</button></div>`;
-    box.querySelector('#ovTotpDisable').onclick = async () => {
+  const enabled = !!(status && status.enabled);
+  box.innerHTML = `<div class="sec-line">
+      <span class="sec-state ${enabled ? 'on' : 'off'}">${enabled ? 'Enabled' : 'Disabled'}</span>
+      <span class="sec-hint">${enabled ? 'A code is required at login.' : 'Add a second factor to protect this root-grade panel.'}</span>
+      <button class="sec-btn${enabled ? ' danger' : ''}" id="ovTotpBtn">${enabled ? 'Disable' : 'Enable'}</button>
+    </div>`;
+  box.querySelector('#ovTotpBtn').onclick = async () => {
+    if (enabled) {
       const code = await promptDialog('Enter the current 2FA code to disable two-factor auth:', { title: 'Disable 2FA', okLabel: 'Disable', danger: true, placeholder: '123456' });
       if (!code) return;
       const r = await api('POST', '/api/sys/totp/disable', { code });
       if (r.error) toast(r.error, true); else { toast('2FA disabled'); loadTotp(); }
-    };
-  } else {
-    box.innerHTML = `<div class="ov-row"><span class="ov-k">2FA</span><span class="ov-v" style="color:var(--text-dim)">disabled</span></div>
-      <div class="svc-actions" style="margin:4px 0 0 0;"><button id="ovTotpEnable">enable 2FA</button></div>`;
-    box.querySelector('#ovTotpEnable').onclick = async () => {
-      const r = await api('POST', '/api/sys/totp/enroll', {});
-      if (r.error) { toast(r.error, true); return; }
-      box.innerHTML = `<div class="svc-desc">Add to your authenticator app — required at next login:</div>
-        <div class="ov-row"><span class="ov-k">Secret</span><span class="ov-v" style="user-select:all">${escapeHtml(r.secret)}</span></div>
-        <div class="svc-desc" style="word-break:break-all;user-select:all">${escapeHtml(r.url)}</div>`;
-      toast('2FA enabled');
-    };
-  }
+      return;
+    }
+    const r = await api('POST', '/api/sys/totp/enroll', {});
+    if (r.error) { toast(r.error, true); return; }
+    box.innerHTML = `<div class="sec-line"><span class="sec-state on">Enabled</span>
+        <span class="ilist-k">secret</span><code class="ilist-v" style="user-select:all">${escapeHtml(r.secret)}</code></div>
+      <div class="ilist-sub">Add it to your authenticator app — a code is required at next login.</div>
+      <div class="ilist-sub mono" style="user-select:all;word-break:break-all;">${escapeHtml(r.url)}</div>`;
+    toast('2FA enabled');
+  };
 }
 
 function loadTotp() { api('GET', '/api/sys/totp').then(renderTotp).catch(() => {}); }
