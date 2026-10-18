@@ -1,12 +1,12 @@
 // cron.mjs — Scheduled tasks panel: crontab jobs + systemd timers (read-only).
-import { api, escapeHtml } from './api.mjs';
+import { api, escapeHtml, spinner } from './api.mjs';
 
 let data = null;
 
 function render() {
   const box = document.getElementById('cronContent');
   if (!box) return;
-  if (!data) { box.innerHTML = '<div class="panel-placeholder">Loading…</div>'; return; }
+  if (!data) { box.innerHTML = spinner('Loading…'); return; }
   const { jobs, timers } = data;
   let html = '';
   html += `<div class="svc-desc" style="margin:2px 0;">Cron jobs (${jobs.length})</div>`;

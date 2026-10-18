@@ -2,7 +2,7 @@
 //
 // Data path: SSE (/api/sys/metrics/stream) for the live view, SQLite-backed
 // history (/api/sys/metrics?range=…) when a range is picked. uPlot renders.
-import { api, escapeHtml, toast } from './api.mjs';
+import { api, escapeHtml, toast, promptDialog } from './api.mjs';
 import { uPlot } from '/charts.mjs';
 
 const MAX_POINTS = 180;         // matches the server ring (~3 min at 1s)
@@ -176,7 +176,7 @@ function renderTotp(status) {
     box.innerHTML = `<div class="ov-row"><span class="ov-k">2FA</span><span class="ov-v" style="color:var(--green)">enabled</span></div>
       <div class="svc-actions" style="margin:4px 0 0 0;"><button id="ovTotpDisable">disable 2FA</button></div>`;
     box.querySelector('#ovTotpDisable').onclick = async () => {
-      const code = window.prompt('Enter the current 2FA code to disable:');
+      const code = await promptDialog('Enter the current 2FA code to disable two-factor auth:', { title: 'Disable 2FA', okLabel: 'Disable', danger: true, placeholder: '123456' });
       if (!code) return;
       const r = await api('POST', '/api/sys/totp/disable', { code });
       if (r.error) toast(r.error, true); else { toast('2FA disabled'); loadTotp(); }

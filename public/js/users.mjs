@@ -1,5 +1,5 @@
 // users.mjs — Users / Groups / Sessions panel (read-only).
-import { api, escapeHtml } from './api.mjs';
+import { api, escapeHtml, spinner } from './api.mjs';
 
 let tab = 'users';
 let data = null;
@@ -39,7 +39,7 @@ function renderSessions() {
 function render() {
   const box = document.getElementById('usersContent');
   if (!box) return;
-  if (!data) { box.innerHTML = '<div class="panel-placeholder">Loading…</div>'; return; }
+  if (!data) { box.innerHTML = spinner('Loading…'); return; }
   const c = data.counts;
   const head = `<div class="net-card"><div class="svc-desc">${c.human} human · ${c.system} system · ${c.groups} groups · ${data.sessions.length} sessions</div></div>`;
   box.innerHTML = head + (tab === 'users' ? renderUsers() : tab === 'groups' ? renderGroups() : renderSessions());

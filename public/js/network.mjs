@@ -1,6 +1,6 @@
 // network.mjs — Network panel: interfaces, routes, DNS, listening sockets and
 // firewall (nftables) summary. Read-only; all data comes from /api/sys/network*.
-import { api, escapeHtml } from './api.mjs';
+import { api, escapeHtml, spinner } from './api.mjs';
 
 let tab = 'ifaces';
 let netData = null;      // { interfaces, routes, dns }
@@ -14,7 +14,7 @@ function stateDot(state) {
 
 function renderIfaces() {
   const n = netData;
-  if (!n) return '<div class="panel-placeholder">Loading…</div>';
+  if (!n) return spinner('Loading…');
   if (!n.interfaces.length) return '<div class="panel-placeholder">No interfaces</div>';
   let html = '';
   for (const i of n.interfaces) {
@@ -35,7 +35,7 @@ function renderIfaces() {
 
 function renderRoutes() {
   const n = netData;
-  if (!n) return '<div class="panel-placeholder">Loading…</div>';
+  if (!n) return spinner('Loading…');
   if (!n.routes.length) return '<div class="panel-placeholder">No routes</div>';
   return '<div class="net-table">' + n.routes.map(r =>
     `<div class="net-row"><span class="net-dst">${escapeHtml(r.dst)}</span>
@@ -45,7 +45,7 @@ function renderRoutes() {
 }
 
 function renderSockets() {
-  if (sockets === null) return '<div class="panel-placeholder">Loading…</div>';
+  if (sockets === null) return spinner('Loading…');
   if (!sockets.length) return '<div class="panel-placeholder">No listening sockets</div>';
   return '<div class="net-table">' + sockets.map(s =>
     `<div class="net-row"><span class="net-proto">${escapeHtml(s.proto)}</span>
@@ -55,7 +55,7 @@ function renderSockets() {
 }
 
 function renderFirewall() {
-  if (firewall === null) return '<div class="panel-placeholder">Loading…</div>';
+  if (firewall === null) return spinner('Loading…');
   const f = firewall;
   if (!f.available) return '<div class="panel-placeholder">nftables not available</div>';
   if (!f.tables) return '<div class="panel-placeholder">No nftables tables</div>';
@@ -85,7 +85,7 @@ async function ensureSection(name) {
 
 export async function refreshNetwork() {
   const box = document.getElementById('netContent');
-  if (box) box.innerHTML = '<div class="panel-placeholder">Loading…</div>';
+  if (box) box.innerHTML = spinner('Loading…');
   try { netData = await api('GET', '/api/sys/network'); } catch { netData = { interfaces: [], routes: [], dns: { nameservers: [], search: [] } }; }
   if (tab === 'sockets' || tab === 'fw') await ensureSection(tab);
   render();

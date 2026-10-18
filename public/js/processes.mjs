@@ -1,6 +1,6 @@
 // processes.mjs — top-style process table. Auto-refreshes while visible.
 // Signalling (TERM/KILL/…) appears only when the server has --admin-write.
-import { api, escapeHtml, toast } from './api.mjs';
+import { api, escapeHtml, toast, choiceDialog } from './api.mjs';
 import { serverInfo } from './state.mjs';
 
 let rows = [];
@@ -48,20 +48,27 @@ function render() {
       <span class="proc-col proc-num">${fmtBytes(p.rss)}</span>
       <span class="proc-col proc-st proc-st-${escapeHtml(p.state)}">${escapeHtml(p.state)}</span>
       <span class="proc-col proc-cmd">${escapeHtml(p.cmd || p.name)}</span>
-      ${canWrite() ? `<span class="proc-col proc-act"><button data-kill="${p.pid}" title="Signal ${escapeHtml(p.name)}">kill</button></span>` : ''}
+      ${canWrite() ? `<span class="proc-col proc-act"><button data-kill="${p.pid}" data-name="${escapeHtml(p.name)}" title="Signal ${escapeHtml(p.name)}">kill</button></span>` : ''}
     </div>`).join('');
   box.innerHTML = head + cols + `<div class="proc-table">${body || '<div class="panel-placeholder">No matches</div>'}</div>`;
 
   box.querySelectorAll('[data-sort]').forEach(el => el.addEventListener('click', () => { sort = el.dataset.sort; load(); }));
-  box.querySelectorAll('[data-kill]').forEach(btn => btn.addEventListener('click', () => killPrompt(parseInt(btn.dataset.kill, 10))));
+  box.querySelectorAll('[data-kill]').forEach(btn => btn.addEventListener('click', () => signalDialog(parseInt(btn.dataset.kill, 10), btn.dataset.name)));
 }
 
-async function killPrompt(pid) {
-  const sig = (window.prompt(`Send signal to PID ${pid}: TERM / KILL / HUP / INT / STOP / CONT`) || '').toUpperCase().trim();
+async function signalDialog(pid, name) {
+  const sig = await choiceDialog(`Signal PID ${pid}`, name || '', [
+    { label: 'Terminate (TERM)', value: 'TERM' },
+    { label: 'Kill (KILL)', value: 'KILL', danger: true },
+    { label: 'HUP', value: 'HUP' },
+    { label: 'INT', value: 'INT' },
+    { label: 'STOP', value: 'STOP' },
+    { label: 'CONT', value: 'CONT' },
+  ]);
   if (!sig) return;
   try {
     const r = await api('POST', '/api/sys/processes/kill', { pid, signal: sig });
-    if (r.error) toast(r.error, true); else toast(`${sig} → ${pid}`);
+    if (r.error) toast(r.error, true); else toast(`${sig} → ${name || pid}`);
   } catch (e) { toast('signal failed: ' + e.message, true); }
   load();
 }

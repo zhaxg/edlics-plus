@@ -2,7 +2,7 @@
 //
 // Actions are only offered when the server has --admin-write; the server
 // re-checks and audits regardless (defence in depth).
-import { api, escapeHtml, toast, confirmDialog } from './api.mjs';
+import { api, escapeHtml, toast, confirmDialog, setBusy, spinner } from './api.mjs';
 import { serverInfo } from './state.mjs';
 
 let loaded = false;
@@ -86,23 +86,24 @@ async function toggleLogs(unit) {
 
 async function doAction(unit, action, btn) {
   if (!canWrite()) return;
+  const label = action.charAt(0).toUpperCase() + action.slice(1);
   if (action === 'stop' || action === 'restart') {
-    const okGo = await confirmDialog(`${action} ${unit}?`);
+    const okGo = await confirmDialog(`${label} ${unit}?`, { title: label + ' service', okLabel: label, danger: true });
     if (!okGo) return;
   }
-  btn.disabled = true;
+  setBusy(btn, true);
   try {
     const res = await api('POST', '/api/sys/services/action', { unit, action });
     if (res.error) toast(res.error, true);
-    else toast(`${action} ${shortName(unit)} ok`);
+    else toast(`${label} ${shortName(unit)} ok`);
   } catch (e) { toast('Action failed: ' + e.message, true); }
-  btn.disabled = false;
+  setBusy(btn, false);
   refreshServices();
 }
 
 export function refreshServices() {
   const box = document.getElementById('servicesList');
-  if (box && !loaded) box.innerHTML = '<div class="panel-placeholder">Loading…</div>';
+  if (box && !loaded) box.innerHTML = spinner('Loading…');
   api('GET', '/api/sys/services' + (loaded ? '?refresh=1' : ''))
     .then(data => {
       if (!data || data.error) { if (box) box.innerHTML = `<div class="panel-placeholder">${escapeHtml((data && data.error) || 'Failed to load services')}</div>`; return; }

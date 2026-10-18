@@ -1,5 +1,5 @@
 // containers.mjs — Docker containers + compose projects (read-only).
-import { api, escapeHtml } from './api.mjs';
+import { api, escapeHtml, spinner } from './api.mjs';
 
 let data = null;
 const openLogs = new Set();
@@ -12,7 +12,7 @@ function stateDot(state) {
 function render() {
   const box = document.getElementById('containersContent');
   if (!box) return;
-  if (!data) { box.innerHTML = '<div class="panel-placeholder">Loading…</div>'; return; }
+  if (!data) { box.innerHTML = spinner('Loading…'); return; }
   if (!data.available) { box.innerHTML = '<div class="panel-placeholder">Docker is not available</div>'; return; }
 
   const composeHtml = data.compose.length
