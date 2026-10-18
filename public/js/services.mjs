@@ -52,11 +52,19 @@ async function selectUnit(unit) {
       <span class="ilist-meta">${escapeHtml(u.sub || '')}${u.load ? ' · ' + escapeHtml(u.load) : ''}</span></div>
     <div class="ilist-sub">${escapeHtml(u.description || '')}</div>
     ${actions}
-    <div class="detail-section-title">Unit file <span class="muted">(systemctl cat)</span></div>
-    <pre class="file" id="unitFile">${spinner('Loading…')}</pre>
-    <div class="detail-section-title">Logs <span class="muted">(journalctl)</span></div>
-    <pre class="logs" id="unitLogs">${spinner('Loading…')}</pre>`;
+    <div class="page-tabs detail-tabs" id="svcDetailTabs">
+      <button data-dtab="unit" class="active">Unit file</button>
+      <button data-dtab="logs">Logs</button>
+    </div>
+    <div class="detail-pane" id="svcPaneUnit"><pre class="file" id="unitFile">${spinner('Loading…')}</pre></div>
+    <div class="detail-pane hidden" id="svcPaneLogs"><pre class="logs" id="unitLogs">${spinner('Loading…')}</pre></div>`;
   pane.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => doAction(unit, b.dataset.act, b)));
+  const dtabs = pane.querySelector('#svcDetailTabs');
+  if (dtabs) dtabs.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    dtabs.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
+    pane.querySelector('#svcPaneUnit').classList.toggle('hidden', b.dataset.dtab !== 'unit');
+    pane.querySelector('#svcPaneLogs').classList.toggle('hidden', b.dataset.dtab !== 'logs');
+  }));
   loadUnitFile(unit);
   loadJournalInto('unitLogs', unit);
 }

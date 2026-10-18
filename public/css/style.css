@@ -1016,3 +1016,11 @@ pre.logs .log-warn { color: var(--yellow); }
 .floating-menu .menu-item.danger { color: var(--red); }
 .floating-menu .menu-item.danger:hover { background: var(--red); color: var(--bg); }
 .floating-menu .menu-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+
+/* Detail pane: fill height, inner scroll; tabbed panes (Unit file / Logs) */
+.split-detail { display: flex; flex-direction: column; overflow: hidden; }
+.detail-tabs { margin: 12px 0 8px; }
+.detail-pane { flex: 1; min-height: 0; overflow: auto; }
+.detail-pane.hidden { display: none !important; }
+.detail-pane pre.file,
+.detail-pane pre.logs { max-height: none; min-height: 100%; margin: 0; }

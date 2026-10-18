@@ -53,7 +53,7 @@ function select(type, i) {
         <div class="ilist-field"><span class="ilist-k">source</span><span class="ilist-v">${escapeHtml(j.source)}</span></div>
       </div>
       <div class="detail-section-title">Logs <span class="muted">(${escapeHtml(data.daemon || 'cron')})</span></div>
-      <pre class="logs" id="cronLogs"></pre>`;
+      <div class="detail-pane"><pre class="logs" id="cronLogs"></pre></div>`;
     if (data.daemon) loadJournalInto('cronLogs', data.daemon);
     else document.getElementById('cronLogs').textContent = 'No cron daemon unit detected';
     return;
@@ -68,7 +68,7 @@ function select(type, i) {
       ${t.last ? `<div class="ilist-field"><span class="ilist-k">last</span><span class="ilist-v">${escapeHtml(t.last)}</span></div>` : ''}
     </div>
     <div class="detail-section-title">Logs <span class="muted">(${escapeHtml(t.activates || t.unit)})</span></div>
-    <pre class="logs" id="cronLogs"></pre>`;
+    <div class="detail-pane"><pre class="logs" id="cronLogs"></pre></div>`;
   const target = t.activates || t.unit;
   if (/\.service$/.test(target)) loadJournalInto('cronLogs', target);
   else document.getElementById('cronLogs').textContent = 'No service to read logs from';
