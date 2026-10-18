@@ -246,7 +246,7 @@ function handleInfo(ctx) {
       }
     }
   } catch {}
-  ok({ user, hostname: os.hostname(), ip, home: toPosix(homeDir), root: !!rootDir, readonly, docker, terminal: !!ctx.terminal, version: VERSION });
+  ok({ user, hostname: os.hostname(), ip, home: toPosix(homeDir), root: !!rootDir, readonly, docker, terminal: !!ctx.terminal, admin: !!ctx.admin, adminWrite: !!ctx.adminWrite, version: VERSION });
 }
 
 /** Route table — see CLAUDE.md. `parts[0] === 'api'` is guaranteed by the dispatcher. */

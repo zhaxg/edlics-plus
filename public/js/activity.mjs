@@ -5,6 +5,7 @@ import { toast } from './api.mjs';
 
 const VIEW_TO_PANEL = {
   explorer: 'panel-explorer',
+  overview: 'panel-overview',
   search: 'panel-search',
   git: 'panel-git',
 };

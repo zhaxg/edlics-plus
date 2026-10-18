@@ -616,3 +616,20 @@ body {
 .md-preview img { max-width: 100%; border-radius: 6px; }
 .md-preview .task-list-item { list-style: none; margin-left: -1.5em; }
 .md-preview .task-list-item input { margin-right: 0.4em; }
+
+/* --- Admin overview panel (--admin) ------------------------------------- */
+.ov-range {
+  background: var(--bg); color: var(--text-dim); border: 1px solid var(--border);
+  border-radius: 4px; font-size: 10px; padding: 2px 4px; cursor: pointer;
+}
+.ov-info { display: flex; flex-direction: column; gap: 1px; margin-bottom: 8px; }
+.ov-row { display: flex; gap: 8px; font-size: 11px; line-height: 1.5; }
+.ov-k { color: var(--text-dim); flex: 0 0 52px; }
+.ov-v { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-chart-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  color: var(--text-dim); margin: 10px 0 2px; display: flex; justify-content: space-between;
+}
+.ov-unit { color: var(--text-dimmer); }
+.ov-chart { width: 100%; }
+.ov-chart .u-legend { display: none; }

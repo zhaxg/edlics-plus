@@ -37,14 +37,19 @@ bin/lib/
   search-api.js      文件名搜索 + 全文搜索(async fs，不阻塞事件循环)
   git-api.js         status/log/commit-files/diff/show(execFile 无 shell) + 纯解析器(可单测)
   terminal-api.js    node-pty 会话 open/stream/input/resize/close + 30 分钟空闲回收
+  sys-api.js         管理面板(--admin)：/api/sys/{info,metrics,metrics/stream,health,audit}
+  metrics.js         /proc 采样(1s) + 分钟聚合 + 环形缓冲（onMinute 落库；纯解析器可单测）
+  db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
+  audit.js           审计写入/查询/裁剪（登录与写操作的不可篡改记录）
   version.js         版本号(git tag 优先，package.json 兜底)
 public/index.html    页面骨架：登录遮罩/活动栏/侧栏面板/编辑区/终端面板
 public/js/           原生 ESM，**无构建、改完刷新即生效**
   app.mjs            主入口：快捷键、init、登录成功后 bootApp
   auth.mjs activity.mjs workspace.mjs file-tree.mjs search.mjs git.mjs
   terminal-ui.mjs editor-ui.mjs tabs.mjs pathbar-status.mjs file-ops.mjs …
+  overview.mjs       概览面板：系统信息 + 实时/历史图表（uPlot，SSE 驱动）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
-bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)
+bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)
 test/                node --test：paths/auth/git-parse/search/terminal-idle 单测 + smoke 集成
 docs/                README 截图与 logo
 ```
@@ -97,6 +102,22 @@ docs/                README 截图与 logo
     - 预览**从磁盘渲染**（不是编辑器缓冲区）：HTML 标签页默认停在编辑态，保存后
       `file-ops.mjs` 调 `tab._updatePreview()` 刷新；不要用 `blob:` URL 渲染未保存内容——
       blob 继承父窗口 origin，等于把会话交给被预览的页面。
+
+## 管理面板（`--admin`，root 级）
+
+第 1 轮打通「采集 → SQLite → SSE 广播 → uPlot 面板」全链路；其余阶段见 `docs/ADMIN-PANEL-PLAN.md`。
+
+- **门闸**：`/api/sys/*` 全部在 `--admin` 之后（调度层按 `route.name` 前缀 `api/sys` 拦截，未开则 403）；
+  `--admin-write` 预留写能力，`--readonly` 恒最高优先级。`/api/info` 上报 `admin/adminWrite` 供前端隐藏入口。
+- **数据**：`--data-dir`（默认 `~/.edlics`）下的 `edlics.db`（`node:sqlite`，零原生依赖）。
+  `metrics_min` 每分钟一行、保留 `--retention-days`（默认 30）天；`audit_log` 记录登录与写操作；
+  `login_attempts` 让 IP 锁定跨重启存活。
+- **采样**：`metrics.js` 单例 1s 采样（读 `/proc`，伪文件系统、非磁盘 IO），环形缓冲 180 点供实时图；
+  分钟聚合经 `onMinute` 回调落库（该模块不直接依赖 db）。**永远只有一个采样器**，再广播给所有 SSE 连接。
+- **广播/背压**：`/api/sys/metrics/stream`（SSE；客户端上限 50，背压时丢帧，25s 心跳）。
+- **长跑**：SIGTERM/SIGINT 优雅关停（flush 当前分钟 + 关 DB + 关 SSE）；`uncaughtException` 受控退出。
+- 只有改图表库才需 `npm run build`（`bundle/charts.mjs` → `public/charts.mjs`+`charts.css`，构建产物禁止手改）。
+- 本地验证：`node bin/edlics.js serve --port 8088 --password 1234 --admin --terminal`（登录后左栏出现 Overview）。
 
 ## 如何新增一个 API 端点
 

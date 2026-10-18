@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5.3.0/index.min.css">
 <link rel="stylesheet" href="/css/style.css">
 <link rel="stylesheet" href="/terminal.css">
+<link rel="stylesheet" href="/charts.css">
 </head>
 <body>
 <div class="toolbar">
@@ -27,6 +28,7 @@
 <div class="container">
   <div class="activitybar" id="activitybar">
     <button class="act-btn active" data-view="explorer" title="Explorer (Ctrl+Shift+E)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 2H8.6a1.6 1.6 0 0 0-1.6 1.6v12.8a1.6 1.6 0 0 0 1.6 1.6h9.8a1.6 1.6 0 0 0 1.6-1.6V6.5L15.5 2z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/><path d="M15 2v5h5"/></svg></button>
+    <button class="act-btn" data-view="overview" id="btnOverview" title="Overview" style="display:none;"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 1 18 0"/><path d="m12 12 4-4"/><circle cx="12" cy="12" r="1.4"/></svg></button>
     <button class="act-btn" data-view="search" title="Search (Ctrl+Shift+F)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></button>
     <button class="act-btn" data-view="git" title="Source Control (Ctrl+Shift+G)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg></button>
     <button class="act-btn" data-view="terminal" title="Terminal (Ctrl+`)"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg></button>
@@ -56,6 +58,32 @@
           <button id="searchRegexBtn" class="search-toggle" title="Regular expression">.*</button>
         </div>
         <div id="searchResults" class="search-results"></div>
+      </div>
+    </div>
+    <div class="panel hidden" id="panel-overview">
+      <div class="sidebar-header">
+        <span>Overview</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <select id="ovRange" class="ov-range" title="Data range">
+            <option value="live">Live</option>
+            <option value="30m">30m</option>
+            <option value="1h">1h</option>
+            <option value="6h">6h</option>
+            <option value="24h">24h</option>
+            <option value="7d">7d</option>
+            <option value="30d">30d</option>
+          </select>
+          <button id="btnOverviewRefresh" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
+        </span>
+      </div>
+      <div class="panel-body" id="overviewBody">
+        <div id="ovInfo" class="ov-info"></div>
+        <div class="ov-chart-label">CPU <span class="ov-unit">%</span></div>
+        <div id="ovCpu" class="ov-chart"></div>
+        <div class="ov-chart-label">Memory <span class="ov-unit">%</span></div>
+        <div id="ovMem" class="ov-chart"></div>
+        <div class="ov-chart-label">Network <span class="ov-unit">KB/s</span></div>
+        <div id="ovNet" class="ov-chart"></div>
       </div>
     </div>
     <div class="panel hidden" id="panel-git">

@@ -14,6 +14,7 @@ import { initSidebarResize } from './sidebar.mjs';
 import { initActivityBar, switchView, toggleTerminal } from './activity.mjs';
 import { initGit } from './git.mjs';
 import { initTerminal } from './terminal-ui.mjs';
+import { initOverview } from './overview.mjs';
 
 // Init
 document.getElementById('btnRefresh').onclick = () => renderTree();
@@ -57,6 +58,7 @@ initSidebarResize();
 initActivityBar();
 initGit();
 initTerminal();
+initOverview();
 
 // Load server info and render — only after login succeeds
 function bootApp() {
@@ -68,6 +70,9 @@ function bootApp() {
       document.getElementById('serverBadge').textContent = data.user + '@' + data.hostname;
       document.getElementById('appVersion').textContent = 'v' + data.version;
       document.getElementById('statusRight').textContent = data.ip;
+      // Admin overview is server-gated (--admin); only reveal the button when on
+      const ovBtn = document.getElementById('btnOverview');
+      if (ovBtn) ovBtn.style.display = data.admin ? 'flex' : 'none';
       if (data.readonly) {
         document.getElementById('sudoBadge').style.display = 'inline';
         document.getElementById('sudoBadge').textContent = 'readonly';
