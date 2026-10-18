@@ -11,7 +11,7 @@ import { removeTab, setActiveTab } from './editor-ui.mjs';
 import { initContextMenu } from './context-menu.mjs';
 import { initSearch } from './search.mjs';
 import { initSidebarResize } from './sidebar.mjs';
-import { initActivityBar, switchView, toggleTerminal } from './activity.mjs';
+import { initActivityBar, switchView, toggleTerminal, applyInitialView } from './activity.mjs';
 import { initGit } from './git.mjs';
 import { initTerminal } from './terminal-ui.mjs';
 import { initOverview } from './overview.mjs';
@@ -61,7 +61,6 @@ initContextMenu();
 initFileTree();
 initSearch();
 initSidebarResize();
-initActivityBar();
 initGit();
 initTerminal();
 initOverview();
@@ -71,6 +70,9 @@ initUsers();
 initCron();
 initContainers();
 initProcesses();
+// Last: applies the initial hash view, so every panel's view-changed listener
+// is already registered before the first switch fires.
+initActivityBar();
 
 // Load server info and render — only after login succeeds
 function bootApp() {
@@ -103,7 +105,8 @@ function bootApp() {
       }
     }
     initWorkspace();
-  }).catch(() => { initWorkspace(); });
+    applyInitialView();
+  }).catch(() => { initWorkspace(); applyInitialView(); });
 
   api('GET', '/api/sudo-status').then(status => {
     if (status.nopasswd) {

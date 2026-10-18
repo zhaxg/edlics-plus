@@ -128,8 +128,13 @@ export function initActivityBar() {
     const v = viewFromHash();
     if (v && v !== state.currentView) switchView(v, { fromHash: true });
   });
+}
 
-  // Restore the view referenced by the URL (or keep the default explorer).
-  const initial = viewFromHash();
-  if (initial) switchView(initial, { fromHash: true });
+/**
+ * Apply the view referenced by the URL. Called AFTER login (a pre-auth fetch
+ * would 401 and leave the page empty), so panels only load once authenticated.
+ */
+export function applyInitialView() {
+  const v = viewFromHash();
+  if (v) switchView(v, { fromHash: true });
 }

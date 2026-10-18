@@ -105,5 +105,7 @@ export function initNetwork() {
   }
   const btn = document.getElementById('btnNetworkRefresh');
   if (btn) btn.addEventListener('click', refreshNetwork);
-  document.querySelector('.act-btn[data-view="network"]')?.addEventListener('click', () => setTimeout(refreshNetwork, 0));
+  document.addEventListener('view-changed', e => {
+    if (e.detail && e.detail.view === 'network') refreshNetwork();
+  });
 }

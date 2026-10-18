@@ -706,9 +706,9 @@ body {
 .proc-row { border-bottom: 1px solid var(--border); }
 .proc-row:hover { background: var(--hover); }
 .proc-col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.proc-pid { flex: 0 0 40px; color: var(--text-dimmer); }
-.proc-user { flex: 0 0 54px; color: var(--text-dim); }
-.proc-num { flex: 0 0 40px; text-align: right; font-variant-numeric: tabular-nums; }
+.proc-pid { flex: 0 0 60px; color: var(--text-dimmer); }
+.proc-user { flex: 0 0 72px; color: var(--text-dim); }
+.proc-num { flex: 0 0 54px; text-align: right; font-variant-numeric: tabular-nums; }
 .proc-st { flex: 0 0 14px; text-align: center; font-weight: 600; }
 .proc-st-R { color: var(--green); }
 .proc-st-D { color: var(--yellow); }
@@ -830,3 +830,6 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
 
 /* Activity rail: group separator + page-title in toolbar */
 .act-sep { width: 22px; height: 1px; background: var(--border); margin: 6px auto; flex: 0 0 auto; }
+
+/* .hidden must win over any later component display rule (pages/console-area are appended after .hidden) */
+.hidden { display: none !important; }

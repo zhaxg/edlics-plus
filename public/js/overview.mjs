@@ -220,8 +220,11 @@ export function initOverview() {
   const btn = document.getElementById('btnOverviewRefresh');
   if (btn) btn.addEventListener('click', refreshOverview);
 
-  document.querySelector('.act-btn[data-view="overview"]')?.addEventListener('click', () => {
-    setTimeout(refreshOverview, 0);
+  document.addEventListener('view-changed', e => {
+    if (e.detail && e.detail.view === 'overview') {
+      refreshOverview();
+      setTimeout(() => { if (initialized) resizeCharts(); }, 0);
+    }
   });
   window.addEventListener('resize', () => { if (initialized) resizeCharts(); });
   document.addEventListener('theme-changed', () => {

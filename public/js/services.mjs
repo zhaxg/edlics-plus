@@ -122,7 +122,7 @@ export function initServices() {
   const btn = document.getElementById('btnServicesRefresh');
   if (btn) btn.addEventListener('click', refreshServices);
 
-  document.querySelector('.act-btn[data-view="services"]')?.addEventListener('click', () => {
-    setTimeout(refreshServices, 0);
+  document.addEventListener('view-changed', e => {
+    if (e.detail && e.detail.view === 'services') refreshServices();
   });
 }

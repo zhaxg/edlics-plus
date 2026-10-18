@@ -66,5 +66,7 @@ export async function refreshContainers() {
 export function initContainers() {
   const btn = document.getElementById('btnContainersRefresh');
   if (btn) btn.addEventListener('click', refreshContainers);
-  document.querySelector('.act-btn[data-view="containers"]')?.addEventListener('click', () => setTimeout(refreshContainers, 0));
+  document.addEventListener('view-changed', e => {
+    if (e.detail && e.detail.view === 'containers') refreshContainers();
+  });
 }
