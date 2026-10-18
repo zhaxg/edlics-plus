@@ -39,7 +39,7 @@ bin/lib/
   terminal-api.js    node-pty 会话 open/stream/input/resize/close + 30 分钟空闲回收
   sys-api.js         管理面板(--admin)：/api/sys/{info,metrics,metrics/stream,health,audit}
   metrics.js         /proc 采样(1s) + 分钟聚合 + 环形缓冲（onMinute 落库；纯解析器可单测）
-  services-api.js    systemd 服务列表/日志/启停（unit 名白名单 + --admin-write + 审计）
+  services-api.js    systemd 服务列表/unit 文件(cat)/日志/启停（unit 名白名单 + --admin-write + 审计）
   network-api.js     网络只读视图：接口/路由/DNS/监听端口/nftables（ip -j、ss、nft -j + 文本兜底）
   users-api.js       用户/组/会话只读（/etc/passwd、/etc/group、who）
   cron-api.js        定时任务只读（crontab、/etc/crontab、/etc/cron.d、systemd timers）
@@ -57,10 +57,10 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   auth.mjs activity.mjs workspace.mjs file-tree.mjs search.mjs git.mjs
   terminal-ui.mjs editor-ui.mjs tabs.mjs pathbar-status.mjs file-ops.mjs …
   overview.mjs       概览面板：系统信息 + 实时/历史图表（uPlot，SSE 驱动）
-  services.mjs       systemd 服务面板：列表/过滤/启停(--admin-write)/journal 日志
+  services.mjs       Services 页：tab(Services|Scheduled) + 左右分栏主从（服务→unit 文件 + 日志）
   network.mjs        网络四列看板：接口/路由/监听端口/防火墙（每列一张卡+滚动 item 列表，只读）
   users.mjs          Access 三列看板：Users/Groups/Sessions（每列一张卡+滚动列表，只读）
-  cron.mjs           Scheduled tasks（并入 Services 页：crontab + systemd timers，只读）
+  cron.mjs           Services 页 Scheduled tab：cron/timers 列表 → 右侧详情日志（cron 看守护单元日志）
   containers.mjs     Docker 看板（tab：Containers/Compose，卡片式 + 日志抽屉，只读；扩展点见文件内 TABS）
   processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)

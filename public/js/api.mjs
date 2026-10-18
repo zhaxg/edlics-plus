@@ -72,6 +72,31 @@ export function setBusy(btn, busy) {
   }
 }
 
+/**
+ * Load systemd journal for a unit into an element (priority-coloured).
+ * Shared by the Services and Scheduled detail panes.
+ * @param {string} elId
+ * @param {string} unit
+ * @param {number} [lines]
+ */
+export function loadJournalInto(elId, unit, lines = 300) {
+  const el = document.getElementById(elId);
+  if (!el) return Promise.resolve();
+  el.innerHTML = spinner('Loading…');
+  return api('GET', `/api/sys/services/logs?unit=${encodeURIComponent(unit)}&lines=${lines}`)
+    .then(r => {
+      if (r.error) { el.textContent = r.error; return; }
+      if (!r.lines || !r.lines.length) { el.textContent = '(no journal entries)'; return; }
+      el.innerHTML = r.lines.map(l => {
+        const t = new Date(l.ts).toLocaleTimeString();
+        const cls = l.priority <= 3 ? 'log-err' : l.priority === 4 ? 'log-warn' : '';
+        return `<span class="${cls}">${escapeHtml(t)} ${escapeHtml(l.message)}</span>`;
+      }).join('\n');
+      el.scrollTop = el.scrollHeight;
+    })
+    .catch(e => { el.textContent = 'Failed: ' + e.message; });
+}
+
 export function escapeHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;

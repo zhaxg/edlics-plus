@@ -146,6 +146,16 @@ async function handleLogs(ctx) {
   } catch (e) { fail('journalctl failed: ' + (e.stderr || e.message)); }
 }
 
+async function handleUnitFile(ctx) {
+  if (!systemdAvailable()) return ctx.fail('systemd is not available on this host', 501);
+  const { params, ok, fail } = ctx;
+  if (!await isKnownUnit(params.unit)) return fail('Unknown or invalid unit', 400);
+  try {
+    const content = await systemctl(['cat', params.unit], 15000);
+    ok({ unit: params.unit, content });
+  } catch (e) { fail('systemctl cat failed: ' + (e.stderr || e.message)); }
+}
+
 function readJsonBody(req, cb, max = 8 * 1024) {
   let body = '';
   req.on('data', c => { body += c; if (body.length > max) req.destroy(); });
@@ -177,6 +187,7 @@ function handleAction(ctx) {
 /** Route table — see CLAUDE.md. `parts[0] === 'api'` is guaranteed. */
 const routes = [
   { name: 'api/sys/services',        match: p => p[1] === 'sys' && p[2] === 'services' && !p[3],                    handle: ctx => handleList(ctx) },
+  { name: 'api/sys/services/unit',   match: p => p[1] === 'sys' && p[2] === 'services' && p[3] === 'unit',          handle: ctx => handleUnitFile(ctx) },
   { name: 'api/sys/services/logs',   match: p => p[1] === 'sys' && p[2] === 'services' && p[3] === 'logs',          handle: ctx => handleLogs(ctx) },
   { name: 'api/sys/services/action', match: p => p[1] === 'sys' && p[2] === 'services' && p[3] === 'action',        handle: handleAction },
 ];

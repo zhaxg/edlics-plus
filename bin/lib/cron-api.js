@@ -87,11 +87,19 @@ async function collectTimers() {
   } catch { return []; }
 }
 
+async function detectDaemon() {
+  for (const u of ['cron.service', 'crond.service', 'cronie.service']) {
+    try { await run('systemctl', ['cat', u]); return u; } catch { /* not this one */ }
+  }
+  return null;
+}
+
 async function handleCron(ctx) {
   try {
     const jobs = await collectJobs();
     const timers = await collectTimers();
-    ctx.ok({ jobs, timers });
+    const daemon = await detectDaemon();
+    ctx.ok({ jobs, timers, daemon });
   } catch (e) { ctx.fail(e.message); }
 }
 

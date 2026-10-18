@@ -138,18 +138,27 @@
         <header class="page-header">
           <h1 class="page-h1">Services</h1>
           <div class="page-actions">
-            <div class="search-input-wrap"><input id="servicesFilter" placeholder="Filter services…" spellcheck="false" /></div>
             <button id="btnServicesRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
           </div>
         </header>
-        <div class="page-body">
-          <div id="servicesList" class="services-list"></div>
-
-          <div class="section-sep">
-            <h2 class="section-h2">Scheduled tasks</h2>
-            <button id="btnCronRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
+        <div class="page-body fill">
+          <div class="page-tabs" id="servicesTabs">
+            <button data-stab="services" class="active">Services</button>
+            <button data-stab="scheduled">Scheduled</button>
           </div>
-          <div id="cronContent" class="net-content"></div>
+
+          <div class="split" id="servicesSplit">
+            <div class="split-left">
+              <div class="split-search"><input id="servicesFilter" placeholder="Filter services…" spellcheck="false" /></div>
+              <div class="split-list" id="servicesList"></div>
+            </div>
+            <div class="split-detail" id="servicesDetail"><div class="panel-placeholder">Select a service to see its unit file and logs</div></div>
+          </div>
+
+          <div class="split hidden" id="scheduledSplit">
+            <div class="split-left"><div class="split-list" id="cronList"></div></div>
+            <div class="split-detail" id="cronDetail"><div class="panel-placeholder">Select a cron job or timer to see its logs</div></div>
+          </div>
         </div>
       </section>
 

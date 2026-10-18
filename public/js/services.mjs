@@ -1,87 +1,73 @@
-// services.mjs — systemd Services panel: list, filter, lifecycle actions, logs.
+// services.mjs — Services page: tab (Services | Scheduled) + master/detail.
 //
-// Actions are only offered when the server has --admin-write; the server
-// re-checks and audits regardless (defence in depth).
-import { api, escapeHtml, toast, confirmDialog, setBusy, spinner } from './api.mjs';
+// Services tab: left = unit list, right = unit file (systemctl cat) + journal.
+// Scheduled tab: delegated to cron.mjs (its own list + detail).
+import { api, escapeHtml, toast, confirmDialog, setBusy, spinner, loadJournalInto } from './api.mjs';
 import { serverInfo } from './state.mjs';
+import { refreshCron, initCron } from './cron.mjs';
 
+let units = [];
 let loaded = false;
 let filter = '';
-let units = [];
-const openLogs = new Set();     // unit names with an expanded log view
+let selected = null;
+let tab = 'services';
 
-const ACTIVE_CLASS = {
-  active: 'ok', failed: 'err', activating: 'warn', deactivating: 'warn',
-  inactive: 'off', reloading: 'warn',
-};
+const ACTIVE_CLASS = { active: 'ok', failed: 'err', activating: 'warn', deactivating: 'warn', inactive: 'off', reloading: 'warn' };
+const shortName = u => u.replace(/\.service$/, '');
+const canWrite = () => !!(serverInfo && serverInfo.adminWrite) && !(serverInfo && serverInfo.readonly);
 
-function shortName(unit) { return unit.replace(/\.service$/, ''); }
-
-function canWrite() { return !!(serverInfo && serverInfo.adminWrite) && !(serverInfo && serverInfo.readonly); }
-
-function dot(active) {
-  return `<span class="svc-dot ${ACTIVE_CLASS[active] || 'off'}" title="${escapeHtml(active)}"></span>`;
-}
+function dot(active) { return `<span class="svc-dot ${ACTIVE_CLASS[active] || 'off'}" title="${escapeHtml(active || '')}"></span>`; }
 
 function renderList() {
   const box = document.getElementById('servicesList');
   if (!box) return;
   const q = filter.toLowerCase();
-  const rows = q
-    ? units.filter(u => u.name.toLowerCase().includes(q) || (u.description || '').toLowerCase().includes(q))
-    : units;
-  if (rows.length === 0) {
+  const rows = q ? units.filter(u => u.name.toLowerCase().includes(q) || (u.description || '').toLowerCase().includes(q)) : units;
+  if (!rows.length) {
     box.innerHTML = `<div class="panel-placeholder">${units.length ? 'No matches' : 'No services'}</div>`;
     return;
   }
-  box.innerHTML = rows.map(u => {
-    const actions = canWrite()
-      ? `<div class="svc-actions">
-           <button data-act="start" data-unit="${escapeHtml(u.name)}">start</button>
-           <button data-act="restart" data-unit="${escapeHtml(u.name)}">restart</button>
-           <button data-act="stop" data-unit="${escapeHtml(u.name)}">stop</button>
-         </div>`
-      : '';
-    const logsOpen = openLogs.has(u.name);
-    return `<div class="service-row" data-unit="${escapeHtml(u.name)}">
-      <div class="svc-head">
-        ${dot(u.active)}
-        <span class="svc-name" title="${escapeHtml(u.name)}">${escapeHtml(shortName(u.name))}</span>
-        <span class="svc-sub">${escapeHtml(u.sub || '')}</span>
-        <button class="svc-logs-btn" data-logs="${escapeHtml(u.name)}" title="Show journal">log</button>
-      </div>
-      <div class="svc-desc">${escapeHtml(u.description || '')}</div>
-      ${actions}
-      <pre class="svc-logs${logsOpen ? '' : ' hidden'}" data-logbox="${escapeHtml(u.name)}"></pre>
-    </div>`;
-  }).join('');
-
-  box.querySelectorAll('.svc-logs-btn').forEach(btn => {
-    btn.addEventListener('click', () => toggleLogs(btn.dataset.logs));
-  });
-  box.querySelectorAll('.svc-actions button').forEach(btn => {
-    btn.addEventListener('click', () => doAction(btn.dataset.unit, btn.dataset.act, btn));
-  });
+  box.innerHTML = rows.map(u => `
+    <div class="ilist-item list-item${u.name === selected ? ' selected' : ''}" data-unit="${escapeHtml(u.name)}">
+      <div class="ilist-head">${dot(u.active)}<span class="ilist-title">${escapeHtml(shortName(u.name))}</span><span class="ilist-meta">${escapeHtml(u.sub || '')}</span></div>
+      <div class="ilist-sub">${escapeHtml(u.description || '')}</div>
+    </div>`).join('');
+  box.querySelectorAll('[data-unit]').forEach(el => el.addEventListener('click', () => selectUnit(el.dataset.unit)));
 }
 
-async function toggleLogs(unit) {
-  const box = document.querySelector(`[data-logbox="${CSS.escape(unit)}"]`);
-  if (!box) return;
-  if (openLogs.has(unit)) { openLogs.delete(unit); box.classList.add('hidden'); return; }
-  openLogs.add(unit);
-  box.classList.remove('hidden');
-  box.textContent = 'Loading…';
+async function selectUnit(unit) {
+  selected = unit;
+  renderList();
+  const pane = document.getElementById('servicesDetail');
+  if (!pane) return;
+  const u = units.find(x => x.name === unit) || {};
+  const actions = canWrite()
+    ? `<div class="detail-actions">
+         <button class="btn sm" data-act="start">Start</button>
+         <button class="btn sm" data-act="restart">Restart</button>
+         <button class="btn sm danger" data-act="stop">Stop</button>
+       </div>` : '';
+  pane.innerHTML = `
+    <div class="detail-head">${dot(u.active)}<span class="detail-title">${escapeHtml(unit)}</span>
+      <span class="ilist-meta">${escapeHtml(u.sub || '')}${u.load ? ' · ' + escapeHtml(u.load) : ''}</span></div>
+    <div class="ilist-sub">${escapeHtml(u.description || '')}</div>
+    ${actions}
+    <div class="detail-section-title">Unit file <span class="muted">(systemctl cat)</span></div>
+    <pre class="file" id="unitFile">${spinner('Loading…')}</pre>
+    <div class="detail-section-title">Logs <span class="muted">(journalctl)</span></div>
+    <pre class="logs" id="unitLogs">${spinner('Loading…')}</pre>`;
+  pane.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => doAction(unit, b.dataset.act, b)));
+  loadUnitFile(unit);
+  loadJournalInto('unitLogs', unit);
+}
+
+async function loadUnitFile(unit) {
+  const el = document.getElementById('unitFile');
+  if (!el) return;
   try {
-    const data = await api('GET', `/api/sys/services/logs?unit=${encodeURIComponent(unit)}&lines=200`);
-    if (data.error) { box.textContent = data.error; return; }
-    if (!data.lines || data.lines.length === 0) { box.textContent = '(no journal entries)'; return; }
-    box.innerHTML = data.lines.map(l => {
-      const t = new Date(l.ts).toLocaleTimeString();
-      const cls = l.priority <= 3 ? 'log-err' : l.priority === 4 ? 'log-warn' : '';
-      return `<span class="${cls}">${escapeHtml(t)} ${escapeHtml(l.message)}</span>`;
-    }).join('\n');
-    box.scrollTop = box.scrollHeight;
-  } catch (e) { box.textContent = 'Failed: ' + e.message; }
+    const r = await api('GET', `/api/sys/services/unit?unit=${encodeURIComponent(unit)}`);
+    el.textContent = r.error ? r.error : (r.content || '(empty)');
+  } catch (e) { el.textContent = 'Failed: ' + e.message; }
 }
 
 async function doAction(unit, action, btn) {
@@ -94,34 +80,49 @@ async function doAction(unit, action, btn) {
   setBusy(btn, true);
   try {
     const res = await api('POST', '/api/sys/services/action', { unit, action });
-    if (res.error) toast(res.error, true);
-    else toast(`${label} ${shortName(unit)} ok`);
+    if (res.error) toast(res.error, true); else toast(`${label} ${shortName(unit)} ok`);
   } catch (e) { toast('Action failed: ' + e.message, true); }
   setBusy(btn, false);
-  refreshServices();
+  await refreshServices();
+  if (selected === unit) selectUnit(unit);   // refresh the detail pane
 }
 
-export function refreshServices() {
+export async function refreshServices() {
   const box = document.getElementById('servicesList');
   if (box && !loaded) box.innerHTML = spinner('Loading…');
-  api('GET', '/api/sys/services' + (loaded ? '?refresh=1' : ''))
-    .then(data => {
-      if (!data || data.error) { if (box) box.innerHTML = `<div class="panel-placeholder">${escapeHtml((data && data.error) || 'Failed to load services')}</div>`; return; }
-      units = data.units || [];
-      loaded = true;
-      renderList();
-    })
-    .catch(e => { if (box) box.innerHTML = `<div class="panel-placeholder">Failed: ${escapeHtml(e.message)}</div>`; });
+  try {
+    const data = await api('GET', '/api/sys/services' + (loaded ? '?refresh=1' : ''));
+    if (!data || data.error) {
+      if (box) box.innerHTML = `<div class="panel-placeholder">${escapeHtml((data && data.error) || 'Failed to load services')}</div>`;
+      return;
+    }
+    units = data.units || [];
+    loaded = true;
+    renderList();
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="panel-placeholder">Failed: ${escapeHtml(e.message)}</div>`;
+  }
 }
 
-export function initServices() {
-  const filterInput = document.getElementById('servicesFilter');
-  if (filterInput) {
-    filterInput.addEventListener('input', () => { filter = filterInput.value; renderList(); });
-  }
-  const btn = document.getElementById('btnServicesRefresh');
-  if (btn) btn.addEventListener('click', refreshServices);
+function setTab(t) {
+  tab = t;
+  const bar = document.getElementById('servicesTabs');
+  if (bar) bar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.stab === t));
+  document.getElementById('servicesSplit')?.classList.toggle('hidden', t !== 'services');
+  document.getElementById('scheduledSplit')?.classList.toggle('hidden', t !== 'scheduled');
+  if (t === 'scheduled') refreshCron();
+}
 
+function refreshActive() { if (tab === 'scheduled') refreshCron(); else refreshServices(); }
+
+export function initServices() {
+  initCron();
+  const filterInput = document.getElementById('servicesFilter');
+  if (filterInput) filterInput.addEventListener('input', () => { filter = filterInput.value; renderList(); });
+  const bar = document.getElementById('servicesTabs');
+  if (bar) bar.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.stab)));
+  const btn = document.getElementById('btnServicesRefresh');
+  if (btn) btn.addEventListener('click', refreshActive);
   document.addEventListener('view-changed', e => {
     if (e.detail && e.detail.view === 'services') refreshServices();
   });
