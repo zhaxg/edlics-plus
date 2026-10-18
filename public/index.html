@@ -229,6 +229,16 @@
         </div>
       </section>
 
+      <section class="page hidden" id="page-terminal">
+        <header class="page-header">
+          <h1 class="page-h1">Terminal</h1>
+          <div class="page-actions">
+            <button id="terminalKill" class="icon-btn" title="Restart shell"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
+          </div>
+        </header>
+        <div class="page-body terminal-page-body"><div class="terminal-container" id="terminalContainer"></div></div>
+      </section>
+
     </div>
     <div class="editor-area" id="editorArea">
       <div class="welcome" id="welcome">
@@ -236,16 +246,6 @@
         <p id="welcomeText">Select a file to view</p>
         <div class="hint">Press <kbd>Ctrl+P</kbd> to search files</div>
       </div>
-    </div>
-    <div class="terminal-panel hidden" id="terminalPanel">
-      <div class="terminal-resize" id="terminalResize" title="Drag to resize — double-click to reset"></div>
-      <div class="terminal-toolbar">
-        <span class="terminal-title">Terminal</span>
-        <span class="terminal-spacer"></span>
-        <button id="terminalKill" title="Kill terminal (restart shell)"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg></button>
-        <button id="terminalClose" title="Close panel"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
-      </div>
-      <div class="terminal-container" id="terminalContainer"></div>
     </div>
   </div>
 </div>

@@ -1078,3 +1078,7 @@ pre.logs .log-warn { color: var(--yellow); }
 /* Danger buttons: red foreground only — no special background */
 .ctr-actions .ctr-ibtn.danger { color: var(--red); background: transparent; }
 .ctr-actions .ctr-ibtn.danger:hover { background: var(--hover); color: var(--red); }
+
+/* Terminal as a full page */
+.terminal-page-body { padding: 0 !important; display: flex; overflow: hidden; }
+.terminal-page-body .terminal-container { flex: 1; min-height: 0; min-width: 0; padding: 6px 8px; }

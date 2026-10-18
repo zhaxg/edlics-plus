@@ -23,6 +23,7 @@ const CONSOLE_VIEWS = {
   network: { page: 'page-network', title: 'Network' },
   access: { page: 'page-access', title: 'Access' },
   containers: { page: 'page-containers', title: 'Containers' },
+  terminal: { page: 'page-terminal', title: 'Terminal' },
 };
 
 // Older deep links still resolve (users/cron merged into access; the process
@@ -39,6 +40,11 @@ export function switchView(view, opts = {}) {
   const consoleDef = CONSOLE_VIEWS[view];
   const idePanel = IDE_VIEWS[view];
   if (!consoleDef && !idePanel) return;
+  // The terminal page needs the server's --terminal flag.
+  if (view === 'terminal' && serverInfo && serverInfo.terminal === false) {
+    toast('Terminal is disabled — start the server with --terminal to enable it', true);
+    return;
+  }
   state.currentView = view;
 
   const consoleArea = el('consoleArea');
@@ -68,7 +74,7 @@ export function switchView(view, opts = {}) {
   }
 
   document.querySelectorAll('button.act-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.view === view && view !== 'terminal');
+    btn.classList.toggle('active', btn.dataset.view === view);
   });
 
   if (!opts.fromHash) {
@@ -77,6 +83,9 @@ export function switchView(view, opts = {}) {
       try { history.replaceState(null, '', want); } catch { location.hash = want; }
     }
   }
+  // Terminal page owns the PTY lifecycle via state.onTerminalShow.
+  state.terminalOpen = view === 'terminal';
+  if (view === 'terminal' && state.onTerminalShow) state.onTerminalShow();
   document.dispatchEvent(new CustomEvent('view-changed', { detail: { view } }));
 }
 
@@ -87,28 +96,11 @@ function viewFromHash() {
   return v && (CONSOLE_VIEWS[v] || IDE_VIEWS[v]) ? v : null;
 }
 
-export function toggleTerminal(force) {
-  const panel = el('terminalPanel');
-  const btn = document.querySelector('.act-btn[data-view="terminal"]');
-  const show = force !== undefined ? force : panel.classList.contains('hidden');
-  // Terminal is disabled by default server-side — give a friendly hint instead
-  // of opening a panel that would immediately 403.
-  if (show && serverInfo && serverInfo.terminal === false) {
-    toast('Terminal is disabled — start the server with --terminal to enable it', true);
-    return;
-  }
-  panel.classList.toggle('hidden', !show);
-  btn.classList.toggle('active', show);
-  state.terminalOpen = show;
-  if (show && state.onTerminalShow) state.onTerminalShow();
-}
-
 export function initActivityBar() {
   // buttons only — .act-btn-bottom is an <a> (GitHub link), not a view switcher
   document.querySelectorAll('button.act-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
-      if (view === 'terminal') { toggleTerminal(); return; }
       // Clicking the active IDE view collapses the sidebar (VS Code behavior)
       if (IDE_VIEWS[view] && state.currentView === view &&
           !document.querySelector('.sidebar').classList.contains('collapsed')) {
@@ -119,9 +111,6 @@ export function initActivityBar() {
       switchView(view);
     });
   });
-
-  el('terminalClose').addEventListener('click', () => toggleTerminal(false));
-  // terminalKill is wired by terminal.mjs once the shell exists
 
   // Deep links: react to manual hash edits / back-forward.
   window.addEventListener('hashchange', () => {

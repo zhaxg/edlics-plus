@@ -243,7 +243,7 @@ export function runCommandInTerminal(cmd) {
     import('./api.mjs').then(m => m.toast('Terminal is disabled — start the server with --terminal', true));
     return;
   }
-  import('./activity.mjs').then(m => m.toggleTerminal(true));
+  import('./activity.mjs').then(m => m.switchView('terminal'));
   const go = () => sendInput(cmd + '\r');
   if (term) { try { fit.fit(); } catch {} ensureSession(); setTimeout(go, 250); }
   else setTimeout(() => { ensureInit(); setTimeout(go, 500); }, 250);

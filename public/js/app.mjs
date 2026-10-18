@@ -11,7 +11,7 @@ import { removeTab, setActiveTab } from './editor-ui.mjs';
 import { initContextMenu } from './context-menu.mjs';
 import { initSearch } from './search.mjs';
 import { initSidebarResize } from './sidebar.mjs';
-import { initActivityBar, switchView, toggleTerminal, applyInitialView } from './activity.mjs';
+import { initActivityBar, switchView, applyInitialView } from './activity.mjs';
 import { initGit } from './git.mjs';
 import { initTerminal } from './terminal-ui.mjs';
 import { initOverview } from './overview.mjs';
@@ -46,7 +46,7 @@ document.addEventListener('keydown', e => {
   }
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'e' || e.key === 'E')) { e.preventDefault(); switchView('explorer'); }
   if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'g' || e.key === 'G')) { e.preventDefault(); switchView('git'); }
-  if ((e.ctrlKey || e.metaKey) && e.key === '`') { e.preventDefault(); toggleTerminal(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === '`') { e.preventDefault(); switchView(state.currentView === 'terminal' ? 'explorer' : 'terminal'); }
   if ((e.ctrlKey || e.metaKey) && e.key === 'w') { e.preventDefault(); if (state.activeTab) removeTab(state.activeTab); }
   if (e.key === 'F2' && state.activeTab) { e.preventDefault(); const tab = state.tabs.find(t => t.id === state.activeTab); if (tab) renameItem(tab.path); }
   if (e.key === 'Escape') { document.getElementById('dialogOverlay').classList.add('hidden'); document.getElementById('contextMenu').classList.add('hidden'); }

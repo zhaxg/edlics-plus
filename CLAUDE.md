@@ -163,7 +163,8 @@ docs/                README 截图与 logo
 ## 前端关键约定
 
 - **两种视图族**：IDE（explorer/search/git，侧栏 + 编辑器）与 Console（Dashboard/Services/Network/
-  Access/Containers，`index.html` 的 `#consoleArea` 内**单列全宽页**，不左右分栏）；**进程表并入
+  Access/Containers/**Terminal**，`index.html` 的 `#consoleArea` 内**单列全宽页**，不左右分栏）；**终端是
+  独立满页**（`#page-terminal`，xterm 填满主区；`--terminal` 关闭时切页给提示），不再是底部面板。**进程表并入
   Dashboard 下方**（`#procContent`，自身滚动 + 粘顶表头 + 过滤框；统计与过滤同一行）；**Scheduled
   tasks（cron + timers）在 Services 页内**，Access 页仅账号。列表一律用 `.ilist`/`.ilist-item` 卡片式
   （不要多列拥挤）；Dashboard 信息卡固定 **6 列**（`.dash-cards`，窄屏降 4/2/1），Security 卡
