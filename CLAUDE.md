@@ -58,8 +58,10 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   terminal-ui.mjs editor-ui.mjs tabs.mjs pathbar-status.mjs file-ops.mjs …
   overview.mjs       概览面板：系统信息 + 实时/历史图表（uPlot，SSE 驱动）
   services.mjs       systemd 服务面板：列表/过滤/启停(--admin-write)/journal 日志
-  network.mjs        网络面板：接口/路由/DNS/监听端口/防火墙（分页签，只读）
-  users.mjs cron.mjs containers.mjs  用户·定时任务·容器面板（只读）
+  network.mjs        网络四列看板：接口/路由/监听端口/防火墙（每列一张卡+滚动 item 列表，只读）
+  users.mjs          Access 三列看板：Users/Groups/Sessions（每列一张卡+滚动列表，只读）
+  cron.mjs           Scheduled tasks（并入 Services 页：crontab + systemd timers，只读）
+  containers.mjs     容器看板：compose + 容器（卡片式 + 日志抽屉，只读）
   processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
 bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)

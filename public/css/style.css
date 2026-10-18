@@ -908,3 +908,34 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
 .section-sub { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .section-sep { flex-wrap: wrap; }
 .section-sep .search-input-wrap { min-width: 200px; }
+
+/* Network board: 4 columns, each a card with its own scrolling list */
+.net-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1200px) { .net-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 680px)  { .net-grid { grid-template-columns: 1fr; } }
+.net-col {
+  display: flex; flex-direction: column; min-width: 0;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--sidebar);
+}
+.net-col-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; border-bottom: 1px solid var(--border);
+}
+.net-col-head h3 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+  color: var(--text-dim); font-weight: 600; margin-right: auto;
+}
+.net-count { font-size: 11px; color: var(--text-dimmer); }
+.net-col-body { padding: 10px; overflow: auto; max-height: calc(100vh - 250px); }
+.net-col-body .ilist { gap: 6px; }
+.net-col-body .ilist-item { padding: 8px 10px; }
+.net-col-body .ilist-title { font-size: 12px; }
+.net-col-body .ilist-title.mono { font-size: 11px; }
+.net-col-body .ilist-addr { font-size: 11px; word-break: break-all; }
+.net-col-body .ilist-k { flex: 0 0 46px; }
+.net-col-body .ilist-v { font-size: 11px; }
+
+/* Access board: 3 columns (Users / Groups / Sessions) */
+.access-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 1100px) { .access-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px)  { .access-grid { grid-template-columns: 1fr; } }

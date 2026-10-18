@@ -159,13 +159,24 @@
           <div class="page-actions"><button id="btnNetworkRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button></div>
         </header>
         <div class="page-body">
-          <div class="net-tabs" id="netTabs">
-            <button data-ntab="ifaces" class="active">Interfaces</button>
-            <button data-ntab="routes">Routes</button>
-            <button data-ntab="sockets">Sockets</button>
-            <button data-ntab="fw">Firewall</button>
+          <div class="net-grid" id="netGrid">
+            <section class="net-col">
+              <header class="net-col-head"><h3>Interfaces</h3><span class="net-count" id="netIfCount"></span></header>
+              <div class="net-col-body" id="netIfaces"></div>
+            </section>
+            <section class="net-col">
+              <header class="net-col-head"><h3>Routes</h3><span class="net-count" id="netRoutesCount"></span></header>
+              <div class="net-col-body" id="netRoutes"></div>
+            </section>
+            <section class="net-col">
+              <header class="net-col-head"><h3>Sockets</h3><span class="net-count" id="netSocketsCount"></span></header>
+              <div class="net-col-body" id="netSockets"></div>
+            </section>
+            <section class="net-col">
+              <header class="net-col-head"><h3>Firewall</h3><span class="net-count" id="netFwCount"></span></header>
+              <div class="net-col-body" id="netFw"></div>
+            </section>
           </div>
-          <div id="netContent" class="net-content"></div>
         </div>
       </section>
 
@@ -178,12 +189,20 @@
           </div>
         </header>
         <div class="page-body">
-          <div class="net-tabs" id="usersTabs">
-            <button data-utab="users" class="active">Users</button>
-            <button data-utab="groups">Groups</button>
-            <button data-utab="sessions">Sessions</button>
+          <div class="access-grid" id="accessGrid">
+            <section class="net-col">
+              <header class="net-col-head"><h3>Users</h3><span class="net-count" id="accUsersCount"></span></header>
+              <div class="net-col-body" id="accUsers"></div>
+            </section>
+            <section class="net-col">
+              <header class="net-col-head"><h3>Groups</h3><span class="net-count" id="accGroupsCount"></span></header>
+              <div class="net-col-body" id="accGroups"></div>
+            </section>
+            <section class="net-col">
+              <header class="net-col-head"><h3>Sessions</h3><span class="net-count" id="accSessionsCount"></span></header>
+              <div class="net-col-body" id="accSessions"></div>
+            </section>
           </div>
-          <div id="usersContent" class="net-content"></div>
         </div>
       </section>
 

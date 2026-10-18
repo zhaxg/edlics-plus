@@ -1,53 +1,65 @@
-// users.mjs — Users / Groups / Sessions panel (read-only).
+// users.mjs — Access page as a 3-column board: Users / Groups / Sessions.
+// Each column is a card with its own scrollable list. Read-only.
 import { api, escapeHtml, spinner } from './api.mjs';
 
-let tab = 'users';
 let data = null;
 let q = '';
 
-function renderUsers() {
-  const rows = data.users.filter(u => !q || u.name.toLowerCase().includes(q));
-  if (!rows.length) return '<div class="panel-placeholder">No matches</div>';
-  return '<div class="ilist">' + rows.map(u => `
-    <div class="ilist-item">
+function fill(bodyId, countId, items) {
+  const body = document.getElementById(bodyId);
+  const count = document.getElementById(countId);
+  if (count) count.textContent = items.length ? String(items.length) : '';
+  if (!body) return;
+  body.innerHTML = items.length
+    ? `<div class="ilist">${items.join('')}</div>`
+    : '<div class="panel-placeholder">No matches</div>';
+}
+
+function userItems() {
+  return data.users
+    .filter(u => !q || u.name.toLowerCase().includes(q))
+    .map(u => `<div class="ilist-item">
       <div class="ilist-head">
         <span class="ilist-title">${escapeHtml(u.name)}</span>
-        <span class="ilist-meta">uid ${u.uid} · gid ${u.gid}${u.system ? ' · system' : ''}</span>
+        <span class="ilist-meta">${u.uid}${u.system ? ' · sys' : ''}</span>
       </div>
       <div class="ilist-fields">
-        <div class="ilist-field"><span class="ilist-k">group</span><span class="ilist-v">${escapeHtml(u.group)}${u.groups.length ? ' + ' + escapeHtml(u.groups.join(', ')) : ''}</span></div>
+        <div class="ilist-field"><span class="ilist-k">gid</span><span class="ilist-v">${u.gid} ${escapeHtml(u.group)}${u.groups.length ? ' + ' + escapeHtml(u.groups.join(', ')) : ''}</span></div>
         <div class="ilist-field"><span class="ilist-k">home</span><span class="ilist-v">${escapeHtml(u.home)}</span></div>
         <div class="ilist-field"><span class="ilist-k">shell</span><span class="ilist-v">${escapeHtml(u.shell)}</span></div>
       </div>
-    </div>`).join('') + '</div>';
+    </div>`);
 }
 
-function renderGroups() {
-  const rows = data.groups.filter(g => !q || g.name.toLowerCase().includes(q));
-  if (!rows.length) return '<div class="panel-placeholder">No matches</div>';
-  return '<div class="ilist">' + rows.map(g => `
-    <div class="ilist-item">
+function groupItems() {
+  return data.groups
+    .filter(g => !q || g.name.toLowerCase().includes(q))
+    .map(g => `<div class="ilist-item">
       <div class="ilist-head"><span class="ilist-title">${escapeHtml(g.name)}</span><span class="ilist-meta">gid ${g.gid}</span></div>
       <div class="ilist-sub">${g.members.length ? escapeHtml(g.members.join(', ')) : 'no members'}</div>
-    </div>`).join('') + '</div>';
+    </div>`);
 }
 
-function renderSessions() {
-  if (!data.sessions.length) return '<div class="panel-placeholder">No interactive sessions</div>';
-  return '<div class="ilist">' + data.sessions.map(s => `
-    <div class="ilist-item">
+function sessionItems() {
+  return data.sessions
+    .filter(s => !q || s.user.toLowerCase().includes(q))
+    .map(s => `<div class="ilist-item">
       <div class="ilist-head"><span class="ilist-title">${escapeHtml(s.user)}</span><span class="ilist-meta">${escapeHtml(s.tty)}</span></div>
       <div class="ilist-sub">${escapeHtml(s.from || 'local')}${s.since ? ' · ' + escapeHtml(s.since) : ''}</div>
-    </div>`).join('') + '</div>';
+    </div>`);
 }
 
 function render() {
-  const box = document.getElementById('usersContent');
-  if (!box) return;
-  if (!data) { box.innerHTML = spinner('Loading…'); return; }
-  const c = data.counts;
-  const head = `<div class="net-card"><div class="svc-desc">${c.human} human · ${c.system} system · ${c.groups} groups · ${data.sessions.length} sessions</div></div>`;
-  box.innerHTML = head + (tab === 'users' ? renderUsers() : tab === 'groups' ? renderGroups() : renderSessions());
+  if (!data) {
+    ['accUsers', 'accGroups', 'accSessions'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = spinner('Loading…');
+    });
+    return;
+  }
+  fill('accUsers', 'accUsersCount', userItems());
+  fill('accGroups', 'accGroupsCount', groupItems());
+  fill('accSessions', 'accSessionsCount', sessionItems());
 }
 
 export async function refreshUsers() {
@@ -56,21 +68,10 @@ export async function refreshUsers() {
 }
 
 export function initUsers() {
-  const tabsEl = document.getElementById('usersTabs');
-  if (tabsEl) {
-    tabsEl.querySelectorAll('button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        tab = btn.dataset.utab;
-        tabsEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b === btn));
-        render();
-      });
-    });
-  }
   const search = document.getElementById('usersFilter');
-  if (search) search.addEventListener('input', () => { q = search.value.toLowerCase(); render(); });
+  if (search) search.addEventListener('input', () => { q = search.value.toLowerCase().trim(); render(); });
   const btn = document.getElementById('btnUsersRefresh');
   if (btn) btn.addEventListener('click', refreshUsers);
-  // The Access page hosts both accounts and scheduled tasks.
   document.addEventListener('view-changed', e => {
     if (e.detail && e.detail.view === 'access') refreshUsers();
   });
