@@ -61,7 +61,7 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   network.mjs        网络四列看板：接口/路由/监听端口/防火墙（每列一张卡+滚动 item 列表，只读）
   users.mjs          Access 三列看板：Users/Groups/Sessions（每列一张卡+滚动列表，只读）
   cron.mjs           Services 页 Scheduled tab：cron/timers 列表 → 右侧详情日志（cron 看守护单元日志）
-  containers.mjs     Docker 看板（tab：Containers/Compose）；容器项含 stats/项目/端口菜单(打开/日志/控制台/重启/停止)；compose 项含 up/stop/build/down/down-v
+  containers.mjs     Docker 看板（tab：Containers/Compose）；item 为三列（徽标｜三行内容｜操作按钮列，端口是唯一下拉），含 stats/项目
   processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
 bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)
