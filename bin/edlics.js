@@ -22,6 +22,7 @@ const networkApi = require('./lib/network-api');
 const usersApi = require('./lib/users-api');
 const cronApi = require('./lib/cron-api');
 const containerApi = require('./lib/container-api');
+const processesApi = require('./lib/processes-api');
 const net = require('./lib/net');
 const { createLimiter } = require('./lib/ratelimit');
 const db = require('./lib/db');
@@ -41,6 +42,7 @@ const ROUTES = [
   ...usersApi.routes,
   ...cronApi.routes,
   ...containerApi.routes,
+  ...processesApi.routes,
 ];
 
 let readonly = false; // When true, all write operations are blocked
@@ -57,7 +59,7 @@ let trustProxy = 0;
 // Expensive endpoints get a per-IP sliding window (see CLAUDE.md).
 const EXPENSIVE = new Set([
   'api/search-content', 'api/download',
-  'api/sys/services/logs', 'api/sys/containers/logs', 'api/sys/metrics',
+  'api/sys/services/logs', 'api/sys/containers/logs', 'api/sys/metrics', 'api/sys/processes',
 ]);
 const expensiveLimiter = createLimiter({ windowMs: 60 * 1000, max: 120 });
 

@@ -58,6 +58,18 @@
 - ✅ 测试：`security.test.js`（含 **RFC 6238 官方向量**）+ TOTP 端到端集成（97 用例全绿）。
 - ⏳ 未做：`__Host-` 前缀（改名会破坏既有会话；需一次性迁移）、fail2ban jail 示例、systemd unit 示例。
 
+**第 6 轮 — 进程管理（top 式）+ 本机 Docker 测试环境，已落地：**
+- ✅ `processes-api.js`：`/api/sys/processes`（PID/USER/CPU%/MEM%/RSS/VSZ/STAT/线程/CPU 时间/CMD，
+  按 CPU/MEM/PID 排序、过滤）；CPU% 用两次采样的 jiffies 差值（与 top 同法）。
+- ✅ `__admin-write` 下 `/api/sys/processes/kill`：信号白名单、拒 PID 1 与自身、审计。
+  （注：本机 Node 只接受 `SIGxxx` 形式，故用 `os.constants.signals` 映射成数字再 kill。）
+- ✅ 前端 `processes.mjs`：top 式表格，**仅面板可见时**每 2s 轮询（`view-changed` 事件），
+  可点表头排序、过滤、发信号（prompt 输入信号）。
+- ✅ 本机装了 docker daemon（`systemctl enable --now docker`），因无法访问 Docker Hub，
+  用 `gcc -static` 自编小二进制 + `FROM scratch` **本地构建** `edlics-demo:1`，
+  起了 2 个独立容器 + 1 个 compose 项目（web 容器映射 :8090/:8091，HTTP 有访问日志）。
+- ✅ 测试：`processes.test.js`（含进程名带空格/括号的解析、实时采样自检）；103 用例全绿。
+
 
 ---
 

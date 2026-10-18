@@ -20,6 +20,7 @@ import { initNetwork } from './network.mjs';
 import { initUsers } from './users.mjs';
 import { initCron } from './cron.mjs';
 import { initContainers } from './containers.mjs';
+import { initProcesses } from './processes.mjs';
 
 // Init
 document.getElementById('btnRefresh').onclick = () => renderTree();
@@ -69,6 +70,7 @@ initNetwork();
 initUsers();
 initCron();
 initContainers();
+initProcesses();
 
 // Load server info and render — only after login succeeds
 function bootApp() {
@@ -87,7 +89,7 @@ function bootApp() {
       if (svcBtn) svcBtn.style.display = data.admin ? 'flex' : 'none';
       const netBtn = document.getElementById('btnNetwork');
       if (netBtn) netBtn.style.display = data.admin ? 'flex' : 'none';
-      for (const id of ['btnUsers', 'btnCron', 'btnContainers']) {
+      for (const id of ['btnUsers', 'btnCron', 'btnContainers', 'btnProcesses']) {
         const b = document.getElementById(id);
         if (b) b.style.display = data.admin ? 'flex' : 'none';
       }

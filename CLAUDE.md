@@ -44,6 +44,7 @@ bin/lib/
   users-api.js       用户/组/会话只读（/etc/passwd、/etc/group、who）
   cron-api.js        定时任务只读（crontab、/etc/crontab、/etc/cron.d、systemd timers）
   container-api.js   Docker 容器/compose 只读（docker ps/logs、docker compose ls）
+  processes-api.js   进程列表(top 式 CPU%/MEM%/RSS/STAT/CMD) + 发信号(--admin-write + 白名单 + 审计)
   db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
   audit.js           审计写入/查询/裁剪（登录与写操作的不可篡改记录）
   net.js             客户端 IP 解析(--trust-proxy) + CIDR 白名单（纯函数可单测）
@@ -59,6 +60,7 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   services.mjs       systemd 服务面板：列表/过滤/启停(--admin-write)/journal 日志
   network.mjs        网络面板：接口/路由/DNS/监听端口/防火墙（分页签，只读）
   users.mjs cron.mjs containers.mjs  用户·定时任务·容器面板（只读）
+  processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
 bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)
 test/                node --test：paths/auth/git-parse/search/terminal-idle 单测 + smoke 集成

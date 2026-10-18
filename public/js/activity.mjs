@@ -11,6 +11,7 @@ const VIEW_TO_PANEL = {
   users: 'panel-users',
   cron: 'panel-cron',
   containers: 'panel-containers',
+  processes: 'panel-processes',
   search: 'panel-search',
   git: 'panel-git',
 };
@@ -27,6 +28,8 @@ export function switchView(view) {
   // Reveal sidebar if it was collapsed
   document.querySelector('.sidebar').classList.remove('collapsed');
   document.querySelector('.sidebar-resize').classList.remove('collapsed');
+  // Let panels with live data (e.g. processes) start/stop their pollers
+  document.dispatchEvent(new CustomEvent('view-changed', { detail: { view } }));
 }
 
 export function toggleTerminal(force) {

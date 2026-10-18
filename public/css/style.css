@@ -698,3 +698,24 @@ body {
 .cron-user { color: var(--accent); font-size: 10px; }
 .cron-cmd { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cron-src { font-size: 10px; color: var(--text-dimmer); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Admin processes panel (--admin) ------------------------------------ */
+.proc-table { display: flex; flex-direction: column; font-size: 11px; }
+.proc-head, .proc-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
+.proc-head { color: var(--text-dim); border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--sidebar); }
+.proc-row { border-bottom: 1px solid var(--border); }
+.proc-row:hover { background: var(--hover); }
+.proc-col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proc-pid { flex: 0 0 40px; color: var(--text-dimmer); }
+.proc-user { flex: 0 0 54px; color: var(--text-dim); }
+.proc-num { flex: 0 0 40px; text-align: right; font-variant-numeric: tabular-nums; }
+.proc-st { flex: 0 0 14px; text-align: center; font-weight: 600; }
+.proc-st-R { color: var(--green); }
+.proc-st-D { color: var(--yellow); }
+.proc-st-Z { color: var(--red); }
+.proc-cmd { flex: 1; }
+.proc-act { flex: 0 0 30px; text-align: right; }
+.proc-act button { font-size: 9px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: 3px; padding: 0 4px; cursor: pointer; }
+.proc-act button:hover { color: var(--red); border-color: var(--red); }
+.proc-head .active { color: var(--accent); }
+.proc-head [data-sort] { cursor: pointer; }
