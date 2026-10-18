@@ -633,3 +633,39 @@ body {
 .ov-unit { color: var(--text-dimmer); }
 .ov-chart { width: 100%; }
 .ov-chart .u-legend { display: none; }
+
+/* --- Admin services panel (--admin) ------------------------------------- */
+.services-list { display: flex; flex-direction: column; }
+.service-row { padding: 5px 2px; border-bottom: 1px solid var(--border); }
+.service-row:last-child { border-bottom: none; }
+.svc-head { display: flex; align-items: center; gap: 6px; }
+.svc-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; background: var(--text-dimmer); }
+.svc-dot.ok { background: var(--green); }
+.svc-dot.err { background: var(--red); }
+.svc-dot.warn { background: var(--yellow); }
+.svc-dot.off { background: var(--text-dimmer); }
+.svc-name { flex: 1; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.svc-sub { font-size: 10px; color: var(--text-dim); }
+.svc-logs-btn {
+  background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  font-size: 9px; border-radius: 3px; padding: 1px 5px; cursor: pointer;
+}
+.svc-logs-btn:hover { color: var(--text); border-color: var(--text-dimmer); }
+.svc-desc {
+  font-size: 10px; color: var(--text-dimmer); margin: 2px 0 0 14px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.svc-actions { display: flex; gap: 4px; margin: 4px 0 0 14px; }
+.svc-actions button {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text-dim);
+  font-size: 10px; border-radius: 3px; padding: 1px 7px; cursor: pointer;
+}
+.svc-actions button:hover { color: var(--text); border-color: var(--text-dimmer); }
+.svc-actions button:disabled { opacity: 0.5; cursor: default; }
+.svc-logs {
+  margin: 4px 0 2px 14px; padding: 6px; max-height: 180px; overflow: auto;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+  font-family: var(--font-mono); font-size: 10px; line-height: 1.4; white-space: pre-wrap; word-break: break-word;
+}
+.svc-logs .log-err { color: var(--red); }
+.svc-logs .log-warn { color: var(--yellow); }

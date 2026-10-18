@@ -15,6 +15,7 @@ import { initActivityBar, switchView, toggleTerminal } from './activity.mjs';
 import { initGit } from './git.mjs';
 import { initTerminal } from './terminal-ui.mjs';
 import { initOverview } from './overview.mjs';
+import { initServices } from './services.mjs';
 
 // Init
 document.getElementById('btnRefresh').onclick = () => renderTree();
@@ -59,6 +60,7 @@ initActivityBar();
 initGit();
 initTerminal();
 initOverview();
+initServices();
 
 // Load server info and render — only after login succeeds
 function bootApp() {
@@ -73,6 +75,8 @@ function bootApp() {
       // Admin overview is server-gated (--admin); only reveal the button when on
       const ovBtn = document.getElementById('btnOverview');
       if (ovBtn) ovBtn.style.display = data.admin ? 'flex' : 'none';
+      const svcBtn = document.getElementById('btnServices');
+      if (svcBtn) svcBtn.style.display = data.admin ? 'flex' : 'none';
       if (data.readonly) {
         document.getElementById('sudoBadge').style.display = 'inline';
         document.getElementById('sudoBadge').textContent = 'readonly';

@@ -113,6 +113,23 @@ test('SSE stream: sends the bootstrap history frame and live samples', async () 
   assert.ok(/"cpu"/.test(text), 'a sample with cpu field arrived');
 });
 
+test('services: list answers (200 or 501 when systemd is absent)', async () => {
+  const r = await fetchJson('/api/sys/services', { headers: { cookie } });
+  assert.ok(r.status === 200 || r.status === 501, 'status ' + r.status);
+  if (r.status === 200) {
+    assert.ok(Array.isArray(r.data.units));
+    assert.ok(r.data.units.every(u => u.name.endsWith('.service')));
+  }
+});
+
+test('services: write actions are refused without --admin-write', async () => {
+  const r = await fetchJson('/api/sys/services/action', {
+    method: 'POST', headers: { cookie },
+    body: JSON.stringify({ unit: 'nginx.service', action: 'restart' }),
+  });
+  assert.strictEqual(r.status, 403, 'write disabled on the --admin-only server');
+});
+
 test('admin panel is OFF without --admin (403, not 404)', async () => {
   const port2 = PORT + 1;
   const base2 = `http://127.0.0.1:${port2}`;

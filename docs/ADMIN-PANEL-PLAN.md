@@ -21,6 +21,15 @@
 
 > 本地运行（看到概览面板）：`node bin/edlics.js serve --port 8088 --password 1234 --admin --terminal`
 
+**第 2 轮 — Phase 4 systemd 服务与日志，已落地：**
+- ✅ `services-api.js`：`/api/sys/services`（列表/过滤）、`/api/sys/services/logs`（journalctl JSON）、
+  `/api/sys/services/action`（start/stop/restart/reload/enable/disable）。
+- ✅ 安全：`execFile` 无 shell；unit 名**先过形状校验**（首字符必须字母数字，杜绝 `--xx.service`
+  选项注入）**再核对实时枚举**才允许操作；写操作需 `--admin-write` 且审计；`--readonly` 恒优先。
+- ✅ 前端 `public/js/services.mjs`：服务列表 + 状态点 + 过滤 + 启停按钮（仅 `adminWrite` 时出现）+ journal 抽屉。
+- ✅ 测试：`services.test.js` 纯解析/校验 + admin-smoke 补服务端点用例（74 用例全绿）。
+- ⏳ 未做：网络/用户/定时任务/容器（Phase 5–8）；Timer/Socket 单位、`systemctl show` 详情。
+
 
 ---
 

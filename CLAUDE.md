@@ -39,6 +39,7 @@ bin/lib/
   terminal-api.js    node-pty 会话 open/stream/input/resize/close + 30 分钟空闲回收
   sys-api.js         管理面板(--admin)：/api/sys/{info,metrics,metrics/stream,health,audit}
   metrics.js         /proc 采样(1s) + 分钟聚合 + 环形缓冲（onMinute 落库；纯解析器可单测）
+  services-api.js    systemd 服务列表/日志/启停（unit 名白名单 + --admin-write + 审计）
   db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
   audit.js           审计写入/查询/裁剪（登录与写操作的不可篡改记录）
   version.js         版本号(git tag 优先，package.json 兜底)
@@ -48,6 +49,7 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   auth.mjs activity.mjs workspace.mjs file-tree.mjs search.mjs git.mjs
   terminal-ui.mjs editor-ui.mjs tabs.mjs pathbar-status.mjs file-ops.mjs …
   overview.mjs       概览面板：系统信息 + 实时/历史图表（uPlot，SSE 驱动）
+  services.mjs       systemd 服务面板：列表/过滤/启停(--admin-write)/journal 日志
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
 bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)
 test/                node --test：paths/auth/git-parse/search/terminal-idle 单测 + smoke 集成
