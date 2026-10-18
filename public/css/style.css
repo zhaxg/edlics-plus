@@ -1074,3 +1074,7 @@ pre.logs .log-warn { color: var(--yellow); }
 .ctr-actions .ctr-ibtn:hover { background: var(--hover); color: var(--text); }
 .ctr-actions .ctr-ibtn.danger { color: var(--red); }
 .ctr-actions .ctr-ibtn.danger:hover { background: var(--red); color: var(--bg); }
+
+/* Danger buttons: red foreground only — no special background */
+.ctr-actions .ctr-ibtn.danger { color: var(--red); background: transparent; }
+.ctr-actions .ctr-ibtn.danger:hover { background: var(--hover); color: var(--red); }
