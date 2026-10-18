@@ -3,6 +3,7 @@
 // Public API routes (session/login/logout) live here; everything else in the
 // server is gated behind isAuthed() by the dispatcher in bin/edlics.js.
 const crypto = require('crypto');
+const totp = require('./totp');
 
 let authPasswordHash = null; // sha256 Buffer (32 bytes) for timing-safe compare
 const sessions = new Map();      // token -> expiry epoch ms
@@ -21,6 +22,7 @@ const GLOBAL_MAX_FAILS = 30;
 let attemptStore = null; // { get(ip), set(ip, {fails, lockedUntil}), del(ip) }
 let hooks = { onLogin: null, onLoginFail: null, onLocked: null };
 let cookieSecure = false;
+let totpSecret = null;    // when set, login requires a valid TOTP code too
 
 function sha256(s) { return crypto.createHash('sha256').update(String(s)).digest(); }
 
@@ -33,6 +35,10 @@ function setAttemptStore(store) { attemptStore = store; }
 function setHooks(h) { hooks = Object.assign(hooks, h); }
 /** Add `Secure` to the session cookie (enable when served over TLS). */
 function setCookieSecure(v) { cookieSecure = !!v; }
+
+/** Require a TOTP second factor at login (null disables it). */
+function setTotpSecret(s) { totpSecret = s || null; }
+function totpEnabled() { return !!totpSecret; }
 
 function getAttempt(ip) {
   return attemptStore ? attemptStore.get(ip) : loginAttempts.get(ip);
@@ -94,12 +100,12 @@ function pruneSessions() {
  */
 function handleAuthRoutes(parts, req, res, ok, fail) {
   if (parts[0] === 'api' && parts[1] === 'session') {
-    ok({ authenticated: isAuthed(req) });
+    ok({ authenticated: isAuthed(req), totp: totpEnabled() });
     return true;
   }
 
   if (parts[0] === 'api' && parts[1] === 'login') {
-    const ip = req.socket.remoteAddress || 'unknown';
+    const ip = req._clientIp || req.socket.remoteAddress || 'unknown';
     if (globalTripped()) {
       if (hooks.onLocked) hooks.onLocked('global', ip, req);
       fail('Too many failed attempts. Try again later.', 429);
@@ -116,14 +122,16 @@ function handleAuthRoutes(parts, req, res, ok, fail) {
     req.on('end', () => {
       let data;
       try { data = JSON.parse(body); } catch { return fail('Invalid JSON', 400); }
-      if (!checkPassword(data.password)) {
+      const passwordOk = checkPassword(data.password);
+      const totpOk = !totpSecret || totp.verify(totpSecret, data.totp || '');
+      if (!passwordOk || !totpOk) {
         globalFails.push(Date.now());
         const a = attempt || { fails: 0, lockedUntil: 0 };
         a.fails++;
         if (a.fails >= MAX_LOGIN_FAILS) { a.lockedUntil = Date.now() + LOCKOUT_MS; a.fails = 0; }
         setAttempt(ip, a);
-        if (hooks.onLoginFail) hooks.onLoginFail(ip, req);
-        return fail('Wrong password', 401);
+        if (hooks.onLoginFail) hooks.onLoginFail(ip, req, passwordOk ? 'totp' : 'password');
+        return fail('Wrong password' + (totpSecret && passwordOk ? ' or code' : ''), 401);
       }
       delAttempt(ip);
       pruneSessions();
@@ -155,5 +163,6 @@ module.exports = {
   setPassword, checkPassword, parseCookies, isAuthed, pruneSessions,
   handleAuthRoutes, sha256, sessionCount, SESSION_TTL,
   setAttemptStore, setHooks, setCookieSecure, globalTripped,
+  setTotpSecret, totpEnabled,
   MAX_LOGIN_FAILS, LOCKOUT_MS, GLOBAL_MAX_FAILS, GLOBAL_WINDOW_MS,
 };

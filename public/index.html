@@ -89,6 +89,8 @@
         <div id="ovMem" class="ov-chart"></div>
         <div class="ov-chart-label">Network <span class="ov-unit">KB/s</span></div>
         <div id="ovNet" class="ov-chart"></div>
+        <div class="ov-chart-label">Security</div>
+        <div id="ovTotp" class="ov-info"></div>
       </div>
     </div>
     <div class="panel hidden" id="panel-services">
@@ -198,6 +200,7 @@
     <h3 style="margin-bottom:6px;">Sign in to Edlics</h3>
     <p style="color:var(--text-dim);font-size:12px;margin-bottom:16px;">Enter the server password to continue</p>
     <input id="loginPassword" type="password" placeholder="Password" autofocus style="width:100%;text-align:center;" />
+    <input id="loginTotp" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="2FA code" style="width:100%;text-align:center;margin-top:8px;display:none;" />
     <div id="loginError" style="color:var(--red);font-size:12px;min-height:16px;margin-top:8px;"></div>
     <div class="btn-row" style="margin-top:8px;">
       <button class="primary" id="loginBtn" style="width:100%;">Sign in</button>

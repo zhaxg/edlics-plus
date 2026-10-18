@@ -46,6 +46,9 @@ bin/lib/
   container-api.js   Docker 容器/compose 只读（docker ps/logs、docker compose ls）
   db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
   audit.js           审计写入/查询/裁剪（登录与写操作的不可篡改记录）
+  net.js             客户端 IP 解析(--trust-proxy) + CIDR 白名单（纯函数可单测）
+  ratelimit.js       昂贵端点滑动窗口限流（有界，自动清理）
+  totp.js            RFC 6238 TOTP（node:crypto 手写，无依赖；登录第二因素）
   version.js         版本号(git tag 优先，package.json 兜底)
 public/index.html    页面骨架：登录遮罩/活动栏/侧栏面板/编辑区/终端面板
 public/js/           原生 ESM，**无构建、改完刷新即生效**
@@ -123,6 +126,9 @@ docs/                README 截图与 logo
 - **采样**：`metrics.js` 单例 1s 采样（读 `/proc`，伪文件系统、非磁盘 IO），环形缓冲 180 点供实时图；
   分钟聚合经 `onMinute` 回调落库（该模块不直接依赖 db）。**永远只有一个采样器**，再广播给所有 SSE 连接。
 - **广播/背压**：`/api/sys/metrics/stream`（SSE；客户端上限 50，背压时丢帧，25s 心跳）。
+- **防爆破/边界**：`--allow <CIDR,…>` 在**任何逻辑之前**拒绝非白名单客户端；`--trust-proxy N` 决定从
+  `X-Forwarded-For` 取第几跳作为真实 IP（默认 0=用 socket 地址，防伪造）；全局熔断 + IP 锁定计数落库；
+  昂贵端点（搜索/下载/日志/指标）按 IP 滑动窗口限流；**TOTP**（`/api/sys/totp/enroll|disable`）为最强反爆破手段。
 - **长跑**：SIGTERM/SIGINT 优雅关停（flush 当前分钟 + 关 DB + 关 SSE）；`uncaughtException` 受控退出。
 - 只有改图表库才需 `npm run build`（`bundle/charts.mjs` → `public/charts.mjs`+`charts.css`，构建产物禁止手改）。
 - 本地验证：`node bin/edlics.js serve --port 8088 --password 1234 --admin --terminal`（登录后左栏出现 Overview）。

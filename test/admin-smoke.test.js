@@ -139,6 +139,56 @@ test('network: interfaces/routes/dns are returned', async () => {
   assert.ok(r.data.interfaces.some(i => i.name), 'at least one interface');
 });
 
+test('totp: status is reported; enroll needs --admin-write', async () => {
+  const st = await fetchJson('/api/sys/totp', { headers: { cookie } });
+  assert.strictEqual(st.status, 200);
+  assert.strictEqual(st.data.enabled, false);
+  const en = await fetchJson('/api/sys/totp/enroll', { method: 'POST', headers: { cookie }, body: '{}' });
+  assert.strictEqual(en.status, 403, 'enrolling 2FA requires --admin-write');
+});
+
+test('totp: after enroll, login requires the code (anti-brute-force)', async () => {
+  const port = PORT + 2;
+  const base = `http://127.0.0.1:${port}`;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'edlics-totp-'));
+  const c = spawn(process.execPath, [
+    path.join(ROOT, 'bin', 'edlics.js'), 'serve', '--port', String(port), '--password', PASSWORD,
+    '--admin', '--admin-write', '--data-dir', dir,
+  ], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] });
+  const totp = require('../bin/lib/totp');
+  try {
+    assert.ok(await waitReady(base), 'totp server ready');
+    const l1 = await fetch(base + '/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD }),
+    });
+    assert.strictEqual(l1.status, 200, 'password-only login works before enrollment');
+    const ck = (l1.headers.get('set-cookie') || '').split(';')[0];
+
+    const en = await fetch(base + '/api/sys/totp/enroll', {
+      method: 'POST', headers: { cookie: ck, 'Content-Type': 'application/json' }, body: '{}',
+    });
+    assert.strictEqual(en.status, 200);
+    const { secret } = await en.json();
+    assert.ok(secret && secret.length >= 16);
+
+    // password alone is now rejected
+    const l2 = await fetch(base + '/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD }),
+    });
+    assert.strictEqual(l2.status, 401, 'password without code must fail');
+
+    // password + fresh code succeeds
+    const code = totp.totp(secret);
+    const l3 = await fetch(base + '/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, totp: code }),
+    });
+    assert.strictEqual(l3.status, 200, 'password + code must succeed');
+  } finally {
+    try { c.kill(); } catch {}
+    try { fs.rmSync(dir, { recursive: true, force: true }); } catch {}
+  }
+});
+
 test('admin panel is OFF without --admin (403, not 404)', async () => {
   const port2 = PORT + 1;
   const base2 = `http://127.0.0.1:${port2}`;

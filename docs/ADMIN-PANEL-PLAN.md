@@ -48,6 +48,16 @@
 - ⏳ 未做（有意延后，需先设计安全的 stdin/argv 与审计）：用户增删改、密码、crontab 编辑、
   容器起停/exec、compose up/down、防火墙修改 —— 这些是**最高后果**的写操作，单独一轮做。
 
+**第 5 轮 — Phase 0 安全加固，已落地：**
+- ✅ `net.js`：客户端 IP 解析（`--trust-proxy N` 取 XFF 第 N 跳，默认 0 防伪造）+ CIDR 白名单匹配。
+- ✅ `--allow <CIDR,…>`：在**任何认证/静态逻辑之前**拒绝非白名单客户端（403）。
+- ✅ `ratelimit.js`：搜索/下载/journal/容器日志/指标等昂贵端点按 IP 滑动窗口限流（有界、自动清理）。
+- ✅ `totp.js` + 端点：RFC 6238 TOTP（**手写、零依赖**）；`/api/sys/totp/enroll|disable`；
+  登录第二因素；登录页按需显示验证码输入；概览面板可启用/停用。
+- ✅ 弱密码启动告警；`/api/session` 上报 `totp`；审计覆盖 TOTP 启停。
+- ✅ 测试：`security.test.js`（含 **RFC 6238 官方向量**）+ TOTP 端到端集成（97 用例全绿）。
+- ⏳ 未做：`__Host-` 前缀（改名会破坏既有会话；需一次性迁移）、fail2ban jail 示例、systemd unit 示例。
+
 
 ---
 

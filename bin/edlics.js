@@ -22,6 +22,8 @@ const networkApi = require('./lib/network-api');
 const usersApi = require('./lib/users-api');
 const cronApi = require('./lib/cron-api');
 const containerApi = require('./lib/container-api');
+const net = require('./lib/net');
+const { createLimiter } = require('./lib/ratelimit');
 const db = require('./lib/db');
 const audit = require('./lib/audit');
 
@@ -49,6 +51,15 @@ let terminalEnabled = false; (--readonly)
 // every /api/sys/* endpoint is gated behind --admin.
 let adminEnabled = false;
 let adminWriteEnabled = false;
+// Security: optional CIDR allowlist (empty ⇒ allow all) and trusted-proxy depth.
+let allowlist = [];
+let trustProxy = 0;
+// Expensive endpoints get a per-IP sliding window (see CLAUDE.md).
+const EXPENSIVE = new Set([
+  'api/search-content', 'api/download',
+  'api/sys/services/logs', 'api/sys/containers/logs', 'api/sys/metrics',
+]);
+const expensiveLimiter = createLimiter({ windowMs: 60 * 1000, max: 120 });
 
 function json(res, data, status = 200) {
   res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache, no-store, must-revalidate' });
@@ -63,6 +74,7 @@ function handleAPI(req, res) {
   const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const parts = u.pathname.split('/').filter(Boolean);
   const params = Object.fromEntries(u.searchParams);
+  req._clientIp = net.clientIp(req, trustProxy);
 
   function ok(data) { json(res, data); }
   function fail(msg, code) { error(res, msg, code || 500); }
@@ -82,6 +94,7 @@ function handleAPI(req, res) {
     readonly, rootDir: paths.getRootDir(), terminal: terminalEnabled,
     admin: adminEnabled, adminWrite: adminWriteEnabled,
     authed: auth.isAuthed(req),
+    clientIp: net.clientIp(req, trustProxy),
   };
 
   try {
@@ -106,6 +119,14 @@ function handleAPI(req, res) {
     if (route.name.startsWith('api/sys') && !adminEnabled) {
       return fail('Admin panel is disabled. Start the server with --admin to enable it.', 403);
     }
+    // Expensive endpoints are rate-limited per client IP.
+    if (EXPENSIVE.has(route.name)) {
+      const rl = expensiveLimiter.check(ctx.clientIp || 'unknown');
+      if (!rl.allowed) {
+        res.setHeader('Retry-After', String(rl.retryAfter));
+        return fail('Rate limit exceeded', 429);
+      }
+    }
     route.handle(ctx);
   } catch (e) {
     fail(e.message);
@@ -114,11 +135,25 @@ function handleAPI(req, res) {
 
 const router = staticFiles.makeRouter(handleAPI);
 
+// Allowlist gate: reject non-listed clients BEFORE any auth/static logic runs.
+// Applies to the SPA and every API route alike.
+function gatedRouter(req, res) {
+  if (allowlist.length) {
+    const ip = net.clientIp(req, trustProxy);
+    if (!net.isAllowed(ip, allowlist)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      return res.end('Forbidden: client address not in allowlist');
+    }
+  }
+  return router(req, res);
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
   const cmd = args[0];
   const opts = { hostname: '127.0.0.1', port: 3000, root: null, readonly: false, password: null, terminal: false,
-    admin: false, adminWrite: false, dataDir: null, retentionDays: 30, cookieSecure: false };
+    admin: false, adminWrite: false, dataDir: null, retentionDays: 30, cookieSecure: false,
+    allow: null, trustProxy: 0 };
   for (let i = 1; i < args.length; i++) {
     if (args[i] === '--hostname' && args[i + 1]) opts.hostname = args[++i];
     if (args[i] === '--port' && args[i + 1]) opts.port = parseInt(args[++i]);
@@ -131,6 +166,8 @@ function parseArgs() {
     if (args[i] === '--data-dir' && args[i + 1]) opts.dataDir = args[++i];
     if (args[i] === '--retention-days' && args[i + 1]) opts.retentionDays = parseInt(args[++i]);
     if (args[i] === '--cookie-secure') opts.cookieSecure = true;
+    if (args[i] === '--allow' && args[i + 1]) opts.allow = args[++i];
+    if (args[i] === '--trust-proxy' && args[i + 1]) opts.trustProxy = parseInt(args[++i]) || 0;
   }
   return { cmd, opts };
 }
@@ -159,7 +196,7 @@ function wireAdminPersistence() {
     del(ip) { try { db.getDb().prepare('DELETE FROM login_attempts WHERE ip = ?').run(ip); } catch {} },
   });
   const meta = (req) => ({
-    ip: req.socket.remoteAddress || 'unknown',
+    ip: req._clientIp || req.socket.remoteAddress || 'unknown',
     ua: req.headers['user-agent'] || '',
   });
   auth.setHooks({
@@ -181,6 +218,8 @@ function startServer(opts) {
   adminWriteEnabled = !!opts.adminWrite;
   optsRetentionDays = opts.retentionDays || 30;
   auth.setCookieSecure(opts.cookieSecure);
+  allowlist = net.parseAllowlist(opts.allow);
+  trustProxy = opts.trustProxy || 0;
 
   // Password: --password flag > EDLICS_PASSWORD env > auto-generated (printed once)
   let password = opts.password || process.env.EDLICS_PASSWORD;
@@ -190,12 +229,17 @@ function startServer(opts) {
     generatedPassword = true;
   }
   auth.setPassword(password);
+  // Weak-password warning (not a hard failure: localhost/dev setups like 1234 stay usable).
+  if (!generatedPassword && password.length < 8) {
+    console.warn(`\n  ⚠  Weak password (${password.length} chars). For a reachable server use a long password or --allow + TOTP.\n`);
+  }
 
   // Persistence + audit (only when the admin panel is on).
   if (adminEnabled) {
     const dataDir = resolveDataDir(opts);
     db.open(path.join(dataDir, 'edlics.db'));
     wireAdminPersistence();
+    sysApi.loadTotp();
   }
 
   if (opts.root) {
@@ -211,7 +255,7 @@ function startServer(opts) {
     paths.setRootDir(rootDir);
   }
 
-  const server = http.createServer(router);
+  const server = http.createServer(gatedRouter);
   server.listen(opts.port, opts.hostname, () => {
     console.log(`\n  Edlics running at:`);
     console.log(`  Local:   http://${opts.hostname === '0.0.0.0' ? 'localhost' : opts.hostname}:${opts.port}`);
@@ -224,6 +268,12 @@ function startServer(opts) {
     }
     if (adminEnabled) {
       console.log(`  Admin:   enabled${adminWriteEnabled ? ' (write)' : ' (read-only)'} — DB at ${paths.toPosix(path.join(resolveDataDir(opts), 'edlics.db'))}`);
+    }
+    if (allowlist.length) {
+      console.log(`  Allow:   ${allowlist.join(', ')}${trustProxy ? '  (trust-proxy=' + trustProxy + ')' : ''}`);
+    }
+    if (auth.totpEnabled && auth.totpEnabled()) {
+      console.log(`  2FA:     TOTP required at login`);
     }
     if (opts.hostname === '0.0.0.0') {
       const os = require('os');
@@ -288,6 +338,9 @@ if (cmd === 'serve') {
     --data-dir   Where the metrics/audit SQLite file lives (default ~/.edlics)
     --retention-days  Metric history retention in days (default 30)
     --cookie-secure   Add Secure to the session cookie (enable when behind TLS)
+    --allow      Comma-separated CIDRs allowed to connect at all (default: any)
+    --trust-proxy N   Trust N reverse proxies and read the client IP from
+                      X-Forwarded-For (default 0 — use the socket address)
 
   Examples:
     edlics serve

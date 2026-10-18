@@ -2,7 +2,7 @@
 //
 // Data path: SSE (/api/sys/metrics/stream) for the live view, SQLite-backed
 // history (/api/sys/metrics?range=…) when a range is picked. uPlot renders.
-import { api } from './api.mjs';
+import { api, escapeHtml, toast } from './api.mjs';
 import { uPlot } from '/charts.mjs';
 
 const MAX_POINTS = 180;         // matches the server ring (~3 min at 1s)
@@ -167,6 +167,36 @@ function loadInfo() {
   api('GET', '/api/sys/info').then(renderInfo).catch(() => {});
 }
 
+// --- two-factor auth control ------------------------------------------------
+
+function renderTotp(status) {
+  const box = document.getElementById('ovTotp');
+  if (!box) return;
+  if (status && status.enabled) {
+    box.innerHTML = `<div class="ov-row"><span class="ov-k">2FA</span><span class="ov-v" style="color:var(--green)">enabled</span></div>
+      <div class="svc-actions" style="margin:4px 0 0 0;"><button id="ovTotpDisable">disable 2FA</button></div>`;
+    box.querySelector('#ovTotpDisable').onclick = async () => {
+      const code = window.prompt('Enter the current 2FA code to disable:');
+      if (!code) return;
+      const r = await api('POST', '/api/sys/totp/disable', { code });
+      if (r.error) toast(r.error, true); else { toast('2FA disabled'); loadTotp(); }
+    };
+  } else {
+    box.innerHTML = `<div class="ov-row"><span class="ov-k">2FA</span><span class="ov-v" style="color:var(--text-dim)">disabled</span></div>
+      <div class="svc-actions" style="margin:4px 0 0 0;"><button id="ovTotpEnable">enable 2FA</button></div>`;
+    box.querySelector('#ovTotpEnable').onclick = async () => {
+      const r = await api('POST', '/api/sys/totp/enroll', {});
+      if (r.error) { toast(r.error, true); return; }
+      box.innerHTML = `<div class="svc-desc">Add to your authenticator app — required at next login:</div>
+        <div class="ov-row"><span class="ov-k">Secret</span><span class="ov-v" style="user-select:all">${escapeHtml(r.secret)}</span></div>
+        <div class="svc-desc" style="word-break:break-all;user-select:all">${escapeHtml(r.url)}</div>`;
+      toast('2FA enabled');
+    };
+  }
+}
+
+function loadTotp() { api('GET', '/api/sys/totp').then(renderTotp).catch(() => {}); }
+
 // --- lifecycle -------------------------------------------------------------
 
 export function refreshOverview() {
@@ -174,6 +204,7 @@ export function refreshOverview() {
   if (!body) return;
   if (!initialized) { initialized = true; buildCharts(); }
   loadInfo();
+  loadTotp();
   if (range === 'live') { connectLive(); } else { loadHistory(range); }
 }
 

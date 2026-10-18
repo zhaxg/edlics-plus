@@ -11,6 +11,8 @@ const os = require('os');
 const { performance } = require('perf_hooks');
 const metrics = require('./metrics');
 const audit = require('./audit');
+const auth = require('./auth');
+const totp = require('./totp');
 const { getDb, isOpen } = require('./db');
 const { VERSION } = require('./version');
 
@@ -214,6 +216,68 @@ function handleAudit(ctx) {
   } catch (e) { fail(e.message); }
 }
 
+// --- TOTP enrollment -------------------------------------------------------
+
+function readJsonBody(req, cb, max = 4096) {
+  let body = '';
+  req.on('data', c => { body += c; if (body.length > max) req.destroy(); });
+  req.on('end', () => { try { cb(JSON.parse(body || '{}')); } catch { cb(null); } });
+}
+
+function setMeta(key, value) {
+  const db = getDb();
+  if (!db) return;
+  db.prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+    .run(key, value);
+}
+function getMeta(key) {
+  const db = getDb();
+  if (!db) return null;
+  try { const r = db.prepare('SELECT value FROM meta WHERE key = ?').get(key); return r ? r.value : null; }
+  catch { return null; }
+}
+function delMeta(key) {
+  const db = getDb();
+  if (!db) return;
+  try { db.prepare('DELETE FROM meta WHERE key = ?').run(key); } catch {}
+}
+
+/** Load a previously-enrolled TOTP secret (called at startup). */
+function loadTotp() {
+  const s = getMeta('totp_secret');
+  if (s) auth.setTotpSecret(s);
+}
+
+function handleTotpStatus(ctx) {
+  ctx.ok({ enabled: auth.totpEnabled() });
+}
+
+function handleTotpEnroll(ctx) {
+  const { req, ok, fail, adminWrite, readonly } = ctx;
+  if (readonly) return fail('Server is in read-only mode', 403);
+  if (!adminWrite) return fail('Enabling 2FA requires --admin-write', 403);
+  if (auth.totpEnabled()) return fail('TOTP is already enabled', 409);
+  const secret = totp.generateSecret();
+  setMeta('totp_secret', secret);
+  auth.setTotpSecret(secret);
+  audit.log('totp.enroll', { ip: req.socket.remoteAddress || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
+  ok({ secret, url: totp.otpauthUrl(secret) });
+}
+
+function handleTotpDisable(ctx) {
+  const { req, ok, fail, adminWrite, readonly } = ctx;
+  if (readonly) return fail('Server is in read-only mode', 403);
+  if (!adminWrite) return fail('Disabling 2FA requires --admin-write', 403);
+  return readJsonBody(req, data => {
+    if (!data) return fail('Invalid JSON', 400);
+    if (!totp.verify(getMeta('totp_secret') || '', data.code || '')) return fail('Invalid code', 401);
+    delMeta('totp_secret');
+    auth.setTotpSecret(null);
+    audit.log('totp.disable', { ip: req.socket.remoteAddress || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
+    ok({ ok: true });
+  });
+}
+
 // --- lifecycle: persistence + retention ------------------------------------
 
 function persistMinute(row) {
@@ -276,9 +340,12 @@ const routes = [
   { name: 'api/sys/metrics',        match: p => p[1] === 'sys' && p[2] === 'metrics' && !p[3],                     handle: handleMetricsHistory },
   { name: 'api/sys/health',         match: p => p[1] === 'sys' && p[2] === 'health',                               handle: handleHealth },
   { name: 'api/sys/audit',          match: p => p[1] === 'sys' && p[2] === 'audit',                                handle: handleAudit },
+  { name: 'api/sys/totp',           match: p => p[1] === 'sys' && p[2] === 'totp' && !p[3],                        handle: handleTotpStatus },
+  { name: 'api/sys/totp/enroll',    match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'enroll',            handle: handleTotpEnroll },
+  { name: 'api/sys/totp/disable',   match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'disable',           handle: handleTotpDisable },
 ];
 
 module.exports = {
-  routes, init, shutdown, persistMinute, sweep, downsample, parseOsRelease,
+  routes, init, shutdown, persistMinute, sweep, downsample, parseOsRelease, loadTotp,
   MAX_SSE_CLIENTS, DEFAULT_RETENTION_DAYS, RANGE_SECONDS,
 };

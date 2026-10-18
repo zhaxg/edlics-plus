@@ -153,7 +153,7 @@ function readJsonBody(req, cb, max = 8 * 1024) {
 }
 
 function handleAction(ctx) {
-  const { req, ok, fail, adminWrite, readonly } = ctx;
+  const { req, ok, fail, adminWrite, readonly, clientIp } = ctx;
   if (readonly) return fail('Server is in read-only mode', 403);
   if (!adminWrite) return fail('Write actions are disabled. Start with --admin-write to enable them.', 403);
   return readJsonBody(req, async data => {
@@ -161,19 +161,14 @@ function handleAction(ctx) {
     const { unit, action } = data;
     if (!ACTIONS.has(action)) return fail('Unsupported action', 400);
     if (!await isKnownUnit(unit)) return fail('Unknown or invalid unit', 400);
+    const ip = clientIp || req.socket.remoteAddress || 'unknown';
     try {
       await systemctl([action, unit], 30000);
-      audit.log('service.' + action, {
-        ip: req.socket.remoteAddress || 'unknown', ua: req.headers['user-agent'] || '',
-        target: unit, result: 'ok',
-      });
+      audit.log('service.' + action, { ip, ua: req.headers['user-agent'] || '', target: unit, result: 'ok' });
       ok({ ok: true, unit, action });
     } catch (e) {
       const msg = e.stderr || e.message;
-      audit.log('service.' + action, {
-        ip: req.socket.remoteAddress || 'unknown', ua: req.headers['user-agent'] || '',
-        target: unit, result: 'fail: ' + msg,
-      });
+      audit.log('service.' + action, { ip, ua: req.headers['user-agent'] || '', target: unit, result: 'fail: ' + msg });
       fail('systemctl ' + action + ' failed: ' + msg);
     }
   });
