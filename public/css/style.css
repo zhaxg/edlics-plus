@@ -669,3 +669,24 @@ body {
 }
 .svc-logs .log-err { color: var(--red); }
 .svc-logs .log-warn { color: var(--yellow); }
+
+/* --- Admin network panel (--admin) -------------------------------------- */
+.net-tabs { display: flex; gap: 2px; margin-bottom: 8px; }
+.net-tabs button {
+  flex: 1; background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+  font-size: 10px; padding: 3px 0; cursor: pointer; border-radius: 3px;
+}
+.net-tabs button.active { color: var(--text); background: var(--hover); border-color: var(--text-dimmer); }
+.net-card { padding: 6px 2px; border-bottom: 1px solid var(--border); }
+.net-iface-head { display: flex; align-items: center; gap: 6px; }
+.net-addrs { display: flex; flex-wrap: wrap; gap: 4px; margin: 3px 0 2px 14px; }
+.net-chip {
+  font-family: var(--font-mono); font-size: 10px; background: var(--hover);
+  border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; color: var(--text);
+}
+.net-table { display: flex; flex-direction: column; }
+.net-row { display: flex; gap: 6px; font-size: 11px; padding: 3px 2px; border-bottom: 1px solid var(--border); }
+.net-row:last-child { border-bottom: none; }
+.net-dst, .net-local { flex: 1; font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.net-via, .net-dev, .net-proto { color: var(--text-dim); flex: 0 0 auto; }
+.net-proc { color: var(--text-dimmer); font-size: 10px; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

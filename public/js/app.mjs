@@ -16,6 +16,7 @@ import { initGit } from './git.mjs';
 import { initTerminal } from './terminal-ui.mjs';
 import { initOverview } from './overview.mjs';
 import { initServices } from './services.mjs';
+import { initNetwork } from './network.mjs';
 
 // Init
 document.getElementById('btnRefresh').onclick = () => renderTree();
@@ -61,6 +62,7 @@ initGit();
 initTerminal();
 initOverview();
 initServices();
+initNetwork();
 
 // Load server info and render — only after login succeeds
 function bootApp() {
@@ -77,6 +79,8 @@ function bootApp() {
       if (ovBtn) ovBtn.style.display = data.admin ? 'flex' : 'none';
       const svcBtn = document.getElementById('btnServices');
       if (svcBtn) svcBtn.style.display = data.admin ? 'flex' : 'none';
+      const netBtn = document.getElementById('btnNetwork');
+      if (netBtn) netBtn.style.display = data.admin ? 'flex' : 'none';
       if (data.readonly) {
         document.getElementById('sudoBadge').style.display = 'inline';
         document.getElementById('sudoBadge').textContent = 'readonly';

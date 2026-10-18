@@ -30,6 +30,14 @@
 - ✅ 测试：`services.test.js` 纯解析/校验 + admin-smoke 补服务端点用例（74 用例全绿）。
 - ⏳ 未做：网络/用户/定时任务/容器（Phase 5–8）；Timer/Socket 单位、`systemctl show` 详情。
 
+**第 3 轮 — Phase 5 网络查看，已落地：**
+- ✅ `network-api.js`（全只读）：`/api/sys/network`（接口/路由/DNS）、`/network/sockets`（监听端口）、
+  `/network/firewall`（nftables 汇总）；解析 `ip -j`、`ss -j`、`nft -j`，并含 **文本兜底**
+  （本机 `ip -j route` 会 segfault 截断 JSON、`ss` 不支持 `-j`，均已兼容）。
+- ✅ 前端 `public/js/network.mjs`：Ifaces / Routes / Sockets / FW 四个页签。
+- ✅ 测试：`network.test.js` 六个解析器 + admin-smoke 网络端点（80 用例全绿）。
+- ⏳ 未做：防火墙**修改**（nft 增删规则，归入 `--admin-write`）；流量历史（已在指标里）。
+
 
 ---
 

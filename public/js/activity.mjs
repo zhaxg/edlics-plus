@@ -7,6 +7,7 @@ const VIEW_TO_PANEL = {
   explorer: 'panel-explorer',
   overview: 'panel-overview',
   services: 'panel-services',
+  network: 'panel-network',
   search: 'panel-search',
   git: 'panel-git',
 };

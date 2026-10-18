@@ -130,6 +130,15 @@ test('services: write actions are refused without --admin-write', async () => {
   assert.strictEqual(r.status, 403, 'write disabled on the --admin-only server');
 });
 
+test('network: interfaces/routes/dns are returned', async () => {
+  const r = await fetchJson('/api/sys/network', { headers: { cookie } });
+  assert.strictEqual(r.status, 200);
+  assert.ok(Array.isArray(r.data.interfaces));
+  assert.ok(Array.isArray(r.data.routes));
+  assert.ok(r.data.dns && Array.isArray(r.data.dns.nameservers));
+  assert.ok(r.data.interfaces.some(i => i.name), 'at least one interface');
+});
+
 test('admin panel is OFF without --admin (403, not 404)', async () => {
   const port2 = PORT + 1;
   const base2 = `http://127.0.0.1:${port2}`;
