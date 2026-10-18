@@ -6,10 +6,14 @@
 
 ## 进度
 
-- ✅ **P0.1 单列全宽页 + 页面合并 + hash 路由**（commit `28b473f` 起）：Console 页面移入
+- ✅ **P0.1 单列全宽页 + 页面合并 + hash 路由**（commit `28b473f`）：Console 页面移入
   `#consoleArea` 全宽单列；IDE 视图保留侧栏；`#/services` 等可刷新/分享/前进后退；
   **Users + Scheduled 合并为 Access 页**（账号区 + Scheduled 区一页两段）；Dashboard 卡片化、图表加高。
-- ⏳ 其余 P0（三态/反馈/对话框/表格）与 P1、P2 待做。
+- ✅ **P0.2 对话框 + P0.4 反馈**（commit `f34a55d`）：可堆叠/可关闭 toast（错误不自动消失）；
+  `confirmDialog`(危险色/自定义按钮) / `promptDialog` / `choiceDialog`；进程发信号、TOTP 停用
+  改用对话框（**已无 `window.prompt`**）；服务操作 busy 态；多处 `Loading…` 换成 spinner。
+- ⏳ 待做：P0.3 空/错态统一、P0.5 表格化与虚拟滚动；P1（Dashboard 下钻、日志抽屉、徽标、
+  命令面板、告警）；P2（响应式/A11y/组件收敛/性能）。
 
 ## 0. 与 Cockpit 的核心差距（一句话）| 维度 | Cockpit | 现状 | 差距 |
 |---|---|---|---|
