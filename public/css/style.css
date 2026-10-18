@@ -939,3 +939,12 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
 .access-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 1100px) { .access-grid { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 700px)  { .access-grid { grid-template-columns: 1fr; } }
+
+/* Generic page tab bar (Containers, future Docker resources, …) */
+.page-tabs { display: flex; gap: 6px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
+.page-tabs button {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-dim); font-size: 12px; padding: 6px 4px; margin-bottom: -1px; cursor: pointer;
+}
+.page-tabs button:hover { color: var(--text); }
+.page-tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
