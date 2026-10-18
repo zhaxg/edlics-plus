@@ -37,5 +37,8 @@ export async function refreshCron() {
 export function initCron() {
   const btn = document.getElementById('btnCronRefresh');
   if (btn) btn.addEventListener('click', refreshCron);
-  document.querySelector('.act-btn[data-view="cron"]')?.addEventListener('click', () => setTimeout(refreshCron, 0));
+  // Lives inside the Access page now.
+  document.addEventListener('view-changed', e => {
+    if (e.detail && e.detail.view === 'access') refreshCron();
+  });
 }

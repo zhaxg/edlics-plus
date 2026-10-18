@@ -4,9 +4,14 @@
 > **窄侧栏**里（~260px），交互反馈弱、无路由、无空/错/载状态，多处长列表硬塞。
 > 目标：把 Edlics 从「带后台面板的编辑器」升级为「Cockpit 式的分页控制台」，同时保留 IDE 能力。
 
-## 0. 与 Cockpit 的核心差距（一句话）
+## 进度
 
-| 维度 | Cockpit | 现状 | 差距 |
+- ✅ **P0.1 单列全宽页 + 页面合并 + hash 路由**（commit `28b473f` 起）：Console 页面移入
+  `#consoleArea` 全宽单列；IDE 视图保留侧栏；`#/services` 等可刷新/分享/前进后退；
+  **Users + Scheduled 合并为 Access 页**（账号区 + Scheduled 区一页两段）；Dashboard 卡片化、图表加高。
+- ⏳ 其余 P0（三态/反馈/对话框/表格）与 P1、P2 待做。
+
+## 0. 与 Cockpit 的核心差距（一句话）| 维度 | Cockpit | 现状 | 差距 |
 |---|---|---|---|
 | 信息架构 | 左侧导航栏 + **全宽页面**（Overview/Logs/Storage/Networking/Accounts/Services/Terminal…） | 全部挤在一个窄侧栏 | ★★★ |
 | 路由 | 每页有 URL，可刷新/分享/前进后退 | 无路由，刷新回 Explorer | ★★★ |

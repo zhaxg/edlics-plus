@@ -21,11 +21,13 @@ const CONSOLE_VIEWS = {
   overview: { page: 'page-overview', title: 'Dashboard' },
   services: { page: 'page-services', title: 'Services' },
   network: { page: 'page-network', title: 'Network' },
-  users: { page: 'page-users', title: 'Accounts' },
-  cron: { page: 'page-cron', title: 'Scheduled tasks' },
+  access: { page: 'page-access', title: 'Access' },
   containers: { page: 'page-containers', title: 'Containers' },
   processes: { page: 'page-processes', title: 'Processes' },
 };
+
+// Older deep links still resolve (users/cron were merged into access).
+const VIEW_ALIAS = { users: 'access', cron: 'access' };
 
 function el(id) { return document.getElementById(id); }
 
@@ -33,6 +35,7 @@ function el(id) { return document.getElementById(id); }
 export function isConsoleView(view) { return !!CONSOLE_VIEWS[view]; }
 
 export function switchView(view, opts = {}) {
+  view = VIEW_ALIAS[view] || view;
   const consoleDef = CONSOLE_VIEWS[view];
   const idePanel = IDE_VIEWS[view];
   if (!consoleDef && !idePanel) return;
@@ -79,7 +82,8 @@ export function switchView(view, opts = {}) {
 
 function viewFromHash() {
   const m = /^#\/?([a-z]+)/.exec(location.hash || '');
-  const v = m && m[1];
+  const raw = m && m[1];
+  const v = VIEW_ALIAS[raw] || raw;
   return v && (CONSOLE_VIEWS[v] || IDE_VIEWS[v]) ? v : null;
 }
 

@@ -65,5 +65,8 @@ export function initUsers() {
   if (search) search.addEventListener('input', () => { q = search.value.toLowerCase(); render(); });
   const btn = document.getElementById('btnUsersRefresh');
   if (btn) btn.addEventListener('click', refreshUsers);
-  document.querySelector('.act-btn[data-view="users"]')?.addEventListener('click', () => setTimeout(refreshUsers, 0));
+  // The Access page hosts both accounts and scheduled tasks.
+  document.addEventListener('view-changed', e => {
+    if (e.detail && e.detail.view === 'access') refreshUsers();
+  });
 }

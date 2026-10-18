@@ -768,3 +768,10 @@ body.console-mode .editor-area { display: none !important; }
 /* Full-width list pages: keep rows from stretching awkwardly */
 .page-body .services-list,
 .page-body .net-content { max-width: 1100px; }
+
+/* Section separator inside a page-body (e.g. Access: accounts + scheduled) */
+.section-sep {
+  display: flex; align-items: center; gap: 8px;
+  margin: 22px 0 10px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.section-h2 { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-dim); margin-right: auto; }
