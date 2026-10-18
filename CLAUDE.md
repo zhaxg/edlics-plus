@@ -41,6 +41,9 @@ bin/lib/
   metrics.js         /proc 采样(1s) + 分钟聚合 + 环形缓冲（onMinute 落库；纯解析器可单测）
   services-api.js    systemd 服务列表/日志/启停（unit 名白名单 + --admin-write + 审计）
   network-api.js     网络只读视图：接口/路由/DNS/监听端口/nftables（ip -j、ss、nft -j + 文本兜底）
+  users-api.js       用户/组/会话只读（/etc/passwd、/etc/group、who）
+  cron-api.js        定时任务只读（crontab、/etc/crontab、/etc/cron.d、systemd timers）
+  container-api.js   Docker 容器/compose 只读（docker ps/logs、docker compose ls）
   db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
   audit.js           审计写入/查询/裁剪（登录与写操作的不可篡改记录）
   version.js         版本号(git tag 优先，package.json 兜底)
@@ -52,6 +55,7 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   overview.mjs       概览面板：系统信息 + 实时/历史图表（uPlot，SSE 驱动）
   services.mjs       systemd 服务面板：列表/过滤/启停(--admin-write)/journal 日志
   network.mjs        网络面板：接口/路由/DNS/监听端口/防火墙（分页签，只读）
+  users.mjs cron.mjs containers.mjs  用户·定时任务·容器面板（只读）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
 bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)
 test/                node --test：paths/auth/git-parse/search/terminal-idle 单测 + smoke 集成

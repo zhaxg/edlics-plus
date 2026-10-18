@@ -690,3 +690,11 @@ body {
 .net-dst, .net-local { flex: 1; font-family: var(--font-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .net-via, .net-dev, .net-proto { color: var(--text-dim); flex: 0 0 auto; }
 .net-proc { color: var(--text-dimmer); font-size: 10px; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Admin users/cron panels (--admin) ---------------------------------- */
+.cron-row { display: flex; flex-direction: column; gap: 1px; padding: 4px 2px; border-bottom: 1px solid var(--border); }
+.cron-row:last-child { border-bottom: none; }
+.cron-sched { font-family: var(--font-mono); font-size: 11px; color: var(--text); }
+.cron-user { color: var(--accent); font-size: 10px; }
+.cron-cmd { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cron-src { font-size: 10px; color: var(--text-dimmer); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -17,6 +17,9 @@ import { initTerminal } from './terminal-ui.mjs';
 import { initOverview } from './overview.mjs';
 import { initServices } from './services.mjs';
 import { initNetwork } from './network.mjs';
+import { initUsers } from './users.mjs';
+import { initCron } from './cron.mjs';
+import { initContainers } from './containers.mjs';
 
 // Init
 document.getElementById('btnRefresh').onclick = () => renderTree();
@@ -63,6 +66,9 @@ initTerminal();
 initOverview();
 initServices();
 initNetwork();
+initUsers();
+initCron();
+initContainers();
 
 // Load server info and render — only after login succeeds
 function bootApp() {
@@ -81,6 +87,10 @@ function bootApp() {
       if (svcBtn) svcBtn.style.display = data.admin ? 'flex' : 'none';
       const netBtn = document.getElementById('btnNetwork');
       if (netBtn) netBtn.style.display = data.admin ? 'flex' : 'none';
+      for (const id of ['btnUsers', 'btnCron', 'btnContainers']) {
+        const b = document.getElementById(id);
+        if (b) b.style.display = data.admin ? 'flex' : 'none';
+      }
       if (data.readonly) {
         document.getElementById('sudoBadge').style.display = 'inline';
         document.getElementById('sudoBadge').textContent = 'readonly';

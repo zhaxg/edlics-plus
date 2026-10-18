@@ -19,6 +19,9 @@ const terminalApi = require('./lib/terminal-api');
 const sysApi = require('./lib/sys-api');
 const servicesApi = require('./lib/services-api');
 const networkApi = require('./lib/network-api');
+const usersApi = require('./lib/users-api');
+const cronApi = require('./lib/cron-api');
+const containerApi = require('./lib/container-api');
 const db = require('./lib/db');
 const audit = require('./lib/audit');
 
@@ -33,6 +36,9 @@ const ROUTES = [
   ...sysApi.routes,
   ...servicesApi.routes,
   ...networkApi.routes,
+  ...usersApi.routes,
+  ...cronApi.routes,
+  ...containerApi.routes,
 ];
 
 let readonly = false; // When true, all write operations are blocked

@@ -38,6 +38,16 @@
 - ✅ 测试：`network.test.js` 六个解析器 + admin-smoke 网络端点（80 用例全绿）。
 - ⏳ 未做：防火墙**修改**（nft 增删规则，归入 `--admin-write`）；流量历史（已在指标里）。
 
+**第 4 轮 — Phase 6/7/8 用户·定时任务·容器（只读），已落地：**
+- ✅ `users-api.js`：`/api/sys/users`（用户/组/在线会话，`/etc/passwd`·`/etc/group`·`who`）。
+- ✅ `cron-api.js`：`/api/sys/cron`（`crontab -l`·`/etc/crontab`·`/etc/cron.d/*`·`systemctl list-timers`）。
+- ✅ `container-api.js`：`/api/sys/containers`（`docker ps -a`·`compose ls`）、`/containers/logs`；
+  容器引用先过形状校验再核对实时枚举，docker 守护进程不可用时优雅降级。
+- ✅ 前端：Users（Tabs：Users/Groups/Sessions）、Scheduled、Containers 三个面板 + 活动栏入口。
+- ✅ 测试：`sysadmin.test.js` 七个解析器（87 用例全绿）。
+- ⏳ 未做（有意延后，需先设计安全的 stdin/argv 与审计）：用户增删改、密码、crontab 编辑、
+  容器起停/exec、compose up/down、防火墙修改 —— 这些是**最高后果**的写操作，单独一轮做。
+
 
 ---
 

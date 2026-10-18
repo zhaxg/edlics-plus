@@ -8,6 +8,9 @@ const VIEW_TO_PANEL = {
   overview: 'panel-overview',
   services: 'panel-services',
   network: 'panel-network',
+  users: 'panel-users',
+  cron: 'panel-cron',
+  containers: 'panel-containers',
   search: 'panel-search',
   git: 'panel-git',
 };
