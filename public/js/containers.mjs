@@ -105,8 +105,8 @@ function containerItem(c) {
   const open = openLogs.has(c.id);
   const s = stats[c.name] || stats[c.id.slice(0, 12)] || {};
   const net = (s.net || '').split('/').map(x => x.trim());
+  const tag = c.project ? `<span class="ctr-tag">${escapeHtml(c.project)}</span>` : '';
   const metrics = [
-    c.project ? `<span class="ctr-tag">${escapeHtml(c.project)}</span>` : null,
     s.mem ? `<span class="ctr-metric"><b>RAM</b> ${escapeHtml(s.mem)}</span>` : null,
     s.cpu ? `<span class="ctr-metric"><b>CPU</b> ${escapeHtml(s.cpu)}</span>` : null,
     net[0] ? `<span class="ctr-metric"><b>↓</b> ${escapeHtml(net[0])}</span>` : null,
@@ -116,9 +116,8 @@ function containerItem(c) {
   return `<div class="ilist-item ctr" data-id="${escapeHtml(c.id)}">
     ${badge(c.state, c.state)}
     <div class="ctr-main">
-      <div class="ctr-name">${escapeHtml(c.name)}</div>
-      <div class="ctr-sub">${metrics || fallback}</div>
-      <div class="ctr-meta mono">${escapeHtml(c.image)}${c.status ? ' · ' + escapeHtml(c.status) : ''}</div>
+      <div class="ctr-name"><span class="ctr-name-text">${escapeHtml(c.name)}</span>${tag}</div>
+      <div class="ctr-sub">${metrics || fallback}<span class="ctr-meta mono">${escapeHtml(c.image)}${c.status ? ' · ' + escapeHtml(c.status) : ''}</span></div>
     </div>
     ${containerActions(c)}
     <pre class="svc-logs${open ? '' : ' hidden'}" data-clogbox="${escapeHtml(c.id)}"></pre>
@@ -160,8 +159,8 @@ function composeItem(p) {
         <span class="ctr-tag">${escapeHtml(p.status || '')}</span>
         <span class="ctr-metric"><b>containers</b> ${p.count || 0}${typeof p.running === 'number' ? ' (' + p.running + ' up)' : ''}</span>
         ${created ? `<span class="ctr-metric"><b>created</b> ${escapeHtml(created)}</span>` : ''}
+        <span class="ctr-meta mono">${escapeHtml(p.configFiles)}</span>
       </div>
-      <div class="ctr-meta mono">${escapeHtml(p.configFiles)}</div>
     </div>
     ${actions}
   </div>`;

@@ -1209,3 +1209,12 @@ pre.logs .log-warn { color: var(--yellow); }
 
 /* Generic muted text utility */
 .muted { color: var(--text-dim); }
+
+/* Container name row: name truncates, project tag stays visible */
+.ctr-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ctr-name-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctr-name .ctr-tag { flex: 0 0 auto; }
+
+/* Container/compose item: metrics and image·status share one row */
+.ctr-sub .ctr-meta { margin-left: 14px; }
+.ctr-sub { gap: 8px; }
