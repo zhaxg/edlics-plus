@@ -31,7 +31,8 @@ function userItems() {
         <span class="ilist-meta">${u.uid}${u.system ? ' · sys' : ''}</span>
       </div>
       <div class="ilist-fields">
-        <div class="ilist-field"><span class="ilist-k">gid</span><span class="ilist-v">${u.gid} ${escapeHtml(u.group)}${u.groups.length ? ' + ' + escapeHtml(u.groups.join(', ')) : ''}</span></div>
+        <div class="ilist-field"><span class="ilist-k">group</span><span class="ilist-v">${escapeHtml(u.group)} (${u.gid})</span></div>
+        ${u.groups.length ? `<div class="ilist-field"><span class="ilist-k">also in</span><span class="ilist-v">${escapeHtml(u.groups.join(', '))}</span></div>` : ''}
         <div class="ilist-field"><span class="ilist-k">home</span><span class="ilist-v">${escapeHtml(u.home)}</span></div>
         <div class="ilist-field"><span class="ilist-k">shell</span><span class="ilist-v">${escapeHtml(u.shell)}</span></div>
       </div>
