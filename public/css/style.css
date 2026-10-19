@@ -1226,3 +1226,8 @@ pre.logs .log-warn { color: var(--yellow); }
   grid-column: 3; grid-row: 1 / -1;
   align-self: center; justify-self: start; display: flex; align-items: center;
 }
+
+/* Keep the tag column left (right after content); only actions go far right */
+.ctr { grid-template-columns: auto minmax(0, max-content) 1fr auto; }
+.ctr-actions { grid-column: 4; justify-self: end; }
+.ctr-tagcol { justify-self: start; }
