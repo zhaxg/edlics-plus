@@ -205,8 +205,11 @@ async function openEnableDialog() {
       <div class="totp-qr">${qr || '<span class="muted">QR unavailable</span>'}</div>
       <div class="totp-side">
         <p class="totp-help">Or enter the key manually. Works with Google Authenticator, Authy, 1Password, and browser extensions such as &ldquo;Authenticator: 2FA Client&rdquo;.</p>
-        <div class="totp-key"><code>${escapeHtml(secret)}</code><button class="text-btn" id="totpCopyKey">Copy</button></div>
-        <button class="text-btn" id="totpCopyUrl">Copy setup link</button>
+        <div class="totp-key"><code>${escapeHtml(secret)}</code></div>
+        <div class="totp-actions">
+          <button class="text-btn" id="totpCopyKey">Copy</button>
+          <button class="text-btn" id="totpCopyUrl">Copy setup link</button>
+        </div>
       </div>
     </div>
     <label class="dlg-label" for="totpConfirmCode">6-digit code</label>

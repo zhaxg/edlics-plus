@@ -1325,3 +1325,7 @@ pre.logs .log-warn { color: var(--yellow); }
   border: 0; border-top: 1px solid var(--border); border-radius: 0;
   background: none; font-size: 11px; line-height: 1.5; color: var(--text-dimmer);
 }
+
+/* Copy actions stacked on their own lines under the key */
+.totp-key { margin-bottom: 6px; }
+.totp-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
