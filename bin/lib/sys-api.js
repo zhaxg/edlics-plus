@@ -328,9 +328,12 @@ function handleTotpDisable(ctx) {
   if (!adminWrite) return fail('Disabling 2FA requires --admin-write', 403);
   return readJsonBody(req, data => {
     if (!data) return fail('Invalid JSON', 400);
-    if (!totp.verify(getMeta('totp_secret') || '', data.code || '')) return fail('Invalid code', 400);
+    const active = getMeta('totp_secret') || '';
+    if (!totp.verify(active, data.code || '')) return fail('Invalid code', 400);
+    // Keep the key (as pending) so re-enabling reuses the same one; the user
+    // can mint a fresh key with the refresh button if they want.
+    if (active) setMeta('totp_pending', active);
     delMeta('totp_secret');
-    delMeta('totp_pending');
     auth.setTotpSecret(null);
     audit.log('totp.disable', { ip: req.socket.remoteAddress || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
     ok({ ok: true });
