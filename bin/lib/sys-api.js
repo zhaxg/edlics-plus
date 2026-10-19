@@ -69,9 +69,35 @@ function loopDelayMs() {
 
 // --- handlers --------------------------------------------------------------
 
+/** Primary non-internal IPv4 address, or 127.0.0.1. */
+function primaryIp() {
+  try {
+    const ifaces = os.networkInterfaces();
+    for (const name of Object.keys(ifaces)) {
+      for (const i of ifaces[name] || []) {
+        if (i.family === 'IPv4' && !i.internal) return i.address;
+      }
+    }
+  } catch { /* ignore */ }
+  return '127.0.0.1';
+}
+
+/** Swap (bytes) from /proc/meminfo: {total, used}. */
+function swapInfo() {
+  try {
+    const txt = fs.readFileSync('/proc/meminfo', 'utf-8');
+    const total = /SwapTotal:\s+(\d+)/.exec(txt);
+    const free = /SwapFree:\s+(\d+)/.exec(txt);
+    const t = total ? Number(total[1]) * 1024 : 0;
+    const f = free ? Number(free[1]) * 1024 : 0;
+    return { total: t, used: Math.max(0, t - f) };
+  } catch { return { total: 0, used: 0 }; }
+}
+
 function handleInfo(ctx) {
   const { ok } = ctx;
   const cpus = os.cpus() || [];
+  const sw = swapInfo();
   ok({
     hostname: os.hostname(),
     os: osPrettyName(),
@@ -82,7 +108,11 @@ function handleInfo(ctx) {
     cpuModel: cpuModel(),
     cores: cpus.length,
     memTotal: os.totalmem(),
+    memFree: os.freemem(),
+    swapTotal: sw.total,
+    swapUsed: sw.used,
     load: os.loadavg().map(n => Number(n.toFixed(2))),
+    ip: primaryIp(),
     node: process.version,
     isRoot: typeof process.getuid === 'function' ? process.getuid() === 0 : false,
     admin: !!ctx.admin,

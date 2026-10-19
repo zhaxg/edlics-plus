@@ -1361,3 +1361,7 @@ body.logged-out .statusbar,
 body.logged-out .context-menu { display: none !important; }
 #loginOverlay.overlay { background: var(--bg); }
 #loginOverlay .dialog { box-shadow: none; }
+
+/* Header icon buttons (refresh / 2FA / sign-out): borderless, hover tint */
+.page-header .icon-btn { border: none; background: transparent; }
+.page-header .icon-btn:hover { background: var(--hover); color: var(--text); }

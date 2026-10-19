@@ -155,12 +155,35 @@ function renderInfo(info) {
     ['Arch', info.arch],
     ['CPU', `${info.cores}× ` + (info.cpuModel || 'unknown')],
     ['Memory', `${fmtBytes(info.memTotal)}`],
+    ['Swap', info.swapTotal ? `${fmtBytes(info.swapUsed)} / ${fmtBytes(info.swapTotal)}` : 'none'],
+    ['Load', (info.load || []).join(' ')],
+    ['Disk /', '…'],
+    ['IP', info.ip || '—'],
     ['Uptime', fmtUptime(info.uptime)],
     ['Node', info.node],
   ];
   box.innerHTML = rows.map(([k, v]) =>
-    `<div class="ov-row"><span class="ov-k">${k}</span><span class="ov-v" title="${v}">${v}</span></div>`
+    `<div class="ov-row"><span class="ov-k">${k}</span><span class="ov-v" title="${escapeHtml(v)}">${escapeHtml(v)}</span></div>`
   ).join('');
+  loadDiskCard();
+}
+
+/** Fill the 'Disk /' card from the disk API (root filesystem usage). */
+async function loadDiskCard() {
+  try {
+    const d = await api('GET', '/api/sys/disk');
+    const root = (d.mounts || []).find(m => m.mount === '/') || (d.mounts || [])[0];
+    const val = root ? `${root.used} / ${root.size} (${root.pct})` : '—';
+    const box = document.getElementById('ovInfo');
+    if (!box) return;
+    for (const row of box.querySelectorAll('.ov-row')) {
+      if (row.querySelector('.ov-k').textContent === 'Disk /') {
+        const v = row.querySelector('.ov-v');
+        v.textContent = val; v.title = val;
+        break;
+      }
+    }
+  } catch { /* leave the placeholder */ }
 }
 
 function loadInfo() {
