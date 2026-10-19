@@ -201,7 +201,7 @@ async function openEnableDialog() {
   const { overlay, content } = openDialog(`
     <h3>Enable two-factor authentication</h3>
     <ol class="totp-steps">
-      <li>打开认证器 App / 客户端 / 浏览器扩展（Google Authenticator、Authy、1Password 等）。</li>
+      <li>打开认证器 App / 客户端 / 浏览器扩展（如 Google Authenticator、Authy、1Password，或浏览器的 “Authenticator: 2FA Client” 扩展）。</li>
       <li>扫描下方二维码，或手动输入密钥：</li>
     </ol>
     <div class="totp-qr">${qr || '<span class="muted">QR unavailable — use the key below</span>'}</div>
@@ -215,10 +215,10 @@ async function openEnableDialog() {
     </ol>
     <div class="totp-confirm">
       <input id="totpConfirmCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6 位动态码" maxlength="8" />
-      <button class="primary" id="totpConfirmBtn">Confirm &amp; enable</button>
+      <button class="primary" id="totpConfirmBtn">Confirm</button>
       <button class="cancel" id="totpCancelBtn">Cancel</button>
     </div>
-    <div class="sec-hint" style="margin-top:8px;">⚠ 备份密钥：设备丢失将无法登录（可用 <code>edlics reset-2fa</code> 恢复）。</div>`);
+    <div class="totp-note">备份密钥：设备丢失将无法登录，可用 <code>edlics reset-2fa</code> 在服务器上恢复。</div>`);
   content.querySelector('#totpCopySecret').onclick = () => copyToClipboard(secret).then(() => toast('Copied')).catch(() => {});
   content.querySelector('#totpCopyUrl').onclick = () => copyToClipboard(url).then(() => toast('Copied')).catch(() => {});
   const input = content.querySelector('#totpConfirmCode');
