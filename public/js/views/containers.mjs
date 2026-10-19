@@ -47,9 +47,14 @@ const I = {
   </${Icon}>`,
 };
 
-const WHALE = html`<svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
-  <path d="M1.13 8.7h1.9V6.8h1.9v1.9h1.9V6.8h1.9v1.9h1.9V6.8h1.6c.3 0 .5.2.6.5.4 1.2 1.4 1.9 2.6 1.9.5 0 .9-.1 1.3-.4-.2.5-.6.9-1.1 1.1-.1 0-.2.1-.4.1-.2 0-.4.1-.6.1-1.1 0-2-.7-2.5-1.6-.2-.4-.5-.6-.9-.6H2.9v-1H1.13z"/>
-  <path d="M1 9.6h1.2l.2.6H1.6c-.2 0-.4-.1-.5-.2L1 9.6zm14.2-3.4c.2 0 .4.1.5.3.3.5.5 1.1.5 1.7h-.9c0-.4-.1-.8-.3-1.1-.1-.2 0-.5.2-.9z"/>
+/**
+ * Badge glyph: the outline "package/cube" mark used for container items.
+ * Sized for the 38px badge (the old markup hard-coded 16px and looked tiny).
+ */
+const BADGE_ICON = html`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+  stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+  <path d="m3.3 7 8.7 5 8.7-5M12 22V12"/>
 </svg>`;
 
 // --- helpers ---------------------------------------------------------------
@@ -70,7 +75,7 @@ function ActionBtn({ title, danger, disabled, onClick, children }) {
 /** Badge column: status dot over the whale glyph. */
 function Badge({ state, title }) {
   return html`<div class="ctr-badge" title=${title || state || ''}>
-    <span class="ctr-badge-ico">${WHALE}</span>
+    <span class="ctr-badge-ico">${BADGE_ICON}</span>
     <span class=${'ctr-badge-dot ' + dotClass(state)}></span>
   </div>`;
 }
