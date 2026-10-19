@@ -1231,3 +1231,11 @@ pre.logs .log-warn { color: var(--yellow); }
 .ctr { grid-template-columns: auto minmax(0, max-content) 1fr auto; }
 .ctr-actions { grid-column: 4; justify-self: end; }
 .ctr-tagcol { justify-self: start; }
+
+/* Align ctr-tag across items: badge+content take a fixed 36%, so the tag
+   column always starts at the same x. */
+.ctr { grid-template-columns: 36% auto 1fr auto; }
+.ctr-head { grid-column: 1; grid-row: 1 / -1; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ctr-head .ctr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ctr-tagcol { grid-column: 2; grid-row: 1 / -1; align-self: center; justify-self: start; }
+.ctr-actions { grid-column: 4; }

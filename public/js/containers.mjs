@@ -116,10 +116,12 @@ function containerItem(c) {
   ].filter(Boolean).join('');
   const fallback = statsLoading ? '<span class="ctr-metric">loading stats…</span>' : '<span class="ctr-metric">no stats</span>';
   return `<div class="ilist-item ctr" data-id="${escapeHtml(c.id)}">
-    ${badge(c.state, c.state)}
-    <div class="ctr-main">
-      <div class="ctr-name"><span class="ctr-name-text">${escapeHtml(c.name)}</span></div>
-      <div class="ctr-sub">${metrics || fallback}<span class="ctr-meta mono">${escapeHtml(c.image)}${c.status ? ' · ' + escapeHtml(c.status) : ''}</span></div>
+    <div class="ctr-head">
+      ${badge(c.state, c.state)}
+      <div class="ctr-main">
+        <div class="ctr-name"><span class="ctr-name-text">${escapeHtml(c.name)}</span></div>
+        <div class="ctr-sub">${metrics || fallback}<span class="ctr-meta mono">${escapeHtml(c.image)}${c.status ? ' · ' + escapeHtml(c.status) : ''}</span></div>
+      </div>
     </div>
     <div class="ctr-tagcol">${tag}</div>
     ${containerActions(c)}
@@ -155,13 +157,15 @@ function composeItem(p) {
        </div>`
     : '<div class="ctr-actions"></div>';
   return `<div class="ilist-item ctr" data-project="${escapeHtml(p.name)}">
-    ${badge(running ? 'running' : 'exited', p.status)}
-    <div class="ctr-main">
-      <div class="ctr-name">${escapeHtml(p.name)}</div>
-      <div class="ctr-sub">
-        <span class="ctr-metric"><b>containers</b> ${p.count || 0}${typeof p.running === 'number' ? ' (' + p.running + ' up)' : ''}</span>
-        ${created ? `<span class="ctr-metric"><b>created</b> ${escapeHtml(created)}</span>` : ''}
-        <span class="ctr-meta mono">${escapeHtml(p.configFiles)}</span>
+    <div class="ctr-head">
+      ${badge(running ? 'running' : 'exited', p.status)}
+      <div class="ctr-main">
+        <div class="ctr-name">${escapeHtml(p.name)}</div>
+        <div class="ctr-sub">
+          <span class="ctr-metric"><b>containers</b> ${p.count || 0}${typeof p.running === 'number' ? ' (' + p.running + ' up)' : ''}</span>
+          ${created ? `<span class="ctr-metric"><b>created</b> ${escapeHtml(created)}</span>` : ''}
+          <span class="ctr-meta mono">${escapeHtml(p.configFiles)}</span>
+        </div>
       </div>
     </div>
     <div class="ctr-tagcol"><span class="ctr-tag">${escapeHtml(p.status || '')}</span></div>
