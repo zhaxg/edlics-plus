@@ -8,6 +8,7 @@ const THEME_LIGHT = {
   '--text': '#4c4f69', '--text-dim': '#7c7f93', '--text-dimmer': '#bcc0cc',
   '--accent': '#1e66f5', '--accent-hover': '#2a6ef5', '--hover': '#dce0e8', '--active': '#ccd0da',
   '--dir-color': '#1e66f5', '--file-color': '#5c5f77',
+  '--input-bg': '#ffffff', '--sunken': 'rgba(0,0,0,0.05)',
   '--tab-bg': '#e6e9ef', '--tab-active-bg': '#eff1f5',
   '--green': '#40a02b', '--red': '#d20f39', '--yellow': '#df8e1d', '--peach': '#fe640b', '--mauve': '#8839ef', '--pink': '#ea76cb',
 };

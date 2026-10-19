@@ -5,6 +5,7 @@
   --accent: #89b4fa; --accent-hover: #74a0e8; --hover: #262640; --active: #2d2d44;
   --dir-color: #89b4fa; --file-color: #a6adc8;
   --folder-bg: rgba(137,180,250,0.08);
+  --input-bg: rgba(0,0,0,0.25); --sunken: rgba(0,0,0,0.25);
   --tab-bg: #1a1a2e; --tab-active-bg: #1e1e2e;
   --green: #a6e3a1; --red: #f38ba8; --yellow: #f9e2af; --peach: #fab387; --mauve: #cba6f7; --pink: #f5c2e7;
   --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, Menlo, Monaco, 'Courier New', monospace;
@@ -48,7 +49,7 @@ body {
 .toolbar .path-bar {
   flex: 1; display: flex; align-items: center; gap: 2px;
   overflow-x: auto; white-space: nowrap; padding: 2px 8px;
-  background: rgba(0,0,0,0.2); border-radius: 4px; margin: 0 4px; min-height: 28px;
+  background: var(--sunken); border-radius: 4px; margin: 0 4px; min-height: 28px;
   font-family: var(--font-mono);
 }
 .toolbar .path-bar span {
@@ -67,7 +68,7 @@ body {
 .toolbar button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
 .toolbar button.primary:hover { background: var(--accent-hover); }
 .toolbar .search-box {
-  background: rgba(0,0,0,0.25); border: 1px solid var(--border); color: var(--text);
+  background: var(--input-bg); border: 1px solid var(--border); color: var(--text);
   padding: 5px 10px; border-radius: 5px; font-size: 12px; width: 160px; outline: none;
   transition: border-color 0.15s;
 }
@@ -120,7 +121,7 @@ body {
 .search-inputs { display: flex; gap: 4px; padding: 8px 12px 6px; flex-shrink: 0; }
 .search-input-wrap { position: relative; flex: 1; min-width: 0; display: flex; }
 .search-input-wrap input {
-  flex: 1; min-width: 0; background: rgba(0,0,0,0.25); border: 1px solid var(--border);
+  flex: 1; min-width: 0; background: var(--input-bg); border: 1px solid var(--border);
   color: var(--text); padding: 6px 26px 6px 10px; border-radius: 5px; font-size: 12px; outline: none;
 }
 .search-input-wrap input:focus { border-color: var(--accent); }
@@ -182,7 +183,7 @@ body {
 /* Segmented toggle: Changes | Graph */
 .git-toggle {
   display: flex; gap: 2px; margin: 8px 12px 6px; padding: 2px;
-  background: rgba(0,0,0,0.25); border: 1px solid var(--border); border-radius: 6px;
+  background: var(--sunken); border: 1px solid var(--border); border-radius: 6px;
 }
 .git-toggle-btn {
   flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -265,7 +266,7 @@ body {
 }
 .git-commit-meta code {
   font-family: var(--font-mono); color: var(--text-dim);
-  background: rgba(0,0,0,0.25); padding: 0 4px; border-radius: 3px;
+  background: var(--sunken); padding: 0 4px; border-radius: 3px;
 }
 .git-commit-files {
   margin-top: 6px; border-top: 1px dashed rgba(45,45,68,0.6); padding-top: 3px;
