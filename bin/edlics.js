@@ -319,6 +319,19 @@ function startServer(opts) {
 
 const { cmd, opts } = parseArgs();
 
+if (cmd === 'reset-2fa') {
+  // Recovery hatch: remove any TOTP secret so login falls back to password-only.
+  const file = path.join(resolveDataDir(opts), 'edlics.db');
+  if (!fs.existsSync(file)) { console.error(`\n  No database at ${file}\n`); process.exit(1); }
+  db.open(file);
+  const info = db.getDb().prepare("DELETE FROM meta WHERE key IN ('totp_secret','totp_pending')").run();
+  const n = typeof info.changes === 'bigint' ? Number(info.changes) : (info.changes ?? 0);
+  db.close();
+  console.log(`\n  2FA reset (${n} key${n === 1 ? '' : 's'} removed).`);
+  console.log(`  Stop and restart the server, then log in with the password only.\n`);
+  process.exit(0);
+}
+
 if (cmd === 'serve') {
   startServer(opts);
 } else {
@@ -327,6 +340,7 @@ if (cmd === 'serve') {
 
   Usage:
     edlics serve [options]
+    edlics reset-2fa [--data-dir <dir>]   # recover from a lost 2FA device
 
   Options:
     --hostname   Host to bind to (default: 127.0.0.1)

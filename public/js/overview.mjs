@@ -2,7 +2,7 @@
 //
 // Data path: SSE (/api/sys/metrics/stream) for the live view, SQLite-backed
 // history (/api/sys/metrics?range=…) when a range is picked. uPlot renders.
-import { api, escapeHtml, toast, promptDialog } from './api.mjs';
+import { api, escapeHtml, toast, promptDialog, copyToClipboard, spinner } from './api.mjs';
 import { uPlot } from '/charts.mjs';
 
 const MAX_POINTS = 180;         // matches the server ring (~3 min at 1s)
@@ -169,30 +169,89 @@ function loadInfo() {
 
 // --- two-factor auth control ------------------------------------------------
 
+let totpPendingSecret = null;
+
 function renderTotp(status) {
   const box = document.getElementById('ovTotp');
   if (!box) return;
   const enabled = !!(status && status.enabled);
-  box.innerHTML = `<div class="sec-line">
-      <span class="sec-state ${enabled ? 'on' : 'off'}">${enabled ? 'Enabled' : 'Disabled'}</span>
-      <span class="sec-hint">${enabled ? 'A code is required at login.' : 'Add a second factor to protect this root-grade panel.'}</span>
-      <button class="sec-btn${enabled ? ' danger' : ''}" id="ovTotpBtn">${enabled ? 'Disable' : 'Enable'}</button>
-    </div>`;
-  box.querySelector('#ovTotpBtn').onclick = async () => {
-    if (enabled) {
-      const code = await promptDialog('Enter the current 2FA code to disable two-factor auth:', { title: 'Disable 2FA', okLabel: 'Disable', danger: true, placeholder: '123456' });
+  const pending = !!(status && status.pending) || !!totpPendingSecret;
+
+  if (enabled) {
+    box.innerHTML = `<div class="sec-line">
+        <span class="sec-state on">Enabled</span>
+        <span class="sec-hint">A 6-digit code from your authenticator is required at login.</span>
+        <button class="sec-btn danger" id="ovTotpBtn">Disable 2FA</button>
+      </div>`;
+    box.querySelector('#ovTotpBtn').onclick = async () => {
+      const code = await promptDialog('Enter the current 2FA code to disable:', { title: 'Disable 2FA', okLabel: 'Disable', danger: true, placeholder: '123456' });
       if (!code) return;
       const r = await api('POST', '/api/sys/totp/disable', { code });
-      if (r.error) toast(r.error, true); else { toast('2FA disabled'); loadTotp(); }
+      if (r.error) toast(r.error, true); else { toast('2FA disabled'); totpPendingSecret = null; loadTotp(); }
+    };
+    return;
+  }
+
+  if (pending) {
+    if (!totpPendingSecret) {
+      box.innerHTML = spinner('Loading…');
+      api('POST', '/api/sys/totp/enroll', {}).then(r => {
+        if (r.error) { toast(r.error, true); return; }
+        totpPendingSecret = r.secret;
+        renderTotp({ pending: true });
+      }).catch(() => {});
       return;
     }
+    const secret = totpPendingSecret;
+    const url = `otpauth://totp/Edlics:admin?secret=${encodeURIComponent(secret)}&issuer=Edlics&algorithm=SHA1&digits=6&period=30`;
+    box.innerHTML = `
+      <ol class="totp-steps">
+        <li>打开认证器 App（Google Authenticator / Authy / 1Password 等）→ 添加账户 → <b>手动输入密钥</b>。</li>
+        <li>密钥：<code class="totp-code">${escapeHtml(secret)}</code>
+            <button class="sec-btn" data-copy="${escapeHtml(secret)}">复制密钥</button></li>
+        <li>或导入链接：<code class="totp-code">${escapeHtml(url)}</code>
+            <button class="sec-btn" data-copy="${escapeHtml(url)}">复制链接</button></li>
+        <li><b>用 App 显示的 6 位动态码在下面确认后，2FA 才会生效</b>；确认前不影响登录，可随时取消。</li>
+      </ol>
+      <div class="totp-confirm">
+        <input id="totpConfirmCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6 位动态码" maxlength="8" />
+        <button class="sec-btn" id="totpConfirmBtn">Confirm &amp; enable</button>
+        <button class="sec-btn danger" id="totpCancelBtn">Cancel</button>
+      </div>
+      <div class="sec-hint" style="margin-top:8px;">⚠ 请备份该密钥：手机丢失后无法登录（可在服务器端重置，见文档）。</div>`;
+    box.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => {
+      copyToClipboard(b.dataset.copy).then(() => toast('Copied')).catch(() => {});
+    }));
+    const input = box.querySelector('#totpConfirmCode');
+    box.querySelector('#totpConfirmBtn').onclick = async () => {
+      const code = input.value.trim();
+      if (!code) return;
+      const r = await api('POST', '/api/sys/totp/confirm', { code });
+      if (r.error) { toast(r.error, true); return; }
+      totpPendingSecret = null;
+      toast('2FA enabled');
+      loadTotp();
+    };
+    box.querySelector('#totpCancelBtn').onclick = async () => {
+      await api('POST', '/api/sys/totp/cancel', {}).catch(() => {});
+      totpPendingSecret = null;
+      toast('2FA setup cancelled');
+      loadTotp();
+    };
+    input.focus();
+    return;
+  }
+
+  box.innerHTML = `<div class="sec-line">
+      <span class="sec-state off">Disabled</span>
+      <span class="sec-hint">Require a 6-digit authenticator code in addition to the password at login.</span>
+      <button class="sec-btn" id="ovTotpBtn">Enable 2FA</button>
+    </div>`;
+  box.querySelector('#ovTotpBtn').onclick = async () => {
     const r = await api('POST', '/api/sys/totp/enroll', {});
     if (r.error) { toast(r.error, true); return; }
-    box.innerHTML = `<div class="sec-line"><span class="sec-state on">Enabled</span>
-        <span class="ilist-k">secret</span><code class="ilist-v" style="user-select:all">${escapeHtml(r.secret)}</code></div>
-      <div class="ilist-sub">Add it to your authenticator app — a code is required at next login.</div>
-      <div class="ilist-sub mono" style="user-select:all;word-break:break-all;">${escapeHtml(r.url)}</div>`;
-    toast('2FA enabled');
+    totpPendingSecret = r.secret;
+    renderTotp({ pending: true });
   };
 }
 

@@ -171,16 +171,28 @@ test('totp: after enroll, login requires the code (anti-brute-force)', async () 
     const { secret } = await en.json();
     assert.ok(secret && secret.length >= 16);
 
-    // password alone is now rejected
+    // Enrollment alone must NOT activate 2FA (no lock-out before confirmation).
+    const lPre = await fetch(base + '/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD }),
+    });
+    assert.strictEqual(lPre.status, 200, 'password-only login still works while enrollment is pending');
+
+    // Confirm with a valid code → 2FA becomes active.
+    const code = totp.totp(secret);
+    const cf = await fetch(base + '/api/sys/totp/confirm', {
+      method: 'POST', headers: { cookie: ck, 'Content-Type': 'application/json' }, body: JSON.stringify({ code }),
+    });
+    assert.strictEqual(cf.status, 200, 'confirm with a valid code activates 2FA');
+
+    // Now password alone is rejected.
     const l2 = await fetch(base + '/api/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD }),
     });
     assert.strictEqual(l2.status, 401, 'password without code must fail');
 
     // password + fresh code succeeds
-    const code = totp.totp(secret);
     const l3 = await fetch(base + '/api/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, totp: code }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: PASSWORD, totp: totp.totp(secret) }),
     });
     assert.strictEqual(l3.status, 200, 'password + code must succeed');
   } finally {

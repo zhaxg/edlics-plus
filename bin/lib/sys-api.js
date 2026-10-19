@@ -249,7 +249,7 @@ function loadTotp() {
 }
 
 function handleTotpStatus(ctx) {
-  ctx.ok({ enabled: auth.totpEnabled() });
+  ctx.ok({ enabled: auth.totpEnabled(), pending: !!getMeta('totp_pending') });
 }
 
 function handleTotpEnroll(ctx) {
@@ -257,11 +257,38 @@ function handleTotpEnroll(ctx) {
   if (readonly) return fail('Server is in read-only mode', 403);
   if (!adminWrite) return fail('Enabling 2FA requires --admin-write', 403);
   if (auth.totpEnabled()) return fail('TOTP is already enabled', 409);
+  // Generate a PENDING secret only. 2FA does NOT take effect until the user
+  // proves they can produce a valid code (confirm) — so enrolling can never
+  // lock anyone out.
   const secret = totp.generateSecret();
-  setMeta('totp_secret', secret);
-  auth.setTotpSecret(secret);
-  audit.log('totp.enroll', { ip: req.socket.remoteAddress || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
-  ok({ secret, url: totp.otpauthUrl(secret) });
+  setMeta('totp_pending', secret);
+  audit.log('totp.enroll-pending', { ip: ctx.clientIp || (req.socket && req.socket.remoteAddress) || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
+  ok({ secret, url: totp.otpauthUrl(secret), pending: true });
+}
+
+function handleTotpConfirm(ctx) {
+  const { req, ok, fail, adminWrite, readonly } = ctx;
+  if (readonly) return fail('Server is in read-only mode', 403);
+  if (!adminWrite) return fail('Enabling 2FA requires --admin-write', 403);
+  const pending = getMeta('totp_pending');
+  if (!pending) return fail('No pending 2FA enrollment', 400);
+  return readJsonBody(req, data => {
+    if (!data) return fail('Invalid JSON', 400);
+    if (!totp.verify(pending, data.code || '')) return fail('Invalid code — check the authenticator and try again', 401);
+    setMeta('totp_secret', pending);
+    delMeta('totp_pending');
+    auth.setTotpSecret(pending);
+    audit.log('totp.enable', { ip: ctx.clientIp || (req.socket && req.socket.remoteAddress) || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
+    ok({ enabled: true });
+  });
+}
+
+function handleTotpCancel(ctx) {
+  const { ok, fail, adminWrite, readonly } = ctx;
+  if (readonly) return fail('Server is in read-only mode', 403);
+  if (!adminWrite) return fail('Requires --admin-write', 403);
+  delMeta('totp_pending');
+  ok({ ok: true });
 }
 
 function handleTotpDisable(ctx) {
@@ -272,6 +299,7 @@ function handleTotpDisable(ctx) {
     if (!data) return fail('Invalid JSON', 400);
     if (!totp.verify(getMeta('totp_secret') || '', data.code || '')) return fail('Invalid code', 401);
     delMeta('totp_secret');
+    delMeta('totp_pending');
     auth.setTotpSecret(null);
     audit.log('totp.disable', { ip: req.socket.remoteAddress || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
     ok({ ok: true });
@@ -342,6 +370,8 @@ const routes = [
   { name: 'api/sys/audit',          match: p => p[1] === 'sys' && p[2] === 'audit',                                handle: handleAudit },
   { name: 'api/sys/totp',           match: p => p[1] === 'sys' && p[2] === 'totp' && !p[3],                        handle: handleTotpStatus },
   { name: 'api/sys/totp/enroll',    match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'enroll',            handle: handleTotpEnroll },
+  { name: 'api/sys/totp/confirm',   match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'confirm',           handle: handleTotpConfirm },
+  { name: 'api/sys/totp/cancel',    match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'cancel',            handle: handleTotpCancel },
   { name: 'api/sys/totp/disable',   match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'disable',           handle: handleTotpDisable },
 ];
 

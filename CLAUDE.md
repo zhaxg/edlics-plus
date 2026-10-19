@@ -135,7 +135,10 @@ docs/                README 截图与 logo
 - **广播/背压**：`/api/sys/metrics/stream`（SSE；客户端上限 50，背压时丢帧，25s 心跳）。
 - **防爆破/边界**：`--allow <CIDR,…>` 在**任何逻辑之前**拒绝非白名单客户端；`--trust-proxy N` 决定从
   `X-Forwarded-For` 取第几跳作为真实 IP（默认 0=用 socket 地址，防伪造）；全局熔断 + IP 锁定计数落库；
-  昂贵端点（搜索/下载/日志/指标）按 IP 滑动窗口限流；**TOTP**（`/api/sys/totp/enroll|disable`）为最强反爆破手段。
+  昂贵端点（搜索/下载/日志/指标）按 IP 滑动窗口限流；**TOTP 两步验证**为最强反爆破手段。
+  **2FA 采用「先确认再启用」**：`/api/sys/totp/enroll` 只生成 *pending* 密钥（不生效），
+  用 `/confirm` 提交一次有效动态码后才写入 `meta.totp_secret` 并生效——因此**登记阶段不可能把自己锁死**；
+  `/cancel` 丢弃 pending。锁死救援：`node bin/edlics.js reset-2fa [--data-dir …]`（清除密钥，恢复仅密码登录）。
 - **长跑**：SIGTERM/SIGINT 优雅关停（flush 当前分钟 + 关 DB + 关 SSE）；`uncaughtException` 受控退出。
 - 只有改图表库才需 `npm run build`（`bundle/charts.mjs` → `public/charts.mjs`+`charts.css`，构建产物禁止手改）。
 - 本地验证：`node bin/edlics.js serve --port 8088 --password 1234 --admin --terminal`（登录后左栏出现 Overview）。
