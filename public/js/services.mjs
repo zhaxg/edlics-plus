@@ -14,7 +14,7 @@ let units = [];
 let loaded = false;
 let filter = '';
 let selected = null;
-let tab = 'services';
+let tab = 'users';   // first tab
 let showSystem = false;   // hide distro-provided (vendor) units by default
 
 const ACTIVE_CLASS = { active: 'ok', failed: 'err', activating: 'warn', deactivating: 'warn', inactive: 'off', reloading: 'warn' };

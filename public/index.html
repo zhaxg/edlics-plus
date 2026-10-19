@@ -141,18 +141,18 @@
         </header>
         <div class="page-body fill">
           <div class="page-tabs" id="servicesTabs">
-            <button data-stab="services" class="active">Services</button>
+            <button data-stab="users" class="active">Users</button>
+            <button data-stab="services">Services</button>
             <button data-stab="scheduled">Scheduled</button>
-            <button data-stab="logs">Logs</button>
             <button data-stab="interfaces">Interfaces</button>
             <button data-stab="routes">Routes</button>
             <button data-stab="ports">Ports</button>
             <button data-stab="firewall">Firewall</button>
             <button data-stab="disk">Disk</button>
-            <button data-stab="users">Users</button>
+            <button data-stab="logs">Logs</button>
           </div>
 
-          <div class="split" id="servicesSplit">
+          <div class="split hidden" id="servicesSplit">
             <div class="split-left">
               <div class="split-search">
                 <div class="search-input-wrap"><input id="servicesFilter" placeholder="Filter services…" spellcheck="false" /></div>
@@ -209,7 +209,7 @@
           <div class="tabview hidden" id="portsView"><div class="board" id="portsBoard"></div></div>
           <div class="tabview hidden" id="firewallView"><div class="board" id="firewallBoard"></div></div>
           <div class="tabview hidden" id="diskView"><div class="board" id="diskBoard"></div></div>
-          <div class="tabview hidden" id="usersView"><div class="board" id="usersBoard"></div></div>
+          <div class="tabview" id="usersView"><div class="board" id="usersBoard"></div></div>
         </div>
       </section>
 
