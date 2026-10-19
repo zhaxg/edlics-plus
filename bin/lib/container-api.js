@@ -8,7 +8,7 @@ const { execFile } = require('child_process');
 const fs = require('fs');
 const audit = require('./audit');
 
-const CONTAINER_ACTIONS = new Set(['start', 'stop', 'restart']);
+const CONTAINER_ACTIONS = new Set(['start', 'stop', 'restart', 'rm']);
 const COMPOSE_ACTIONS = {
   up: ['up', '-d'],
   stop: ['stop'],
@@ -222,7 +222,9 @@ function handleAction(ctx) {
     if (!isValidContainerRef(id)) return fail('Invalid container reference', 400);
     if (!(await knownContainerRefs()).has(id)) return fail('Unknown container', 400);
     try {
-      await run('docker', [action, id], 60000);
+      // rm force-removes (stops first if needed); others are docker <verb> <id>.
+      const args = action === 'rm' ? ['rm', '-f', id] : [action, id];
+      await run('docker', args, 60000);
       auditAction(req, ctx, action, id, 'ok');
       ok({ ok: true, id, action });
     } catch (e) {

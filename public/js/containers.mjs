@@ -75,9 +75,11 @@ function openMenu(anchor, items) {
 
 // --- container actions -----------------------------------------------------
 
-async function containerAction(id, action, label) {
-  if (action === 'stop' || action === 'restart') {
-    const okGo = await confirmDialog(`${label} container "${id}"?`, { title: label, okLabel: label, danger: action === 'stop' });
+async function containerAction(id, action, label, name) {
+  const target = name || id;
+  if (action === 'stop' || action === 'restart' || action === 'rm') {
+    const msg = action === 'rm' ? `Delete container "${target}"? It will be force-removed.` : `${label} container "${target}"?`;
+    const okGo = await confirmDialog(msg, { title: label, okLabel: label, danger: true });
     if (!okGo) return;
   }
   try {
@@ -100,6 +102,7 @@ function containerActions(c) {
     if (c.state !== 'running') b.push(ibtn('data-act="start"', 'start', 'Start'));
     b.push(ibtn('data-act="restart"', 'restart', 'Restart'));
     b.push(ibtn('data-act="stop"', 'stop', 'Stop', true));
+    b.push(ibtn('data-act="rm"', 'del', 'Delete container', true));
   }
   return `<div class="ctr-actions">${b.join('')}</div>`;
 }
@@ -216,7 +219,7 @@ function render() {
       if (a === 'ports') btn.addEventListener('click', e => { e.stopPropagation(); openMenu(btn, portLinks(c)); });
       else if (a === 'logs') btn.addEventListener('click', () => toggleLogs(id));
       else if (a === 'console') btn.addEventListener('click', () => runCommandInTerminal(`docker exec -it ${c.name} sh`));
-      else btn.addEventListener('click', () => containerAction(id, a, a === 'start' ? 'Start' : a === 'restart' ? 'Restart' : 'Stop'));
+      else btn.addEventListener('click', () => containerAction(id, a, a === 'start' ? 'Start' : a === 'restart' ? 'Restart' : a === 'rm' ? 'Delete' : 'Stop', c.name));
     });
   });
 }
