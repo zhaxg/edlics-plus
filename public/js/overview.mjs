@@ -165,19 +165,21 @@ function renderInfo(info) {
     ? Math.min(100, 100 * info.load[0] / info.cores) : null;
   const cpuStr = info.virt
     ? `${info.cores} vCPU (${info.virt})`
-    : `${info.cores} (${info.cpuCores} cores × ${info.cpuThreads} threads)`;
+    : (info.cpuCores && info.cpuThreads)
+      ? `${info.cores} (${info.cpuCores} cores × ${info.cpuThreads} threads)`
+      : `${info.cores}`;   // older server without topology fields
   const rows = [
     ['Host', info.hostname, null],
     ['IP', info.ip || '—', null],
     ['OS', info.os, null],
     ['Kernel', info.kernel, null],
     ['Arch', info.arch, null],
+    ['Uptime', fmtUptime(info.uptime), null],
     ['CPU', cpuStr, null, info.cpuModel || ''],
     ['Memory', `${fmtBytes(memUsed)} / ${fmtBytes(memTotal)}`, pct(memUsed, memTotal)],
     ['Swap', info.swapTotal ? `${fmtBytes(info.swapUsed)} / ${fmtBytes(info.swapTotal)}` : 'none', swapP],
     ['Load', (info.load || []).join(' '), loadP],
     ['Disk /', '…', 0],   // placeholder ring; filled by loadDiskCard()
-    ['Uptime', fmtUptime(info.uptime), null],
     ['Node', info.node, null],
   ];
   box.innerHTML = rows.map(([k, v, p, t]) => {
