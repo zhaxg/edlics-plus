@@ -192,6 +192,8 @@ function openTotpDialog() {
 }
 
 const COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+const CODE_OK = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg>';
+const CODE_BAD = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 async function openEnableDialog() {
   const en = await api('POST', '/api/sys/totp/enroll', {});
@@ -216,7 +218,10 @@ async function openEnableDialog() {
     </div>
     <div class="totp-warn">Keep a backup of the key. If the device is lost, disable 2FA on the server with <code>edlics reset-2fa</code>.</div>
     <label class="dlg-label" for="totpConfirmCode">6-digit code</label>
-    <input id="totpConfirmCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123 456" />
+    <div class="totp-code-row">
+      <input id="totpConfirmCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123 456" />
+      <span id="totpCodeIcon" class="code-icon" aria-live="polite"></span>
+    </div>
     <div class="btn-row">
       <button class="cancel" id="totpCancelBtn">Cancel</button>
       <button class="primary" id="totpConfirmBtn" disabled>Confirm</button>
@@ -226,16 +231,21 @@ async function openEnableDialog() {
   content.querySelector('#totpCopyUrl').onclick = () => copyToClipboard(url).then(() => toast('Link copied')).catch(() => {});
   const input = content.querySelector('#totpConfirmCode');
   const confirmBtn = content.querySelector('#totpConfirmBtn');
+  const icon = content.querySelector('#totpCodeIcon');
   const setValid = v => { confirmBtn.disabled = !v; };
   let vtimer = null;
   input.oninput = () => {
     const code = input.value.replace(/\D/g, '');
     clearTimeout(vtimer);
     setValid(false);
+    icon.className = 'code-icon'; icon.innerHTML = '';
     if (code.length < 6) return;
     vtimer = setTimeout(async () => {
-      try { const r = await api('POST', '/api/sys/totp/verify', { code }); setValid(!!(r && r.valid)); }
-      catch { setValid(false); }
+      try {
+        const r = await api('POST', '/api/sys/totp/verify', { code });
+        if (r && r.valid) { setValid(true); icon.className = 'code-icon ok'; icon.innerHTML = CODE_OK; }
+        else { setValid(false); icon.className = 'code-icon bad'; icon.innerHTML = CODE_BAD; }
+      } catch { setValid(false); icon.className = 'code-icon bad'; icon.innerHTML = CODE_BAD; }
     }, 250);
   };
   input.onkeydown = e => { if (e.key === 'Enter' && !confirmBtn.disabled) confirmBtn.click(); };
@@ -249,7 +259,7 @@ async function openEnableDialog() {
     const code = input.value.trim();
     if (!code) return;
     const r = await api('POST', '/api/sys/totp/confirm', { code });
-    if (r.error) { toast(r.error, true); setValid(false); return; }
+    if (r.error) { toast(r.error, true); setValid(false); icon.className = 'code-icon bad'; icon.innerHTML = CODE_BAD; return; }
     overlay.classList.add('hidden');
     toast('Two-factor enabled');
     loadTotp();

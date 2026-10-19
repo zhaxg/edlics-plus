@@ -1345,3 +1345,11 @@ pre.logs .log-warn { color: var(--yellow); }
 }
 .totp-warn code { font-family: var(--font-mono); color: var(--text); }
 .dialog .btn-row button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* 2FA code row: input + live status icon; copy buttons on one row */
+.totp-actions { flex-direction: row; }
+.totp-code-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.totp-code-row input { flex: 1; margin-bottom: 0 !important; }
+.code-icon { display: inline-flex; align-items: center; width: 18px; justify-content: center; }
+.code-icon.ok { color: var(--green); }
+.code-icon.bad { color: var(--red); }
