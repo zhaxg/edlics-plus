@@ -65,7 +65,10 @@ test('admin gate: /api/sys/* needs auth, then works with a session', async () =>
   assert.strictEqual(info.status, 200);
   assert.ok(info.data.hostname, 'hostname present');
   assert.strictEqual(info.data.admin, true);
-  assert.strictEqual(info.data.isRoot, true, 'running as root here');
+  // CI (GitHub-hosted runners) executes as an unprivileged user, so assert
+  // against the real uid rather than assuming root.
+  const isRoot = typeof process.getuid === 'function' && process.getuid() === 0;
+  assert.strictEqual(info.data.isRoot, isRoot, 'isRoot must match the server process uid');
   assert.ok(info.data.cores >= 1);
   assert.ok(info.data.memTotal > 0);
 });
