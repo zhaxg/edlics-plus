@@ -1218,3 +1218,11 @@ pre.logs .log-warn { color: var(--yellow); }
 /* Container/compose item: metrics and image·status share one row */
 .ctr-sub .ctr-meta { margin-left: 14px; }
 .ctr-sub { gap: 8px; }
+
+/* Container/compose item: project (or status) tag in its own 3rd column */
+.ctr { grid-template-columns: auto 1fr auto auto; }
+.ctr-actions { grid-column: 4; }
+.ctr-tagcol {
+  grid-column: 3; grid-row: 1 / -1;
+  align-self: center; justify-self: start; display: flex; align-items: center;
+}
