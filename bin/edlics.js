@@ -61,7 +61,7 @@ let trustProxy = 0;
 // Expensive endpoints get a per-IP sliding window (see CLAUDE.md).
 const EXPENSIVE = new Set([
   'api/search-content', 'api/download',
-  'api/sys/services/logs', 'api/sys/containers/logs', 'api/sys/metrics', 'api/sys/processes', 'api/sys/journal',
+  'api/sys/services/logs', 'api/sys/containers/logs', 'api/sys/containers/stats', 'api/sys/metrics', 'api/sys/processes', 'api/sys/journal',
 ]);
 const expensiveLimiter = createLimiter({ windowMs: 60 * 1000, max: 120 });
 

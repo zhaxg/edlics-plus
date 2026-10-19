@@ -11,6 +11,8 @@ import { serverInfo } from './state.mjs';
 import { runCommandInTerminal } from './terminal-ui.mjs';
 
 let data = null;
+let stats = {};        // name|id12 -> usage (loaded in a second, slower request)
+let statsLoading = false;
 let tab = 'containers';
 const openLogs = new Set();
 
@@ -101,7 +103,7 @@ function containerActions(c) {
 
 function containerItem(c) {
   const open = openLogs.has(c.id);
-  const s = c.stats || {};
+  const s = stats[c.name] || stats[c.id.slice(0, 12)] || {};
   const net = (s.net || '').split('/').map(x => x.trim());
   const metrics = [
     c.project ? `<span class="ctr-tag">${escapeHtml(c.project)}</span>` : null,
@@ -110,11 +112,12 @@ function containerItem(c) {
     net[0] ? `<span class="ctr-metric"><b>↓</b> ${escapeHtml(net[0])}</span>` : null,
     net[1] ? `<span class="ctr-metric"><b>↑</b> ${escapeHtml(net[1])}</span>` : null,
   ].filter(Boolean).join('');
+  const fallback = statsLoading ? '<span class="ctr-metric">loading stats…</span>' : '<span class="ctr-metric">no stats</span>';
   return `<div class="ilist-item ctr" data-id="${escapeHtml(c.id)}">
     ${badge(c.state, c.state)}
     <div class="ctr-main">
       <div class="ctr-name">${escapeHtml(c.name)}</div>
-      <div class="ctr-sub">${metrics || '<span class="ctr-metric">no stats</span>'}</div>
+      <div class="ctr-sub">${metrics || fallback}</div>
       <div class="ctr-meta mono">${escapeHtml(c.image)}${c.status ? ' · ' + escapeHtml(c.status) : ''}</div>
     </div>
     ${containerActions(c)}
@@ -232,10 +235,25 @@ function renderTabs() {
   });
 }
 
+/** Slow second step: fetch live stats and re-render. */
+async function loadStats() {
+  statsLoading = true;
+  if (tab === 'containers') render();
+  try {
+    const r = await api('GET', '/api/sys/containers/stats');
+    stats = (r && r.stats) || {};
+  } catch { stats = {}; }
+  statsLoading = false;
+  if (tab === 'containers') render();
+}
+
 export async function refreshContainers() {
+  // Step 1 (fast): list + compose, render immediately.
   try { data = await api('GET', '/api/sys/containers'); } catch { data = null; }
   renderTabs();
   render();
+  // Step 2 (slow): live stats.
+  loadStats();
 }
 
 export function initContainers() {

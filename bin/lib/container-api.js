@@ -83,18 +83,18 @@ function parseDockerPs(text) {
   return jlines(text).map(parseContainer).filter(c => c.id || c.name);
 }
 
-/** `docker stats --no-stream --format '{{json .}}'` → usage rows (keyed by name). */
+/** `docker stats --no-stream --format '{{json .}}'` → {name|id12: usage}. */
 function parseDockerStats(text) {
-  const map = new Map();
+  const out = {};
   for (const s of jlines(text)) {
     const row = {
       cpu: s.CPUPerc || '', mem: s.MemUsage || '', memPerc: s.MemPerc || '',
       net: s.NetIO || '', block: s.BlockIO || '', pids: s.PIDs || '',
     };
-    if (s.Name) map.set(s.Name, row);
-    if (s.ID) map.set(s.ID.slice(0, 12), row);
+    if (s.Name) out[s.Name] = row;
+    if (s.ID) out[s.ID.slice(0, 12)] = row;
   }
-  return map;
+  return out;
 }
 
 /** `docker compose ls --format json` → [{name, status, configFiles}] */
@@ -134,12 +134,10 @@ async function listCompose() {
 async function handleList(ctx) {
   if (!await dockerAvailable()) return ctx.ok({ available: false, containers: [], compose: [] });
   try {
+    // Fast path: ps + compose ls only. Live stats are a separate, slower
+    // request (docker stats samples for ~2s) so the list renders immediately.
     const containers = await listContainers();
     const compose = await listCompose();
-    // best-effort live stats (adds memory/cpu/net); never fatal
-    const stats = parseDockerStats(await run('docker', ['stats', '--no-stream', '--format', '{{json .}}'], 20000).catch(() => ''));
-    for (const c of containers) c.stats = stats.get(c.name) || stats.get(c.id.slice(0, 12)) || null;
-    // enrich compose projects: container count + earliest created
     for (const p of compose) {
       const owned = containers.filter(c => c.project === p.name);
       p.count = owned.length;
@@ -148,6 +146,15 @@ async function handleList(ctx) {
     }
     ctx.ok({ available: true, containers, compose });
   } catch (e) { ctx.fail('docker failed: ' + (e.stderr || e.message)); }
+}
+
+/** Slow second step: live CPU/mem/net usage for the running containers. */
+async function handleStats(ctx) {
+  if (!await dockerAvailable()) return ctx.ok({ stats: {} });
+  try {
+    const out = await run('docker', ['stats', '--no-stream', '--format', '{{json .}}'], 25000).catch(() => '');
+    ctx.ok({ stats: parseDockerStats(out) });
+  } catch (e) { ctx.fail('docker stats failed: ' + (e.stderr || e.message)); }
 }
 
 async function knownContainerRefs() {
@@ -236,6 +243,7 @@ function handleComposeAction(ctx) {
 /** Route table — see CLAUDE.md. `parts[0] === 'api'` is guaranteed. */
 const routes = [
   { name: 'api/sys/containers',        match: p => p[1] === 'sys' && p[2] === 'containers' && !p[3],          handle: ctx => handleList(ctx) },
+  { name: 'api/sys/containers/stats',  match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'stats', handle: ctx => handleStats(ctx) },
   { name: 'api/sys/containers/logs',   match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'logs',  handle: ctx => handleLogs(ctx) },
   { name: 'api/sys/containers/action', match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'action', handle: handleAction },
   { name: 'api/sys/containers/compose', match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'compose', handle: handleComposeAction },

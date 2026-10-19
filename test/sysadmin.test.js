@@ -70,7 +70,8 @@ test('parseDockerPs / parseComposeLs / parseDockerStats', () => {
   assert.strictEqual(containers.parseComposeLs(ls)[0].name, 'proj');
 
   const st = JSON.stringify({ ID: 'abc', Name: 'web', CPUPerc: '1.2%', MemUsage: '10MiB / 1GiB', MemPerc: '1%', NetIO: '0B / 0B', BlockIO: '0B / 0B', PIDs: '5' }) + '\n';
-  assert.strictEqual(containers.parseDockerStats(st)[0].cpu, '1.2%');
+  assert.strictEqual(containers.parseDockerStats(st).web.cpu, '1.2%');
+  assert.strictEqual(containers.parseDockerStats(st).abc.mem, '10MiB / 1GiB');
 });
 
 test('isValidContainerRef: hex id or safe name, rejects odd input', () => {

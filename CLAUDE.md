@@ -44,7 +44,7 @@ bin/lib/
   users-api.js       用户/组/会话只读（/etc/passwd、/etc/group、who）
   cron-api.js        定时任务只读（crontab、/etc/crontab、/etc/cron.d、systemd timers）
   disk-api.js       存储视图：/api/sys/disk（df -h/df -i、lsblk -J、findmnt -J；纯解析器可单测）
-  container-api.js   Docker 容器/compose：列表(含 stats/project/ports)+日志+启停/compose up|stop|build|down(|-v)（--admin-write+审计；引用先校验枚举）
+  container-api.js   Docker 容器/compose：列表(ps/compose ls，快)+独立 /stats(慢，docker stats)+日志+启停/compose 操作（--admin-write+审计；引用先校验枚举）
   processes-api.js   进程列表(top 式 CPU%/MEM%/RSS/STAT/CMD) + 发信号(--admin-write + 白名单 + 审计)
   db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
   audit.js           审计写入/查询/裁剪（登录与写操作的不可篡改记录）
