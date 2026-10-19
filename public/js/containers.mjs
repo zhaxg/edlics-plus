@@ -165,7 +165,6 @@ function composeItem(p) {
         <div class="ctr-sub">
           <span class="ctr-metric"><b>containers</b> ${p.count || 0}${typeof p.running === 'number' ? ' (' + p.running + ' up)' : ''}</span>
           ${created ? `<span class="ctr-metric"><b>created</b> ${escapeHtml(created)}</span>` : ''}
-          <span class="ctr-meta mono">${escapeHtml(p.configFiles)}</span>
         </div>
       </div>
     </div>
