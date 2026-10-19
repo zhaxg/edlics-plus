@@ -145,6 +145,7 @@
           <div class="page-tabs" id="servicesTabs">
             <button data-stab="services" class="active">Services</button>
             <button data-stab="scheduled">Scheduled</button>
+            <button data-stab="logs">Logs</button>
           </div>
 
           <div class="split" id="servicesSplit">
@@ -167,6 +168,36 @@
               <div class="split-list" id="cronList"></div>
             </div>
             <div class="split-detail" id="cronDetail"><div class="panel-placeholder">Select a cron job or timer to see its logs</div></div>
+          </div>
+
+          <div class="logs-view hidden" id="logsView">
+            <div class="logs-toolbar">
+              <select id="logSource" class="ov-range" title="Source">
+                <option value="all">All sources</option>
+                <option value="login">Login (sshd)</option>
+                <option value="auth">Authentication (authpriv)</option>
+                <option value="security">Security (audit)</option>
+                <option value="kernel">Kernel</option>
+              </select>
+              <select id="logSince" class="ov-range" title="Time range">
+                <option value="1h">Last hour</option>
+                <option value="today" selected>Today</option>
+                <option value="7d">Last 7 days</option>
+                <option value="90d">Last 90 days</option>
+              </select>
+              <select id="logLevel" class="ov-range" title="Priority">
+                <option value="">All levels</option>
+                <option value="err">Error</option>
+                <option value="warning">Warning</option>
+                <option value="notice">Notice</option>
+                <option value="info">Info</option>
+                <option value="debug">Debug</option>
+              </select>
+              <div class="search-input-wrap"><input id="logQuery" placeholder="keyword filter…" spellcheck="false" /></div>
+              <button id="btnLogsRefresh" class="icon-btn" title="Refresh"><svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M18.024 7.043A8.374 8.374 0 0 0 3.74 12.955"/><path stroke-linejoin="round" d="m17.35 2.75l.832 3.372a1.123 1.123 0 0 1-.854 1.382l-3.372.843"/><path stroke-miterlimit="10" d="M5.976 16.957a8.374 8.374 0 0 0 14.285-5.912"/><path stroke-linejoin="round" d="m6.65 21.25l-.832-3.372a1.124 1.124 0 0 1 .855-1.382l3.371-.843"/></g></svg></button>
+              <span class="logs-count" id="logsCount"></span>
+            </div>
+            <div class="logs-list" id="logsList"></div>
           </div>
         </div>
       </section>

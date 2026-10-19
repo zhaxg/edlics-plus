@@ -1096,3 +1096,23 @@ pre.logs .log-warn { color: var(--yellow); }
 
 /* A little breathing room between items in the Services / Scheduled lists */
 .split-list { display: flex; flex-direction: column; gap: 6px; }
+
+/* Logs tab: facet toolbar + full-width log list */
+.logs-view { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.logs-toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.logs-toolbar .ov-range { padding: 4px 6px; font-size: 12px; }
+.logs-toolbar .search-input-wrap { min-width: 180px; flex: 0 1 240px; }
+.logs-count { font-size: 11px; color: var(--text-dim); margin-left: auto; }
+.logs-list {
+  flex: 1; min-height: 0; overflow: auto; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
+  font-family: var(--font-mono); font-size: 11px; line-height: 1.5;
+}
+.log-line { display: flex; gap: 10px; white-space: pre-wrap; word-break: break-word; }
+.log-line:hover { background: var(--hover); }
+.log-ts { flex: 0 0 150px; color: var(--text-dimmer); }
+.log-prio { flex: 0 0 62px; text-transform: uppercase; font-size: 10px; padding-top: 1px; color: var(--text-dim); }
+.log-msg { flex: 1; min-width: 0; }
+.log-prio.log-err { color: var(--red); }
+.log-prio.log-warn { color: var(--yellow); }
+.log-prio.log-notice { color: var(--accent); }

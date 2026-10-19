@@ -5,6 +5,7 @@
 import { api, escapeHtml, toast, confirmDialog, setBusy, spinner, loadJournalInto } from './api.mjs';
 import { serverInfo } from './state.mjs';
 import { refreshCron, initCron } from './cron.mjs';
+import { refreshLogs, initLogs } from './logs.mjs';
 
 let units = [];
 let loaded = false;
@@ -127,13 +128,20 @@ function setTab(t) {
   if (bar) bar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.stab === t));
   document.getElementById('servicesSplit')?.classList.toggle('hidden', t !== 'services');
   document.getElementById('scheduledSplit')?.classList.toggle('hidden', t !== 'scheduled');
+  document.getElementById('logsView')?.classList.toggle('hidden', t !== 'logs');
   if (t === 'scheduled') refreshCron();
+  else if (t === 'logs') refreshLogs();
 }
 
-function refreshActive() { if (tab === 'scheduled') refreshCron(); else refreshServices(); }
+function refreshActive() {
+  if (tab === 'scheduled') refreshCron();
+  else if (tab === 'logs') refreshLogs();
+  else refreshServices();
+}
 
 export function initServices() {
   initCron();
+  initLogs();
   const filterInput = document.getElementById('servicesFilter');
   if (filterInput) filterInput.addEventListener('input', () => { filter = filterInput.value; renderList(); });
   const bar = document.getElementById('servicesTabs');

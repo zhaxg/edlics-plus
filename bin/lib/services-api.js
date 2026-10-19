@@ -175,6 +175,37 @@ async function handleUnitFile(ctx) {
   } catch (e) { fail('systemctl cat failed: ' + (e.stderr || e.message)); }
 }
 
+// --- system journal viewer (Logs tab) --------------------------------------
+
+const LOG_SOURCES = {
+  all: [],
+  kernel: ['-k'],
+  login: ['-u', 'ssh.service'],
+  auth: ['SYSLOG_FACILITY=10'],
+  security: ['_TRANSPORT=audit'],
+};
+const LOG_SINCE = { '1h': '1 hour ago', today: 'today', '7d': '7 days ago', '90d': '90 days ago' };
+const LOG_LEVELS = new Set(['emerg', 'alert', 'crit', 'err', 'warning', 'notice', 'info', 'debug',
+  '0', '1', '2', '3', '4', '5', '6', '7']);
+
+async function handleJournal(ctx) {
+  if (!systemdAvailable()) return ctx.fail('systemd is not available on this host', 501);
+  const { params, ok, fail } = ctx;
+  const source = LOG_SOURCES[params.source] ? params.source : 'all';
+  const since = LOG_SINCE[params.since] || 'today';
+  const level = params.level && LOG_LEVELS.has(params.level) ? params.level : null;
+  const q = typeof params.q === 'string' ? params.q.trim().slice(0, 200) : '';
+  if (/[\x00-\x1f]/.test(q)) return fail('Invalid keyword', 400);
+  const lines = Math.min(2000, Math.max(1, parseInt(params.lines, 10) || 300));
+  const args = ['-o', 'json', '--no-pager', '--no-hostname', '--since', since, '-n', String(lines), ...LOG_SOURCES[source]];
+  if (level) args.push('-p', level);
+  if (q) args.push('--grep', q);
+  try {
+    const out = await journalctl(args, 25000);
+    ok({ source, since, level: level || 'all', q, lines: parseJournal(out) });
+  } catch (e) { fail('journalctl failed: ' + (e.stderr || e.message)); }
+}
+
 function readJsonBody(req, cb, max = 8 * 1024) {
   let body = '';
   req.on('data', c => { body += c; if (body.length > max) req.destroy(); });
@@ -207,6 +238,7 @@ function handleAction(ctx) {
 const routes = [
   { name: 'api/sys/services',        match: p => p[1] === 'sys' && p[2] === 'services' && !p[3],                    handle: ctx => handleList(ctx) },
   { name: 'api/sys/services/unit',   match: p => p[1] === 'sys' && p[2] === 'services' && p[3] === 'unit',          handle: ctx => handleUnitFile(ctx) },
+  { name: 'api/sys/journal',         match: p => p[1] === 'sys' && p[2] === 'journal',                             handle: handleJournal },
   { name: 'api/sys/services/logs',   match: p => p[1] === 'sys' && p[2] === 'services' && p[3] === 'logs',          handle: ctx => handleLogs(ctx) },
   { name: 'api/sys/services/action', match: p => p[1] === 'sys' && p[2] === 'services' && p[3] === 'action',        handle: handleAction },
 ];
