@@ -1093,3 +1093,6 @@ pre.logs .log-warn { color: var(--yellow); }
 
 /* Service/scheduled filter row: search + system toggle */
 .split-search { display: flex; align-items: center; gap: 6px; }
+
+/* A little breathing room between items in the Services / Scheduled lists */
+.split-list { display: flex; flex-direction: column; gap: 6px; }
