@@ -1243,3 +1243,7 @@ pre.logs .log-warn { color: var(--yellow); }
 /* Compose file drawer (below the item, like the container logs) */
 .ctr > .cfview { grid-column: 1 / -1; margin-top: 6px; }
 .cfview-title { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+
+/* Compose file drawer: title and pre share the same left edge */
+.cfview > .cfview-title { margin: 0 0 4px 0; }
+.cfview > pre.svc-logs { margin-left: 0; }
