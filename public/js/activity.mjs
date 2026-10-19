@@ -124,6 +124,6 @@ export function initActivityBar() {
  * would 401 and leave the page empty), so panels only load once authenticated.
  */
 export function applyInitialView() {
-  const v = viewFromHash();
-  if (v) switchView(v, { fromHash: true });
+  const v = viewFromHash() || 'overview';   // Dashboard is the default view
+  switchView(v, { fromHash: true });
 }

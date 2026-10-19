@@ -165,8 +165,9 @@ docs/                README 截图与 logo
 
 ## 前端关键约定
 
-- **两种视图族**：IDE（explorer/search/git，侧栏 + 编辑器）与 Console（Dashboard/**System**/
-  Containers/**Terminal**，`index.html` 的 `#consoleArea` 内**单列全宽页**，不左右分栏）。
+- **两种视图族**：Console（Dashboard/**System**/Containers/**Terminal**，`index.html` 的 `#consoleArea`
+  内**单列全宽页**，不左右分栏）与 IDE（explorer/search/git，侧栏 + 编辑器）。活动栏顺序为
+  先 Console 组、后 IDE 组；**默认视图 = Dashboard**（`applyInitialView` 无 hash 时回落 overview）。
   **System 页 = 多页签**：Services｜Scheduled｜Logs｜Interfaces｜Routes｜Ports｜Firewall｜Disk｜Users
   （网络/用户的独立页已并入此处；`#/network`、`#/access`、`#/users`、`#/cron` 由 `VIEW_ALIAS` 重定向到 services）。
   **终端是独立满页**（`#page-terminal`）。**进程表并入
