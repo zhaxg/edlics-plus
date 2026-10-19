@@ -4,6 +4,12 @@ import { api, escapeHtml, spinner } from './api.mjs';
 
 let data = null;
 let q = '';
+let showSystem = false;
+
+// A "system account" is one that can't be logged into — its shell is nologin,
+// false or sync. These live in /etc/passwd but are not real users (bin, daemon,
+// www-data, …), so they're hidden by default.
+const nonLogin = s => /nologin|false$/i.test(String(s || '')) || /(^|\/)(sync)$/.test(String(s || ''));
 
 function fill(bodyId, countId, items) {
   const body = document.getElementById(bodyId);
@@ -18,6 +24,7 @@ function fill(bodyId, countId, items) {
 function userItems() {
   return data.users
     .filter(u => !q || u.name.toLowerCase().includes(q))
+    .filter(u => showSystem || !nonLogin(u.shell))
     .map(u => `<div class="ilist-item">
       <div class="ilist-head">
         <span class="ilist-title">${escapeHtml(u.name)}</span>
@@ -57,6 +64,13 @@ function render() {
     });
     return;
   }
+  // Update the "system accounts" toggle with the hidden count.
+  const toggle = document.getElementById('accUsersToggle');
+  if (toggle) {
+    const sysCount = data.users.filter(u => nonLogin(u.shell)).length;
+    toggle.textContent = `system (${sysCount})`;
+    toggle.classList.toggle('active', showSystem);
+  }
   fill('accUsers', 'accUsersCount', userItems());
   fill('accGroups', 'accGroupsCount', groupItems());
   fill('accSessions', 'accSessionsCount', sessionItems());
@@ -70,6 +84,8 @@ export async function refreshUsers() {
 export function initUsers() {
   const search = document.getElementById('usersFilter');
   if (search) search.addEventListener('input', () => { q = search.value.toLowerCase().trim(); render(); });
+  const toggle = document.getElementById('accUsersToggle');
+  if (toggle) toggle.addEventListener('click', () => { showSystem = !showSystem; render(); });
   const btn = document.getElementById('btnUsersRefresh');
   if (btn) btn.addEventListener('click', refreshUsers);
   document.addEventListener('view-changed', e => {

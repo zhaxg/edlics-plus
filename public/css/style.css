@@ -1082,3 +1082,11 @@ pre.logs .log-warn { color: var(--yellow); }
 /* Terminal as a full page */
 .terminal-page-body { padding: 0 !important; display: flex; overflow: hidden; }
 .terminal-page-body .terminal-container { flex: 1; min-height: 0; min-width: 0; padding: 6px 8px; }
+
+/* Small chip-style toggle (e.g. show system accounts) */
+.chip-btn {
+  font-size: 10px; background: transparent; border: 1px solid var(--border);
+  color: var(--text-dim); border-radius: 4px; padding: 1px 6px; cursor: pointer; margin-left: 6px;
+}
+.chip-btn:hover { color: var(--text); border-color: var(--text-dimmer); }
+.chip-btn.active { background: var(--hover); color: var(--text); border-color: var(--text-dimmer); }
