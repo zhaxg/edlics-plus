@@ -82,10 +82,11 @@ function verify(secret, code, window = 1, nowMs = Date.now()) {
   return false;
 }
 
-/** otpauth:// URI for authenticator apps (manual entry / QR encoders). */
-function otpauthUrl(secret, account = 'admin', issuer = 'Edlics') {
-  const label = encodeURIComponent(`${issuer}:${account}`);
-  return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${DIGITS}&period=${STEP}`;
+/** otpauth:// URI for authenticator apps (manual entry / QR encoders).
+ *  `opts.label` overrides the default `<issuer>:<account>` label. */
+function otpauthUrl(secret, account = 'admin', issuer = 'Edlics', opts = {}) {
+  const label = opts.label || `${issuer}:${account}`;
+  return `otpauth://totp/${encodeURIComponent(label)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=${DIGITS}&period=${STEP}`;
 }
 
 module.exports = { generateSecret, base32Decode, base32Encode, hotp, totp, verify, otpauthUrl, STEP, DIGITS };

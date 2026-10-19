@@ -238,21 +238,21 @@ async function openEnableDialog() {
   const setValid = v => { confirmBtn.disabled = !v; };
   let vtimer = null;
 
-  async function applySecret(s) {
+  async function applySecret(s, u) {
     secret = s;
-    url = `otpauth://totp/Edlics:admin?secret=${encodeURIComponent(s)}&issuer=Edlics&algorithm=SHA1&digits=6&period=30`;
+    url = u || `otpauth://totp/${encodeURIComponent('edlics_' + (location.hostname || 'host') + '_' + s.slice(0, 4))}?secret=${s}&issuer=edlics&algorithm=SHA1&digits=6&period=30`;
     secretEl.textContent = s;
     try { const m = await import('/qr.mjs'); qrEl.innerHTML = await m.qrSvg(url, { width: 150, margin: 0 }); }
     catch { qrEl.innerHTML = '<span class="muted">QR unavailable</span>'; }
     input.value = ''; setValid(false); icon.className = 'code-icon'; icon.innerHTML = '';
     input.focus();
   }
-  await applySecret(secret);
+  await applySecret(secret, url);
 
   content.querySelector('#totpRegen').onclick = async () => {
     const r = await api('POST', '/api/sys/totp/regenerate', {});
     if (r.error) { toast(r.error, true); return; }
-    await applySecret(r.secret);
+    await applySecret(r.secret, r.url);
     toast('New key generated');
   };
   content.querySelector('#totpCopyKey').onclick = () => copyToClipboard(secret).then(() => toast('Key copied')).catch(() => {});

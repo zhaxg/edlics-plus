@@ -253,7 +253,11 @@ function handleTotpStatus(ctx) {
 }
 
 function totpPayload(secret) {
-  return { secret, url: totp.otpauthUrl(secret), pending: true };
+  // Label so several machines are distinguishable in the authenticator app:
+  //   edlics_<hostname>_<first 4 of the key>
+  const host = String(os.hostname() || 'host').replace(/[^A-Za-z0-9_.-]/g, '_');
+  const label = `edlics_${host}_${secret.slice(0, 4)}`;
+  return { secret, url: totp.otpauthUrl(secret, null, 'edlics', { label }), pending: true };
 }
 
 function handleTotpEnroll(ctx) {

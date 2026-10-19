@@ -73,3 +73,8 @@ test('totp.otpauthUrl: shape', () => {
   const url = totp.otpauthUrl('ABCDEF', 'admin', 'Edlics');
   assert.match(url, /^otpauth:\/\/totp\/Edlics(:|%3A)admin\?secret=ABCDEF&issuer=Edlics/);
 });
+
+test('totp.otpauthUrl: custom label (host + key prefix)', () => {
+  const url = totp.otpauthUrl('ABCDEFGH', null, 'edlics', { label: 'edlics_myhost_ABCD' });
+  assert.match(url, /^otpauth:\/\/totp\/edlics_myhost_ABCD\?secret=ABCDEFGH&issuer=edlics&algorithm=SHA1&digits=6&period=30$/);
+});
