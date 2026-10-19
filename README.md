@@ -298,6 +298,15 @@ node bin/edlics.js serve --root . --password dev123
 
 > **AI / 新人先读 [CLAUDE.md](CLAUDE.md)**：模块地图、安全不变量、"如何加端点/加面板"配方、已知坑。
 
+### 前端改动的边界
+
+- **控制台页**（Dashboard / System / Containers / Terminal）是 Preact 组件，位于 `public/js/views/`。
+  新建一个页面 = 写一个组件 + 在 `shell.mjs` 的 `CONSOLE_VIEWS` 注册一行，不需要动 `index.html`。
+- **IDE 部分**（编辑器、文件树、搜索、Git）仍是命令式 DOM：CodeMirror 和 xterm 自己持有节点，
+  由 `index.html` 提供挂载点。
+- 模板一律用 `html\`\`` 插值（自动转义），**不要拼 `innerHTML`**；`npm test` 里有架构守卫会挡住。
+- 只有改到 `bundle/*.mjs` 才需要 `npm run build`；日常改 `public/js/*.mjs` 刷新即可生效。
+
 ### 目录结构
 
 ```text
@@ -398,8 +407,8 @@ npm install
 ### 质量检查（提交前）
 
 ```bash
-npm test                          # 首选：单测 + 集成冒烟（认证/穿越/PTY/终端门闸/输入策略）
-npm run build                     # 两个 bundle 可构建
+npm test                          # 首选：单测 + 集成冒烟（认证/穿越/PTY/终端门闸/输入策略/前端架构守卫）
+npm run build                     # 五个 bundle 可构建，并校验导出表
 timeout 3 node bin/edlics.js serve --port 19999 || true   # CI 同款冒烟：能启动
 ```
 
@@ -427,10 +436,10 @@ git push --tags      # 推 tag → Actions 自动发 npm + 创建 GitHub Release
 
 ## 技术栈
 
-- **前端**：原生 JavaScript ES Modules（业务零构建）、CodeMirror 6、xterm.js、CSS 自定义属性主题
-- **后端**：Node.js 原生 `http`，无框架无数据库
+- **前端**：原生 JavaScript ES Modules（业务零构建）+ Preact 11 / htm（仅控制台页，预打包为单个 `public/ui.mjs`）、CodeMirror 6、xterm.js、uPlot、CSS 自定义属性主题
+- **后端**：Node.js 原生 `http`，无框架；SQLite（`node:sqlite`，零原生依赖）存指标历史、审计与会话
 - **终端**：node-pty（ConPTY / POSIX PTY）
-- **构建**：esbuild（仅两个 bundle）
+- **构建**：esbuild（`ui` / `editor` / `terminal` / `charts` / `qr` 五个 bundle，产物有导出校验）
 - **CI/CD**：GitHub Actions → npm OIDC Trusted Publishing
 - **图标**：Material Design 文件树图标（600+ SVG）
 
