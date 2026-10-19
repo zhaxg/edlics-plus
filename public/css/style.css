@@ -1291,3 +1291,37 @@ pre.logs .log-warn { color: var(--yellow); }
   border-left: 3px solid var(--yellow); border-radius: 5px;
 }
 .totp-note code { font-family: var(--font-mono); color: var(--text); }
+
+/* 2FA dialog (clean layout) */
+.dialog.totp-dialog { max-width: 480px; }
+.dlg-sub { color: var(--text-dim); font-size: 12px; line-height: 1.5; margin: -4px 0 16px; }
+.dlg-label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+.totp-grid { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+.totp-qr { flex: 0 0 auto; background: #fff; padding: 8px; border-radius: 8px; line-height: 0; }
+.totp-qr svg { display: block; width: 150px; height: 150px; }
+.totp-side { flex: 1; min-width: 0; }
+.totp-help { font-size: 12px; color: var(--text-dim); line-height: 1.5; margin-bottom: 10px; }
+.totp-key { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.totp-key code {
+  flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 12px; color: var(--text);
+  background: var(--sunken); border: 1px solid var(--border); border-radius: 5px; padding: 6px 8px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: all;
+}
+.text-btn { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer; padding: 0; }
+.text-btn:hover { text-decoration: underline; }
+.dialog .totp-dialog input, .totp-dialog input { margin-bottom: 16px; }
+.totp-note { margin-top: 16px; font-size: 11px; line-height: 1.5; color: var(--text-dimmer); }
+.totp-note code { font-family: var(--font-mono); color: var(--text-dim); }
+
+/* Plain note under a divider (no accent bar) */
+.totp-note {
+  margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border);
+  border-left: 0; background: none; font-size: 11px; line-height: 1.5; color: var(--text-dimmer);
+}
+
+/* Final: 2FA note is plain text with a top divider only */
+.totp-note {
+  margin-top: 16px; padding: 12px 0 0;
+  border: 0; border-top: 1px solid var(--border); border-radius: 0;
+  background: none; font-size: 11px; line-height: 1.5; color: var(--text-dimmer);
+}

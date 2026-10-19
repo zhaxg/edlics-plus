@@ -197,30 +197,28 @@ async function openEnableDialog() {
   const secret = en.secret;
   const url = `otpauth://totp/Edlics:admin?secret=${encodeURIComponent(secret)}&issuer=Edlics&algorithm=SHA1&digits=6&period=30`;
   let qr = '';
-  try { const m = await import('/qr.mjs'); qr = await m.qrSvg(url); } catch { /* QR is optional */ }
+  try { const m = await import('/qr.mjs'); qr = await m.qrSvg(url, { width: 150, margin: 0 }); } catch { /* QR optional */ }
   const { overlay, content } = openDialog(`
     <h3>Enable two-factor authentication</h3>
-    <ol class="totp-steps">
-      <li>打开认证器 App / 客户端 / 浏览器扩展（如 Google Authenticator、Authy、1Password，或浏览器的 “Authenticator: 2FA Client” 扩展）。</li>
-      <li>扫描下方二维码，或手动输入密钥：</li>
-    </ol>
-    <div class="totp-qr">${qr || '<span class="muted">QR unavailable — use the key below</span>'}</div>
-    <div class="totp-secretline">
-      <code class="totp-code">${escapeHtml(secret)}</code>
-      <button class="sec-btn" id="totpCopySecret">Copy key</button>
-      <button class="sec-btn" id="totpCopyUrl">Copy link</button>
+    <p class="dlg-sub">Scan this code with an authenticator app, then confirm with a 6-digit code. It stays off until you confirm.</p>
+    <div class="totp-grid">
+      <div class="totp-qr">${qr || '<span class="muted">QR unavailable</span>'}</div>
+      <div class="totp-side">
+        <p class="totp-help">Or enter the key manually. Works with Google Authenticator, Authy, 1Password, and browser extensions such as &ldquo;Authenticator: 2FA Client&rdquo;.</p>
+        <div class="totp-key"><code>${escapeHtml(secret)}</code><button class="text-btn" id="totpCopyKey">Copy</button></div>
+        <button class="text-btn" id="totpCopyUrl">Copy setup link</button>
+      </div>
     </div>
-    <ol class="totp-steps" start="3">
-      <li>输入认证器当前显示的 6 位码，<b>确认后才会生效</b>：</li>
-    </ol>
-    <div class="totp-confirm">
-      <input id="totpConfirmCode" inputmode="numeric" autocomplete="one-time-code" placeholder="6 位动态码" maxlength="8" />
-      <button class="primary" id="totpConfirmBtn">Confirm</button>
+    <label class="dlg-label" for="totpConfirmCode">6-digit code</label>
+    <input id="totpConfirmCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123 456" />
+    <div class="btn-row">
       <button class="cancel" id="totpCancelBtn">Cancel</button>
+      <button class="primary" id="totpConfirmBtn">Confirm</button>
     </div>
-    <div class="totp-note">备份密钥：设备丢失将无法登录，可用 <code>edlics reset-2fa</code> 在服务器上恢复。</div>`);
-  content.querySelector('#totpCopySecret').onclick = () => copyToClipboard(secret).then(() => toast('Copied')).catch(() => {});
-  content.querySelector('#totpCopyUrl').onclick = () => copyToClipboard(url).then(() => toast('Copied')).catch(() => {});
+    <p class="totp-note">Keep a backup of the key. If the device is lost, disable 2FA on the server with <code>edlics reset-2fa</code>.</p>`);
+  content.classList.add('totp-dialog');
+  content.querySelector('#totpCopyKey').onclick = () => copyToClipboard(secret).then(() => toast('Key copied')).catch(() => {});
+  content.querySelector('#totpCopyUrl').onclick = () => copyToClipboard(url).then(() => toast('Link copied')).catch(() => {});
   const input = content.querySelector('#totpConfirmCode');
   input.focus();
   content.querySelector('#totpCancelBtn').onclick = async () => {
@@ -234,7 +232,7 @@ async function openEnableDialog() {
     const r = await api('POST', '/api/sys/totp/confirm', { code });
     if (r.error) { toast(r.error, true); return; }
     overlay.classList.add('hidden');
-    toast('2FA enabled');
+    toast('Two-factor enabled');
     loadTotp();
   };
   input.onkeydown = e => { if (e.key === 'Enter') content.querySelector('#totpConfirmBtn').click(); };
@@ -243,12 +241,14 @@ async function openEnableDialog() {
 function openDisableDialog() {
   const { overlay, content } = openDialog(`
     <h3>Disable two-factor authentication</h3>
-    <p style="color:var(--text-dim);font-size:12px;margin-bottom:10px;">Enter a current 6-digit code to confirm.</p>
-    <input id="totpDisableCode" inputmode="numeric" placeholder="6 位动态码" style="width:100%;" />
-    <div class="btn-row" style="margin-top:14px;">
+    <p class="dlg-sub">Enter a current code to turn it off.</p>
+    <label class="dlg-label" for="totpDisableCode">6-digit code</label>
+    <input id="totpDisableCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123 456" />
+    <div class="btn-row">
       <button class="cancel" id="totpDisableCancel">Cancel</button>
-      <button class="primary danger" id="totpDisableBtn">Disable 2FA</button>
+      <button class="primary danger" id="totpDisableBtn">Disable</button>
     </div>`);
+  content.classList.add('totp-dialog');
   const input = content.querySelector('#totpDisableCode');
   input.focus();
   content.querySelector('#totpDisableCancel').onclick = () => overlay.classList.add('hidden');
@@ -256,12 +256,11 @@ function openDisableDialog() {
     const r = await api('POST', '/api/sys/totp/disable', { code: input.value.trim() });
     if (r.error) { toast(r.error, true); return; }
     overlay.classList.add('hidden');
-    toast('2FA disabled');
+    toast('Two-factor disabled');
     loadTotp();
   };
   input.onkeydown = e => { if (e.key === 'Enter') content.querySelector('#totpDisableBtn').click(); };
 }
-
 
 // --- lifecycle -------------------------------------------------------------
 
