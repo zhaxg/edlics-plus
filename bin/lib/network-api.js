@@ -56,6 +56,48 @@ function parseIpAddr(json) {
   }).filter(l => l.name);
 }
 
+/** Little-endian hex (as in /proc/net/route) → dotted IPv4. Pure; tested. */
+function hexToIp(h) {
+  const n = parseInt(h, 16) >>> 0;
+  return [n & 0xff, (n >>> 8) & 0xff, (n >>> 16) & 0xff, (n >>> 24) & 0xff].join('.');
+}
+
+/** /proc/net/route flag bits → route(8) style letters (e.g. "UG"). Pure. */
+function routeFlags(hex) {
+  const n = parseInt(hex, 16) || 0;
+  let s = '';
+  if (n & 0x0001) s += 'U';   // RTF_UP
+  if (n & 0x0002) s += 'G';   // RTF_GATEWAY
+  if (n & 0x0004) s += 'H';   // RTF_HOST
+  if (n & 0x0008) s += 'R';   // RTF_REINSTATE
+  if (n & 0x0010) s += 'D';   // RTF_DYNAMIC
+  if (n & 0x0020) s += 'M';   // RTF_MODIFIED
+  if (n & 0x0200) s += '!';   // RTF_REJECT
+  return s || '0';
+}
+
+/**
+ * Parse /proc/net/route → IPv4 routing table (route -n columns).
+ * @returns {{destination:string,gateway:string,genmask:string,flags:string,metric:number,iface:string}[]}
+ */
+function parseProcNetRoute(text) {
+  const out = [];
+  const lines = String(text || '').split('\n').filter(l => l.trim());
+  for (const line of lines.slice(1)) {           // skip header
+    const f = line.trim().split(/\s+/);
+    if (f.length < 8) continue;
+    out.push({
+      iface: f[0],
+      destination: hexToIp(f[1]),
+      gateway: hexToIp(f[2]),
+      flags: routeFlags(f[3]),
+      metric: parseInt(f[6], 10) || 0,
+      genmask: hexToIp(f[7]),
+    });
+  }
+  return out;
+}
+
 /** `ip -j route` → [{dst, gateway, dev, metric, protocol}] */
 function parseRoutes(json) {
   const arr = jparse(json, []);
@@ -181,9 +223,11 @@ async function handleNetwork(ctx) {
     if (!routes.length) routes = parseRoutesText(await run('ip', ['route']).catch(() => ''));
     let routes6 = parseRoutes(await run('ip', ['-j', '-6', 'route']).catch(() => '[]'));
     if (!routes6.length) routes6 = parseRoutesText(await run('ip', ['-6', 'route']).catch(() => ''));
+    const route4 = parseProcNetRoute(fs.readFileSync('/proc/net/route', 'utf-8'));
     ctx.ok({
       interfaces: parseIpAddr(addrJson),
       routes: routes.concat(routes6.map(r => ({ ...r, family: 'inet6' }))),
+      route4,
       dns: readResolvConf(),
     });
   } catch (e) { ctx.fail('network query failed: ' + (e.stderr || e.message)); }
@@ -218,4 +262,5 @@ const routes = [
 
 module.exports = {
   routes, parseIpAddr, parseRoutes, parseRoutesText, parseResolvConf, parseSockets, parseSocketsText, parseNft,
+  parseProcNetRoute, hexToIp, routeFlags,
 };

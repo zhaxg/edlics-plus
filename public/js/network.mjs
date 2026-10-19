@@ -61,30 +61,30 @@ function interfacesTable(n) {
   return table(['Interface', 'State', { label: 'MTU', num: true }, 'Addresses', 'MAC'], rows, 5);
 }
 
-/** DNS as its own column/side card (not a row in the interfaces table). */
+/** DNS as its own full-width card above the interfaces table. */
 function dnsCard(n) {
   const dns = n.dns || { nameservers: [], search: [] };
   if (!dns.nameservers.length && !dns.search.length) return '';
   return `<div class="card dns-card">
     <div class="card-title">DNS</div>
-    <div class="ilist-addrs">${(dns.nameservers || []).map(s => `<div class="ilist-addr mono">${escapeHtml(s)}</div>`).join('') || '<div class="ilist-addr muted">—</div>'}</div>
-    ${dns.search.length ? `<div class="ilist-sub">search ${escapeHtml(dns.search.join(' '))}</div>` : ''}
+    <div class="dns-row">${(dns.nameservers || []).map(s => `<span class="ilist-addr mono">${escapeHtml(s)}</span>`).join('') || '<span class="muted">—</span>'}
+      ${dns.search.length ? `<span class="ilist-sub" style="margin-left:auto;">search ${escapeHtml(dns.search.join(' '))}</span>` : ''}</div>
   </div>`;
 }
 
 // --- Routes ----------------------------------------------------------------
 
 function routesTable(n) {
-  const routes = n.routes || [];
+  const routes = n.route4 || [];
   const rows = routes.map(r => `<tr>
-      <td class="mono">${escapeHtml(r.dst)}</td>
-      <td><span class="fam fam-${r.family === 'inet6' ? '6' : '4'}">${r.family === 'inet6' ? '6' : '4'}</span></td>
-      <td class="mono">${escapeHtml(r.gateway || '')}</td>
-      <td class="mono">${escapeHtml(r.dev || '')}</td>
-      <td class="mono">${escapeHtml(r.prefsrc || '')}</td>
-      <td class="num">${r.metric != null ? r.metric : ''}</td>
+      <td class="mono">${escapeHtml(r.destination)}</td>
+      <td class="mono">${escapeHtml(r.gateway)}</td>
+      <td class="mono">${escapeHtml(r.genmask)}</td>
+      <td class="mono"><span class="fam">${escapeHtml(r.flags)}</span></td>
+      <td class="num">${r.metric}</td>
+      <td class="mono">${escapeHtml(r.iface)}</td>
     </tr>`);
-  return table(['Destination', 'Fam', 'Gateway', 'Device', 'Source', { label: 'Metric', num: true }], rows, 6);
+  return table(['Destination', 'Gateway', 'Genmask', 'Flags', { label: 'Metric', num: true }, 'Iface'], rows, 6);
 }
 
 // --- Ports -----------------------------------------------------------------
@@ -129,12 +129,8 @@ function firewallHtml() {
 // --- render ----------------------------------------------------------------
 
 function render() {
-  const n = data || { interfaces: [], routes: [], dns: { nameservers: [], search: [] } };
-  const dns = dnsCard(n);
-  setHTML('ifacesBoard', `<div class="iface-layout">
-      <div class="iface-main">${interfacesTable(n)}</div>
-      ${dns ? `<div class="iface-side">${dns}</div>` : ''}
-    </div>`);
+  const n = data || { interfaces: [], routes: [], route4: [], dns: { nameservers: [], search: [] } };
+  setHTML('ifacesBoard', dnsCard(n) + interfacesTable(n));
   setHTML('routesBoard', routesTable(n));
   setHTML('portsBoard', portsTable(sockets));
   setHTML('firewallBoard', firewallHtml());

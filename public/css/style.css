@@ -1200,3 +1200,8 @@ pre.logs .log-warn { color: var(--yellow); }
 @media (max-width: 1100px) { .iface-layout { grid-template-columns: 1fr; } }
 .iface-main { min-width: 0; }
 .dns-card { padding: 10px 12px; }
+
+/* DNS card: full width above the interfaces table */
+.dns-card { margin-bottom: 12px; padding: 10px 12px; }
+.dns-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.dns-row .ilist-addr { font-size: 12px; }
