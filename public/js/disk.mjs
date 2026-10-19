@@ -52,9 +52,7 @@ function render() {
   if (!data) { box.innerHTML = spinner('Loading…'); return; }
   box.innerHTML =
     `<div class="disk-section"><div class="disk-title">Filesystems <span class="muted">df -h</span></div>${dfSection('', data.mounts, ['Mounted on', 'Filesystem', 'Size', 'Used', 'Avail', 'Use%'], 'No filesystems')}</div>` +
-    `<div class="disk-section"><div class="disk-title">Inodes <span class="muted">df -i</span></div>${dfSection('', data.inodes, ['Mounted on', 'Filesystem', 'Inodes', 'IUsed', 'IFree', 'IUse%'], 'No inode data')}</div>` +
-    `<div class="disk-section"><div class="disk-title">Block devices <span class="muted">lsblk</span></div>${lsblkSection(data.blockdevices)}</div>` +
-    `<div class="disk-section"><div class="disk-title">Mount tree <span class="muted">findmnt</span></div>${findmntSection(data.findmnt)}</div>`;
+    `<div class="disk-section"><div class="disk-title">Block devices <span class="muted">lsblk</span></div>${lsblkSection(data.blockdevices)}</div>`;
 }
 
 export async function refreshDisk() {

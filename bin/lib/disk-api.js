@@ -70,18 +70,11 @@ function parseFindmnt(text) {
 // --- handler ---------------------------------------------------------------
 
 async function handleDisk(ctx) {
-  const [h, i, ls, fm] = await Promise.all([
+  const [h, ls] = await Promise.all([
     run('df', ['-h', '-P']).catch(() => ''),
-    run('df', ['-i', '-P']).catch(() => ''),
     run('lsblk', ['-J', '-o', 'NAME,KNAME,TYPE,SIZE,FSTYPE,MOUNTPOINT,RO,TRAN,MODEL']).catch(() => ''),
-    run('findmnt', ['-J', '-o', 'TARGET,SOURCE,FSTYPE,SIZE,USED,AVAIL,USE%']).catch(() => ''),
   ]);
-  ctx.ok({
-    mounts: parseDf(h),
-    inodes: parseDf(i),
-    blockdevices: parseLsblk(ls),
-    findmnt: parseFindmnt(fm),
-  });
+  ctx.ok({ mounts: parseDf(h), blockdevices: parseLsblk(ls) });
 }
 
 /** Route table — see CLAUDE.md. `parts[0] === 'api'` is guaranteed. */

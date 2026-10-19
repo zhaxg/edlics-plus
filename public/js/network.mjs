@@ -1,21 +1,18 @@
-// network.mjs — network views for the System page tabs: Interfaces / Routes /
-// Ports / Firewall. Read-only; data from /api/sys/network{,/sockets,/firewall}.
+// network.mjs — network views for the System page tabs.
+//   Interfaces / Routes / Ports → data tables
+//   Firewall → small cards tagged 4 (IPv4) / 6 (IPv6) + open (listening) ports
+// Read-only; data from /api/sys/network{,/sockets,/firewall}.
 import { api, escapeHtml, spinner } from './api.mjs';
 
 let data = null;      // { interfaces, routes, dns }
 let sockets = null;
 let firewall = null;
 
+function setHTML(id, html) { const e = document.getElementById(id); if (e) e.innerHTML = html; }
+
 function dot(state) {
   const cls = state === 'UP' ? 'ok' : state === 'DOWN' ? 'off' : 'warn';
   return `<span class="svc-dot ${cls}"></span>`;
-}
-
-function board(elId, items, empty) {
-  const b = document.getElementById(elId);
-  if (!b) return;
-  b.innerHTML = items && items.length ? `<div class="ilist">${items.join('')}</div>`
-    : `<div class="panel-placeholder">${empty}</div>`;
 }
 
 function fmtLft(sec) {
@@ -26,104 +23,119 @@ function fmtLft(sec) {
   return sec + 's';
 }
 
-// --- item builders ---------------------------------------------------------
+/** Stable addresses only (hide temporary/deprecated/privacy; fall back if all). */
+function stableAddrs(list) {
+  const UNSTABLE = new Set(['temporary', 'deprecated', 'privacy']);
+  let shown = (list || []).filter(a => !UNSTABLE.has(a.kind));
+  const hasGlobalV6 = arr => arr.some(a => a.family === 'inet6' && a.scope === 'global');
+  if (!hasGlobalV6(shown) && hasGlobalV6(list || [])) shown = list;
+  return shown;
+}
 
-function ifaceItems(n) {
-  const items = (n.interfaces || []).map(i => {
-    const addrAll = (i.addresses || []);
-    const UNSTABLE = new Set(['temporary', 'deprecated', 'privacy']);
-    let shown = addrAll.filter(a => !UNSTABLE.has(a.kind));
-    const hasGlobalV6 = arr => arr.some(a => a.family === 'inet6' && a.scope === 'global');
-    if (!hasGlobalV6(shown) && hasGlobalV6(addrAll)) shown = addrAll;
-    const v4 = shown.filter(a => a.family === 'inet');
-    const v6 = shown.filter(a => a.family === 'inet6');
-    const addrHtml = [...v4, ...v6].map(a => {
+function table(headers, rows, emptyCols) {
+  const th = headers.map((h, i) => `<th class="${h.num ? 'num' : ''}">${h.label != null ? h.label : h}</th>`).join('');
+  const body = rows.length
+    ? rows.join('')
+    : `<tr><td class="empty" colspan="${emptyCols}">No data</td></tr>`;
+  return `<table class="data-table"><thead><tr>${th}</tr></thead><tbody>${body}</tbody></table>`;
+}
+
+// --- Interfaces ------------------------------------------------------------
+
+function interfacesTable(n) {
+  const ifaces = n.interfaces || [];
+  const rows = ifaces.map(i => {
+    const addrs = stableAddrs(i.addresses).map(a => {
       const tip = a.kind === 'link-local' ? 'link-local (fe80::)'
         : `${a.kind}${a.preferred != null ? ' · preferred ' + fmtLft(a.preferred) : ''}${a.valid != null ? ' · valid ' + fmtLft(a.valid) : ''}`;
-      return `<div class="ilist-addr" title="${escapeHtml(tip)}">${escapeHtml(a.address)}/${a.prefixlen}</div>`;
-    }).join('');
-    return `<div class="ilist-item">
-      <div class="ilist-head">${dot(i.state)}<span class="ilist-title">${escapeHtml(i.name)}</span>
-        <span class="ilist-meta">${escapeHtml(i.state || '')}${i.mtu ? ' · MTU ' + i.mtu : ''}</span></div>
-      <div class="ilist-addrs">${addrHtml || '<div class="ilist-addr muted">no address</div>'}</div>
-      <div class="ilist-sub">MAC ${escapeHtml(i.mac || '—')}</div>
-    </div>`;
+      return `<span title="${escapeHtml(tip)}">${escapeHtml(a.address)}/${a.prefixlen}</span>`;
+    }).join('<br>') || '<span class="muted">—</span>';
+    return `<tr>
+      <td class="mono">${dot(i.state)}${escapeHtml(i.name)}</td>
+      <td>${escapeHtml(i.state || '')}</td>
+      <td class="num">${i.mtu || ''}</td>
+      <td class="mono addrs">${addrs}</td>
+      <td class="mono">${escapeHtml(i.mac || '—')}</td>
+    </tr>`;
   });
-  if (n.dns && n.dns.nameservers.length) {
-    items.push(`<div class="ilist-item">
-      <div class="ilist-head"><span class="ilist-title">DNS</span></div>
-      <div class="ilist-addrs">${n.dns.nameservers.map(s => `<div class="ilist-addr">${escapeHtml(s)}</div>`).join('')}</div>
-      ${n.dns.search.length ? `<div class="ilist-sub">search: ${escapeHtml(n.dns.search.join(' '))}</div>` : ''}
-    </div>`);
-  }
-  return items;
+  const dns = (n.dns && n.dns.nameservers.length)
+    ? `<tr><td class="mono">DNS</td><td colspan="4" class="mono addrs">${n.dns.nameservers.map(escapeHtml).join('<br>')}${n.dns.search.length ? `<br><span class="muted">search ${escapeHtml(n.dns.search.join(' '))}</span>` : ''}</td></tr>`
+    : '';
+  return table(['Interface', 'State', { label: 'MTU', num: true }, 'Addresses', 'MAC'],
+    rows.concat(dns ? [dns] : []), 5);
 }
 
-function routeItems(n) {
-  return (n.routes || []).map(r => {
-    const fields = [
-      r.gateway ? ['via', r.gateway] : null,
-      r.dev ? ['dev', r.dev] : null,
-      r.prefsrc ? ['src', r.prefsrc] : null,
-      r.metric != null ? ['metric', String(r.metric)] : null,
-    ].filter(Boolean).map(([k, v]) =>
-      `<div class="ilist-field"><span class="ilist-k">${k}</span><span class="ilist-v">${escapeHtml(v)}</span></div>`).join('');
-    return `<div class="ilist-item">
-      <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(r.dst)}</span>
-        <span class="ilist-meta">${r.family === 'inet6' ? 'v6' : 'v4'}${r.protocol ? ' · ' + escapeHtml(r.protocol) : ''}</span></div>
-      ${fields ? `<div class="ilist-fields">${fields}</div>` : ''}
-    </div>`;
-  });
+// --- Routes ----------------------------------------------------------------
+
+function routesTable(n) {
+  const routes = n.routes || [];
+  const rows = routes.map(r => `<tr>
+      <td class="mono">${escapeHtml(r.dst)}</td>
+      <td><span class="fam fam-${r.family === 'inet6' ? '6' : '4'}">${r.family === 'inet6' ? '6' : '4'}</span></td>
+      <td class="mono">${escapeHtml(r.gateway || '')}</td>
+      <td class="mono">${escapeHtml(r.dev || '')}</td>
+      <td class="mono">${escapeHtml(r.prefsrc || '')}</td>
+      <td class="num">${r.metric != null ? r.metric : ''}</td>
+    </tr>`);
+  return table(['Destination', 'Fam', 'Gateway', 'Device', 'Source', { label: 'Metric', num: true }], rows, 6);
 }
 
-function socketItems(list) {
-  return (list || []).map(s => `<div class="ilist-item">
-      <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(s.local)}</span>
-        <span class="ilist-meta">${escapeHtml(s.proto)} · ${escapeHtml(s.state)}</span></div>
-      ${s.process ? `<div class="ilist-sub mono">${escapeHtml(s.process)}</div>` : ''}
-    </div>`);
+// --- Ports -----------------------------------------------------------------
+
+function portsTable(list) {
+  const rows = (list || []).map(s => `<tr>
+      <td><span class="fam fam-${/6/.test(s.local) ? '6' : '4'}">${/6/.test(s.local) ? '6' : '4'}</span> ${escapeHtml(s.proto)}</td>
+      <td>${escapeHtml(s.state)}</td>
+      <td class="mono">${escapeHtml(s.local)}</td>
+      <td class="mono muted">${escapeHtml(s.process || '')}</td>
+    </tr>`);
+  return table(['Proto', 'State', 'Local address', 'Process'], rows, 4);
 }
 
-function firewallItems() {
+// --- Firewall --------------------------------------------------------------
+
+function famBadge(family) {
+  const f = String(family || '');
+  if (f === 'ip') return '<span class="fw-badge">4</span>';
+  if (f === 'ip6') return '<span class="fw-badge v6">6</span>';
+  if (f === 'inet') return '<span class="fw-badge">4</span><span class="fw-badge v6">6</span>';
+  return `<span class="fw-badge other">${escapeHtml(f.slice(0, 3))}</span>`;
+}
+
+function firewallHtml() {
   const f = firewall;
-  if (f === null) return null;
-  if (!f.available) return [];
-  const out = [`<div class="ilist-item"><div class="ilist-head">
-      <span class="ilist-title">nftables</span>
-      <span class="ilist-meta">${f.tables} tables · ${f.chains} chains · ${f.rules} rules</span></div></div>`];
-  for (const t of f.list) {
-    out.push(`<div class="ilist-item">
-      <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(t.name)}</span>
-        <span class="ilist-meta">${escapeHtml(t.family)} · ${t.chains} chains</span></div></div>`);
-  }
-  // Listening TCP ports = the practically "open" services.
-  out.push('<div class="split-group-title" style="margin-top:8px;">open (listening) TCP ports</div>');
+  if (!f) return spinner('Loading…');
+  if (!f.available) return '<div class="panel-placeholder">nftables not available</div>';
+  const cards = `<div class="fw-cards">` + f.list.map(t => `
+      <div class="fw-card">${famBadge(t.family)}
+        <span class="fw-name">${escapeHtml(t.name)}</span>
+        <span class="fw-meta">${t.chains} chains</span>
+      </div>`).join('') + `</div>`;
+  const summary = `<div class="ilist-sub" style="margin:0 0 8px;">nftables · ${f.tables} tables · ${f.chains} chains · ${f.rules} rules</div>`;
   const tcp = (sockets || []).filter(s => /tcp/i.test(s.proto));
-  if (!tcp.length) out.push('<div class="panel-placeholder">none</div>');
-  for (const s of tcp) {
-    out.push(`<div class="ilist-item">
-      <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(s.local)}</span>
-        <span class="ilist-meta">${escapeHtml(s.process || '')}</span></div></div>`);
-  }
-  return out;
+  const open = `<div class="disk-title" style="margin-top:16px;">Open (listening) TCP ports</div>` +
+    (tcp.length
+      ? '<div class="fw-cards">' + tcp.map(s => `
+          <div class="fw-card">${famBadge(/6/.test(s.local) ? 'ip6' : 'ip')}
+            <span class="fw-name">${escapeHtml(s.local)}</span>
+            <span class="fw-meta">${escapeHtml(s.process || '')}</span>
+          </div>`).join('') + '</div>'
+      : '<div class="panel-placeholder">none</div>');
+  return summary + cards + open;
 }
 
 // --- render ----------------------------------------------------------------
 
 function render() {
   const n = data || { interfaces: [], routes: [], dns: { nameservers: [], search: [] } };
-  board('ifacesBoard', ifaceItems(n), 'No interfaces');
-  board('routesBoard', routeItems(n), 'No routes');
-  board('portsBoard', socketItems(sockets), 'No listening ports');
-  const fw = firewallItems();
-  board('firewallBoard', fw, fw && fw.length ? 'No firewall data' : 'nftables not available');
+  setHTML('ifacesBoard', interfacesTable(n));
+  setHTML('routesBoard', routesTable(n));
+  setHTML('portsBoard', portsTable(sockets));
+  setHTML('firewallBoard', firewallHtml());
 }
 
 export async function refreshNetwork() {
-  ['ifacesBoard', 'routesBoard', 'portsBoard', 'firewallBoard'].forEach(id => {
-    const e = document.getElementById(id);
-    if (e) e.innerHTML = spinner('Loading…');
-  });
+  ['ifacesBoard', 'routesBoard', 'portsBoard', 'firewallBoard'].forEach(id => setHTML(id, spinner('Loading…')));
   const [net, sock, fw] = await Promise.all([
     api('GET', '/api/sys/network').catch(() => ({ interfaces: [], routes: [], dns: { nameservers: [], search: [] } })),
     api('GET', '/api/sys/network/sockets').catch(() => ({ sockets: [] })),

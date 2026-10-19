@@ -1160,3 +1160,37 @@ pre.logs .log-warn { color: var(--yellow); }
 
 /* Tabs may wrap when a page has many (System) */
 .page-tabs { flex-wrap: wrap; }
+
+/* Network tabs: data tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table thead th {
+  position: sticky; top: 0; z-index: 1; background: var(--sidebar);
+  color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px;
+  text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border);
+}
+.data-table th.num, .data-table td.num { text-align: right; }
+.data-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.data-table tr:hover td { background: var(--hover); }
+.data-table td.num { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+.data-table td.mono { font-family: var(--font-mono); }
+.data-table td.addrs { white-space: nowrap; }
+.data-table td.empty { color: var(--text-dimmer); text-align: center; padding: 14px; }
+.data-table .muted { color: var(--text-dimmer); }
+.fam { display: inline-block; min-width: 14px; text-align: center; font-size: 10px; font-weight: 700; border-radius: 3px; padding: 0 4px; background: var(--hover); color: var(--accent); }
+.fam.fam-6 { color: var(--mauve); }
+
+/* Firewall: small cards tagged 4 / 6 */
+.fw-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
+.fw-card {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--sidebar);
+}
+.fw-badge {
+  width: 20px; height: 20px; flex: 0 0 20px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; background: var(--hover); color: var(--accent);
+}
+.fw-badge.v6 { color: var(--mauve); }
+.fw-badge.other { font-size: 9px; color: var(--text-dim); }
+.fw-name { font-family: var(--font-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fw-meta { margin-left: auto; font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
