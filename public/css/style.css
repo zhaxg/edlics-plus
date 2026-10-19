@@ -1194,3 +1194,9 @@ pre.logs .log-warn { color: var(--yellow); }
 .fw-badge.other { font-size: 9px; color: var(--text-dim); }
 .fw-name { font-family: var(--font-mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fw-meta { margin-left: auto; font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Interfaces tab: table + DNS as its own side column */
+.iface-layout { display: grid; grid-template-columns: 1fr 240px; gap: 12px; align-items: start; }
+@media (max-width: 1100px) { .iface-layout { grid-template-columns: 1fr; } }
+.iface-main { min-width: 0; }
+.dns-card { padding: 10px 12px; }

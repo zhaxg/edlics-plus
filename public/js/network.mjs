@@ -58,11 +58,18 @@ function interfacesTable(n) {
       <td class="mono">${escapeHtml(i.mac || '—')}</td>
     </tr>`;
   });
-  const dns = (n.dns && n.dns.nameservers.length)
-    ? `<tr><td class="mono">DNS</td><td colspan="4" class="mono addrs">${n.dns.nameservers.map(escapeHtml).join('<br>')}${n.dns.search.length ? `<br><span class="muted">search ${escapeHtml(n.dns.search.join(' '))}</span>` : ''}</td></tr>`
-    : '';
-  return table(['Interface', 'State', { label: 'MTU', num: true }, 'Addresses', 'MAC'],
-    rows.concat(dns ? [dns] : []), 5);
+  return table(['Interface', 'State', { label: 'MTU', num: true }, 'Addresses', 'MAC'], rows, 5);
+}
+
+/** DNS as its own column/side card (not a row in the interfaces table). */
+function dnsCard(n) {
+  const dns = n.dns || { nameservers: [], search: [] };
+  if (!dns.nameservers.length && !dns.search.length) return '';
+  return `<div class="card dns-card">
+    <div class="card-title">DNS</div>
+    <div class="ilist-addrs">${(dns.nameservers || []).map(s => `<div class="ilist-addr mono">${escapeHtml(s)}</div>`).join('') || '<div class="ilist-addr muted">—</div>'}</div>
+    ${dns.search.length ? `<div class="ilist-sub">search ${escapeHtml(dns.search.join(' '))}</div>` : ''}
+  </div>`;
 }
 
 // --- Routes ----------------------------------------------------------------
@@ -83,13 +90,14 @@ function routesTable(n) {
 // --- Ports -----------------------------------------------------------------
 
 function portsTable(list) {
+  const isV6 = s => (String(s || '').match(/:/g) || []).length > 1 || String(s || '').startsWith('[');
   const rows = (list || []).map(s => `<tr>
-      <td><span class="fam fam-${/6/.test(s.local) ? '6' : '4'}">${/6/.test(s.local) ? '6' : '4'}</span> ${escapeHtml(s.proto)}</td>
-      <td>${escapeHtml(s.state)}</td>
+      <td><span class="fam fam-${isV6(s.local) ? '6' : '4'}">${isV6(s.local) ? '6' : '4'}</span> ${escapeHtml(s.proto)}</td>
       <td class="mono">${escapeHtml(s.local)}</td>
+      <td>${escapeHtml(s.state)}</td>
       <td class="mono muted">${escapeHtml(s.process || '')}</td>
     </tr>`);
-  return table(['Proto', 'State', 'Local address', 'Process'], rows, 4);
+  return table(['Proto', 'Local address', 'State', 'Process'], rows, 4);
 }
 
 // --- Firewall --------------------------------------------------------------
@@ -114,13 +122,7 @@ function firewallHtml() {
   const summary = `<div class="ilist-sub" style="margin:0 0 8px;">nftables · ${f.tables} tables · ${f.chains} chains · ${f.rules} rules</div>`;
   const tcp = (sockets || []).filter(s => /tcp/i.test(s.proto));
   const open = `<div class="disk-title" style="margin-top:16px;">Open (listening) TCP ports</div>` +
-    (tcp.length
-      ? '<div class="fw-cards">' + tcp.map(s => `
-          <div class="fw-card">${famBadge(/6/.test(s.local) ? 'ip6' : 'ip')}
-            <span class="fw-name">${escapeHtml(s.local)}</span>
-            <span class="fw-meta">${escapeHtml(s.process || '')}</span>
-          </div>`).join('') + '</div>'
-      : '<div class="panel-placeholder">none</div>');
+    (tcp.length ? portsTable(tcp) : '<div class="panel-placeholder">none</div>');
   return summary + cards + open;
 }
 
@@ -128,7 +130,11 @@ function firewallHtml() {
 
 function render() {
   const n = data || { interfaces: [], routes: [], dns: { nameservers: [], search: [] } };
-  setHTML('ifacesBoard', interfacesTable(n));
+  const dns = dnsCard(n);
+  setHTML('ifacesBoard', `<div class="iface-layout">
+      <div class="iface-main">${interfacesTable(n)}</div>
+      ${dns ? `<div class="iface-side">${dns}</div>` : ''}
+    </div>`);
   setHTML('routesBoard', routesTable(n));
   setHTML('portsBoard', portsTable(sockets));
   setHTML('firewallBoard', firewallHtml());
