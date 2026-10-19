@@ -1372,3 +1372,6 @@ body.logged-out .context-menu { display: none !important; }
 .ring { flex: 0 0 auto; }
 .ring-track { stroke: var(--border); }
 .ring-fill { stroke: var(--text-dim); opacity: 0.5; transition: stroke-dasharray 0.3s; }
+
+/* Ring progress: bright green, clearly visible */
+.ring-fill { stroke: var(--green); opacity: 1; }

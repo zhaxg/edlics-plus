@@ -165,6 +165,7 @@ function renderInfo(info) {
     ? Math.min(100, 100 * info.load[0] / info.cores) : null;
   const rows = [
     ['Host', info.hostname, null],
+    ['IP', info.ip || '—', null],
     ['OS', info.os, null],
     ['Kernel', info.kernel, null],
     ['Arch', info.arch, null],
@@ -173,7 +174,6 @@ function renderInfo(info) {
     ['Swap', info.swapTotal ? `${fmtBytes(info.swapUsed)} / ${fmtBytes(info.swapTotal)}` : 'none', swapP],
     ['Load', (info.load || []).join(' '), loadP],
     ['Disk /', '…', 0],   // placeholder ring; filled by loadDiskCard()
-    ['IP', info.ip || '—', null],
     ['Uptime', fmtUptime(info.uptime), null],
     ['Node', info.node, null],
   ];
