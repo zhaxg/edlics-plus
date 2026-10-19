@@ -1247,3 +1247,8 @@ pre.logs .log-warn { color: var(--yellow); }
 /* Compose file drawer: title and pre share the same left edge */
 .cfview > .cfview-title { margin: 0 0 4px 0; }
 .cfview > pre.svc-logs { margin-left: 0; }
+
+/* Disabled action buttons (state-managed) */
+.ctr-ibtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.ctr-ibtn:disabled:hover { background: transparent; color: var(--text-dim); }
+.ctr-ibtn.danger:disabled:hover { background: transparent; color: var(--red); }
