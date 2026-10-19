@@ -344,13 +344,15 @@ function Processes() {
     <div class="section-sep">
       <div class="section-head-left">
         <h2 class="section-h2">Processes</h2>
-        <span class="section-sub">${meta.total} processes · load ${(meta.load || []).join(' ')} · ${meta.cores} cores</span>
+        ${meta.total ? html`<span class="section-sub"><b class="section-count">${meta.total}</b> processes</span>` : null}
       </div>
       <div class="search-input-wrap">
         <input placeholder="Filter by name, command or PID…" spellCheck="false" value=${q}
           onInput=${e => { setQ(e.target.value); }} onKeyDown=${e => { if (e.key === 'Enter') load(); }} />
       </div>
-      <button class="icon-btn" title="Refresh" onClick=${load}>↻</button>
+      <button class="icon-btn" title="Refresh" onClick=${load}>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 20q-3.35 0-5.675-2.325T4 12t2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V5q0-.425.288-.712T19 4t.713.288T20 5v5q0 .425-.288.713T19 11h-5q-.425 0-.712-.288T13 10t.288-.712T14 9h3.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12t1.75 4.25T12 18q1.7 0 3.113-.862t2.187-2.313q.2-.35.563-.487t.737-.013q.4.125.575.525t-.025.75q-1.025 2-2.925 3.2T12 20"/></svg>
+      </button>
     </div>
     <div class="proc-scroll">
       <div class="proc-head">
@@ -463,11 +465,14 @@ export default function Dashboard() {
         <select class="ov-range" title="Data range" value=${range} onChange=${e => setRange(e.target.value)}>
           ${RANGES.map(r => html`<option value=${r} key=${r}>${r === 'live' ? 'Live' : r}</option>`)}
         </select>
-        <button class="icon-btn" title="Refresh" onClick=${() => setRefresh(n => n + 1)}>↻</button>
+        <button class="icon-btn" title="Refresh" onClick=${() => setRefresh(n => n + 1)}>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 20q-3.35 0-5.675-2.325T4 12t2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V5q0-.425.288-.712T19 4t.713.288T20 5v5q0 .425-.288.713T19 11h-5q-.425 0-.712-.288T13 10t.288-.712T14 9h3.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12t1.75 4.25T12 18q1.7 0 3.113-.862t2.187-2.313q.2-.35.563-.487t.737-.013q.4.125.575.525t-.025.75q-1.025 2-2.925 3.2T12 20"/></svg>
+        </button>
         <button class=${'icon-btn' + (totp.enabled ? ' on' : '')}
           title=${totp.enabled ? 'Two-factor authentication: ON — click to manage' : 'Two-factor authentication: OFF — click to enable'}
+          aria-pressed=${totp.enabled}
           onClick=${() => setDialog(totp.enabled ? 'disable' : 'enable')}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-.918 0-1.833.12-2.72.355L4.07 1.748a2.64 2.64 0 0 0-1.96 2.547v9.115a7.91 7.91 0 0 0 3.552 6.606l5.697 3.765a1.32 1.32 0 0 0 1.467-.008l5.572-3.752a7.93 7.93 0 0 0 3.493-6.57V4.295a2.64 2.64 0 0 0-1.961-2.547L14.72.355A10.6 10.6 0 0 0 12 0M7.383 5.4h9.228c.726 0 1.32.594 1.32 1.32 0 .734-.587 1.32-1.32 1.32H7.383c-.727 0-1.32-.593-1.32-1.32 0-.726.593-1.32 1.32-1.32M7.38 9.357h3.299c.727 0 1.32.595 1.32 1.32a1.32 1.32 0 0 1-1.318 1.32H7.38c-.726 0-1.32-.592-1.32-1.32 0-.725.594-1.32 1.32-1.32m0 3.96c.727 0 1.32.593 1.32 1.32s-.586 1.318-1.32 1.318c-.726 0-1.32-.592-1.32-1.318s.594-1.32 1.32-1.32"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 8a1 1 0 0 1 1 1a1 1 0 0 1-1 1a1 1 0 0 1-1-1a1 1 0 0 1 1-1m9 3c0 5.55-3.84 10.74-9 12c-5.16-1.26-9-6.45-9-12V5l9-4l9 4zm-9-5a3 3 0 0 0-3 3c0 1.31.83 2.42 2 2.83V18h2v-2h2v-2h-2v-2.17c1.17-.41 2-1.52 2-2.83a3 3 0 0 0-3-3"/></svg>
         </button>
         <button class="icon-btn" title="Sign out" onClick=${() => import('../auth.mjs').then(m => m.logout())}>
           <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>

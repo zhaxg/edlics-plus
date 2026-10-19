@@ -703,9 +703,22 @@ body {
 .cron-src { font-size: 10px; color: var(--text-dimmer); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- Admin processes panel (--admin) ------------------------------------ */
-.proc-table { display: flex; flex-direction: column; font-size: 11px; }
-.proc-head, .proc-row { display: flex; align-items: center; gap: 4px; padding: 2px 0; }
-.proc-head { color: var(--text-dim); border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--sidebar); }
+/* NOTE: the table is a Preact component in views/dashboard.mjs; there is no
+   #procContent wrapper any more, so every rule here must be scoped by class
+   (a leftover `#procContent .proc-head` rule silently lost its 11px size). */
+.proc-table {
+  display: flex; flex-direction: column;
+  font-size: 11px; font-variant-numeric: tabular-nums;
+}
+.proc-head, .proc-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 10px; font-size: 11px; line-height: 1.45;
+}
+.proc-head {
+  color: var(--text-dim); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 2; background: var(--sidebar);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
 .proc-row { border-bottom: 1px solid var(--border); }
 .proc-row:hover { background: var(--hover); }
 .proc-col { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -716,12 +729,16 @@ body {
 .proc-st-R { color: var(--green); }
 .proc-st-D { color: var(--yellow); }
 .proc-st-Z { color: var(--red); }
-.proc-cmd { flex: 1; }
-.proc-act { flex: 0 0 30px; text-align: right; }
-.proc-act button { font-size: 9px; background: transparent; border: 1px solid var(--border); color: var(--text-dim); border-radius: 3px; padding: 0 4px; cursor: pointer; }
+.proc-cmd { flex: 1; min-width: 0; }
+.proc-act { flex: 0 0 34px; text-align: right; }
+.proc-act button {
+  font-size: 9px; line-height: 1.3; background: transparent; border: 1px solid var(--border);
+  color: var(--text-dim); border-radius: 3px; padding: 0 4px; cursor: pointer;
+}
 .proc-act button:hover { color: var(--red); border-color: var(--red); }
 .proc-head .active { color: var(--accent); }
-.proc-head [data-sort] { cursor: pointer; }
+.proc-sortable { cursor: pointer; }
+.proc-sortable:hover { color: var(--text); }
 
 /* --- Console mode: full-width single-column pages (P0.1) ---------------- */
 .page-title { display: none; }
@@ -840,14 +857,9 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
   max-height: 460px; overflow: auto;
   border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
 }
-#procContent .proc-head {
-  position: sticky; top: 0; z-index: 2; background: var(--sidebar);
-  font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
-  padding: 7px 10px; margin: 0; border-bottom: 1px solid var(--border);
-}
-#procContent .proc-row { padding: 3px 10px; }
-#procContent .net-card { margin-bottom: 8px; }
-
+/* (the old #procContent-scoped rules were dropped: the Dashboard process
+   table has no such wrapper since the Preact migration, so they applied to
+   nothing — the sizing now lives on .proc-table/.proc-head above) */
 /* --- Item list / cards: replaces cramped multi-column rows -------------- */
 .ilist { display: flex; flex-direction: column; gap: 8px; }
 .ilist-item {
@@ -909,6 +921,8 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
 .section-head-left { display: flex; align-items: baseline; gap: 10px; margin-right: auto; min-width: 0; }
 .section-head-left .section-h2 { margin-right: 0; }
 .section-sub { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Process count in the Dashboard section header: number stands out, label muted. */
+.section-count { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; margin-right: 1px; }
 .section-sep { flex-wrap: wrap; }
 .section-sep .search-input-wrap { min-width: 200px; }
 
@@ -1273,6 +1287,9 @@ pre.logs .log-warn { color: var(--yellow); }
 
 /* 2FA header button + setup dialog */
 .icon-btn.on { color: var(--green); border-color: var(--green); }
+/* Header buttons are borderless, so `on` must not paint a lone green border. */
+.page-header .icon-btn.on { border-color: transparent; background: transparent; color: var(--green); }
+.page-header .icon-btn.on:hover { background: var(--hover); border-color: transparent; }
 .totp-qr { display: inline-block; padding: 10px; background: #ffffff; border-radius: 8px; margin: 4px 0 10px; }
 .totp-qr svg { display: block; width: 180px; height: 180px; }
 .totp-secretline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -1365,8 +1382,14 @@ body.logged-out .context-menu { display: none !important; }
 #loginOverlay .dialog { box-shadow: none; }
 
 /* Header icon buttons (refresh / 2FA / sign-out): borderless, hover tint */
-.page-header .icon-btn { border: none; background: transparent; }
+.page-header .icon-btn {
+  border: none; background: transparent;
+  width: 26px; height: 26px; padding: 0;
+  align-items: center; justify-content: center; flex: 0 0 26px;
+}
 .page-header .icon-btn:hover { background: var(--hover); color: var(--text); }
+/* Keep every header glyph optically the same size regardless of fill/stroke. */
+.page-header .icon-btn svg { display: block; width: 15px; height: 15px; flex: 0 0 15px; }
 
 /* Dashboard cards: small, faint usage ring */
 .ov-meter { display: flex; align-items: center; gap: 8px; }
