@@ -5,18 +5,28 @@ import { api, escapeHtml, spinner, loadJournalInto } from './api.mjs';
 
 let data = null;
 let selected = null;   // { type:'job'|'timer', i }
+let showSystem = false; // hide distro-provided cron/timers by default
 
 function renderList() {
   const box = document.getElementById('cronList');
   if (!box) return;
+  const toggle = document.getElementById('cronSystemToggle');
   if (!data) { box.innerHTML = spinner('Loading…'); return; }
-  const jobs = data.jobs || [];
-  const timers = data.timers || [];
-  if (!jobs.length && !timers.length) { box.innerHTML = '<div class="panel-placeholder">No scheduled tasks</div>'; return; }
+  const jobs = (data.jobs || []).map((j, i) => ({ j, i })).filter(({ j }) => showSystem || j.origin !== 'system');
+  const timers = (data.timers || []).map((t, i) => ({ t, i })).filter(({ t }) => showSystem || t.origin !== 'system');
+  if (toggle) {
+    const sysCount = (data.jobs || []).filter(j => j.origin === 'system').length + (data.timers || []).filter(t => t.origin === 'system').length;
+    toggle.textContent = `system (${sysCount})`;
+    toggle.classList.toggle('active', showSystem);
+  }
+  if (!jobs.length && !timers.length) {
+    box.innerHTML = `<div class="panel-placeholder">${showSystem ? 'No scheduled tasks' : 'No admin tasks — toggle "system" to show distro tasks'}</div>`;
+    return;
+  }
   let html = '';
   if (jobs.length) {
     html += '<div class="split-group-title">cron jobs</div>';
-    html += jobs.map((j, i) => `
+    html += jobs.map(({ j, i }) => `
       <div class="ilist-item list-item${isSel('job', i) ? ' selected' : ''}" data-type="job" data-i="${i}">
         <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(j.schedule)}</span>${j.user ? `<span class="ilist-meta">${escapeHtml(j.user)}</span>` : ''}</div>
         <div class="ilist-sub mono">${escapeHtml(j.command)}</div>
@@ -25,7 +35,7 @@ function renderList() {
   }
   if (timers.length) {
     html += '<div class="split-group-title">systemd timers</div>';
-    html += timers.map((t, i) => `
+    html += timers.map(({ t, i }) => `
       <div class="ilist-item list-item${isSel('timer', i) ? ' selected' : ''}" data-type="timer" data-i="${i}">
         <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(t.unit)}</span></div>
         ${t.activates ? `<div class="ilist-sub">activates ${escapeHtml(t.activates)}</div>` : ''}
@@ -81,7 +91,12 @@ export async function refreshCron() {
   render();
 }
 
+let inited = false;
 export function initCron() {
+  if (inited) return;   // idempotent: services.mjs owns this
+  inited = true;
+  const toggle = document.getElementById('cronSystemToggle');
+  if (toggle) toggle.addEventListener('click', () => { showSystem = !showSystem; renderList(); });
   document.addEventListener('view-changed', e => {
     if (e.detail && e.detail.view === 'services') refreshCron();
   });

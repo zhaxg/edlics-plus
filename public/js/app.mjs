@@ -18,7 +18,6 @@ import { initOverview } from './overview.mjs';
 import { initServices } from './services.mjs';
 import { initNetwork } from './network.mjs';
 import { initUsers } from './users.mjs';
-import { initCron } from './cron.mjs';
 import { initContainers } from './containers.mjs';
 import { initProcesses } from './processes.mjs';
 
@@ -67,7 +66,6 @@ initOverview();
 initServices();
 initNetwork();
 initUsers();
-initCron();
 initContainers();
 initProcesses();
 // Last: applies the initial hash view, so every panel's view-changed listener

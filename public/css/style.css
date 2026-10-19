@@ -1090,3 +1090,6 @@ pre.logs .log-warn { color: var(--yellow); }
 }
 .chip-btn:hover { color: var(--text); border-color: var(--text-dimmer); }
 .chip-btn.active { background: var(--hover); color: var(--text); border-color: var(--text-dimmer); }
+
+/* Service/scheduled filter row: search + system toggle */
+.split-search { display: flex; align-items: center; gap: 6px; }

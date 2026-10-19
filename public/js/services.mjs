@@ -11,6 +11,7 @@ let loaded = false;
 let filter = '';
 let selected = null;
 let tab = 'services';
+let showSystem = false;   // hide distro-provided (vendor) units by default
 
 const ACTIVE_CLASS = { active: 'ok', failed: 'err', activating: 'warn', deactivating: 'warn', inactive: 'off', reloading: 'warn' };
 const shortName = u => u.replace(/\.service$/, '');
@@ -22,15 +23,23 @@ function renderList() {
   const box = document.getElementById('servicesList');
   if (!box) return;
   const q = filter.toLowerCase();
-  const rows = q ? units.filter(u => u.name.toLowerCase().includes(q) || (u.description || '').toLowerCase().includes(q)) : units;
+  // Distro-provided ("system") units are hidden unless the toggle is on.
+  const base = showSystem ? units : units.filter(u => u.origin !== 'system');
+  const rows = q ? base.filter(u => u.name.toLowerCase().includes(q) || (u.description || '').toLowerCase().includes(q)) : base;
+  const toggle = document.getElementById('svcSystemToggle');
+  if (toggle) {
+    const sysCount = units.filter(u => u.origin === 'system').length;
+    toggle.textContent = `system (${sysCount})`;
+    toggle.classList.toggle('active', showSystem);
+  }
   if (!rows.length) {
-    box.innerHTML = `<div class="panel-placeholder">${units.length ? 'No matches' : 'No services'}</div>`;
+    box.innerHTML = `<div class="panel-placeholder">${units.length ? (q ? 'No matches' : 'No admin services — toggle "system" to show distro services') : 'No services'}</div>`;
     return;
   }
   box.innerHTML = rows.map(u => `
     <div class="ilist-item list-item${u.name === selected ? ' selected' : ''}" data-unit="${escapeHtml(u.name)}">
       <div class="ilist-head">${dot(u.active)}<span class="ilist-title">${escapeHtml(shortName(u.name))}</span><span class="ilist-meta">${escapeHtml(u.sub || '')}</span></div>
-      <div class="ilist-sub">${escapeHtml(u.description || '')}</div>
+      <div class="ilist-sub">${escapeHtml(u.description || '')}${u.origin === 'system' ? ' · <span class="muted">system</span>' : ''}</div>
     </div>`).join('');
   box.querySelectorAll('[data-unit]').forEach(el => el.addEventListener('click', () => selectUnit(el.dataset.unit)));
 }
@@ -129,6 +138,8 @@ export function initServices() {
   if (filterInput) filterInput.addEventListener('input', () => { filter = filterInput.value; renderList(); });
   const bar = document.getElementById('servicesTabs');
   if (bar) bar.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.stab)));
+  const sysToggle = document.getElementById('svcSystemToggle');
+  if (sysToggle) sysToggle.addEventListener('click', () => { showSystem = !showSystem; renderList(); });
   const btn = document.getElementById('btnServicesRefresh');
   if (btn) btn.addEventListener('click', refreshActive);
   document.addEventListener('view-changed', e => {

@@ -64,18 +64,33 @@ function parseTimers(json) {
 
 function safeRead(p) { try { return fs.readFileSync(p, 'utf-8'); } catch { return null; } }
 
+/** Admin-added units live under /etc/systemd/system or /run/systemd/system as
+ *  real files (symlinks there are just enable/alias/mask links to vendor). */
+function adminUnitSet() {
+  const set = new Set();
+  for (const dir of ['/etc/systemd/system', '/run/systemd/system']) {
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch { continue; }
+    for (const f of names) {
+      if (!f.endsWith('.timer') && !f.endsWith('.service')) continue;
+      try { if (fs.lstatSync(dir + '/' + f).isFile()) set.add(f); } catch {}
+    }
+  }
+  return set;
+}
+
 async function collectJobs() {
   const jobs = [];
-  const add = (source, text, hasUser) => {
+  const add = (source, text, hasUser, origin) => {
     if (text == null) return;
-    for (const j of parseCrontab(text, hasUser)) jobs.push({ source, ...j });
+    for (const j of parseCrontab(text, hasUser)) jobs.push({ source, origin, ...j });
   };
-  // root's (and current user's) crontab
-  try { add('crontab', await run('crontab', ['-l']), false); } catch { /* none */ }
-  add('/etc/crontab', safeRead('/etc/crontab'), true);
+  // the admin's own crontab vs distro-provided system crontabs
+  try { add('crontab', await run('crontab', ['-l']), false, 'admin'); } catch { /* none */ }
+  add('/etc/crontab', safeRead('/etc/crontab'), true, 'system');
   try {
     for (const name of fs.readdirSync('/etc/cron.d')) {
-      add('/etc/cron.d/' + name, safeRead(path.join('/etc/cron.d', name)), true);
+      add('/etc/cron.d/' + name, safeRead(path.join('/etc/cron.d', name)), true, 'system');
     }
   } catch { /* no cron.d */ }
   return jobs;
@@ -83,7 +98,9 @@ async function collectJobs() {
 
 async function collectTimers() {
   try {
-    return parseTimers(await run('systemctl', ['list-timers', '--all', '--no-pager', '--output=json']));
+    const admin = adminUnitSet();
+    return parseTimers(await run('systemctl', ['list-timers', '--all', '--no-pager', '--output=json']))
+      .map(t => ({ ...t, origin: admin.has(t.unit) ? 'admin' : 'system' }));
   } catch { return []; }
 }
 

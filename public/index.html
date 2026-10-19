@@ -149,14 +149,23 @@
 
           <div class="split" id="servicesSplit">
             <div class="split-left">
-              <div class="split-search"><div class="search-input-wrap"><input id="servicesFilter" placeholder="Filter services…" spellcheck="false" /></div></div>
+              <div class="split-search">
+                <div class="search-input-wrap"><input id="servicesFilter" placeholder="Filter services…" spellcheck="false" /></div>
+                <button id="svcSystemToggle" class="chip-btn" title="Include distro-provided (system) services">system</button>
+              </div>
               <div class="split-list" id="servicesList"></div>
             </div>
             <div class="split-detail" id="servicesDetail"><div class="panel-placeholder">Select a service to see its unit file and logs</div></div>
           </div>
 
           <div class="split hidden" id="scheduledSplit">
-            <div class="split-left"><div class="split-list" id="cronList"></div></div>
+            <div class="split-left">
+              <div class="split-search">
+                <span class="ilist-sub" style="margin:0;margin-right:auto;">cron + timers</span>
+                <button id="cronSystemToggle" class="chip-btn" title="Include distro-provided tasks">system</button>
+              </div>
+              <div class="split-list" id="cronList"></div>
+            </div>
             <div class="split-detail" id="cronDetail"><div class="panel-placeholder">Select a cron job or timer to see its logs</div></div>
           </div>
         </div>

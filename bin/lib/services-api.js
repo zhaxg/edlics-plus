@@ -109,6 +109,23 @@ async function refreshUnits() {
   return set;
 }
 
+// Units placed under /etc/systemd/system (or /run) as REAL FILES are
+// admin-authored, as opposed to the distro's /usr/lib/systemd/system
+// defaults. Symlinks there are just `enable`/alias/mask links to vendor
+// units, so they don't count.
+function adminUnitSet() {
+  const set = new Set();
+  for (const dir of ['/etc/systemd/system', '/run/systemd/system']) {
+    let names = [];
+    try { names = fs.readdirSync(dir); } catch { continue; }
+    for (const f of names) {
+      if (!f.endsWith('.service')) continue;
+      try { if (fs.lstatSync(dir + '/' + f).isFile()) set.add(f); } catch {}
+    }
+  }
+  return set;
+}
+
 /** A unit is actionable only if it exists in the live enumeration. */
 async function isKnownUnit(name) {
   if (!isValidUnitName(name)) return false;
@@ -125,6 +142,8 @@ async function handleList(ctx) {
   try {
     const out = await systemctl(['list-units', '--type=service', '--all', '--no-pager', '--output=json']);
     const units = parseUnitList(out);
+    const admin = adminUnitSet();
+    for (const u of units) u.origin = admin.has(u.name) ? 'admin' : 'system';
     const q = (ctx.params.q || '').toLowerCase();
     const filtered = q
       ? units.filter(u => u.name.toLowerCase().includes(q) || (u.description || '').toLowerCase().includes(q))
