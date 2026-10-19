@@ -381,3 +381,26 @@ Phase 10 (文档/测试) 贯穿全程
 - 不做多主机远程管理（单机）
 - 不做 Go 重写
 - 不默认对公网开放
+
+**第 7 轮 — 信息架构重排 + 交互打磨（当前），已落地：**
+- ✅ **布局**：Console 页面改为单列全宽页（`#consoleArea`），IDE 视图保留侧栏；hash 路由（`#/services` 等）。
+- ✅ **System 页多页签**：Users｜Services｜Scheduled｜Interfaces｜Routes｜Ports｜Firewall｜Disk｜Logs。
+  独立 Network / Access 页并入此处（`VIEW_ALIAS` 重定向）。
+- ✅ **列表形态**：统一 `.ilist` 卡片/表格；Network 三表（Interfaces/Routes/Ports）+ Firewall 4/6 小卡片；
+  Services/Scheduled 左右主从（unit 文件 / 日志分页签，详情占满高度）。
+- ✅ **Dashboard**：12 张卡（Host, IP, OS, Kernel, Arch, Uptime / CPU, Memory, Swap, Load, Disk, Node），
+  Memory 显示 已用/总量，Memory/Swap/Load/Disk 带淡绿百分比圆环；CPU 卡片按虚拟化显示
+  `N vCPU (VMware)` 或 `N (C cores × T threads)`。
+- ✅ **Containers**：两步加载（列表先出、stats 异步）、三列 item、状态化按钮（禁用而非隐藏）、
+  端口下拉、日志/终端/删除、compose 文件查看、compose up/stop/build/down(-v)。
+- ✅ **2FA**：Dashboard 盾牌按钮 → 弹窗（QR + 密钥 + 复制 + 刷新换密钥 + 6 位码实时校验）；
+  **先确认再启用**，密钥稳定（跨重启/跨启停），禁用后保留为 pending；label = `edlics_<host>_<key4>`；
+  `edlics reset-2fa` 救援。
+- ✅ **登录**：独立页面（非遮罩）；标题栏新增退出按钮；标题栏按钮去描边。
+- ✅ **主题**：`--input-bg` / `--sunken` 变量，修复浅色模式输入框过暗。
+- ✅ 测试：110 用例全绿（新增 metrics/sys-api/services/network/sysadmin/security/processes/disk/routes）。
+
+**遗留（未做）**：
+- 破坏性写操作仍需单独设计：用户增删改/密码、crontab 编辑、防火墙改规则、容器 exec 之外的复杂操作。
+- 告警中心（阈值 + webhook）、`Ctrl+K` 命令面板、导航徽标、A11y/响应式细化。
+- `__Host-` Cookie 前缀迁移、fail2ban jail 示例、systemd unit 示例。

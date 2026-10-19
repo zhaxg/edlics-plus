@@ -136,6 +136,24 @@ npx edlics-plus serve --hostname 0.0.0.0 --port 5000 --readonly
 | **只读模式** | `--readonly` 禁止一切写操作，隐藏写菜单，适合公开演示 |
 | **Sudo 支持** | 编辑受保护文件时按需提权，NOPASSWD 自动通过 |
 
+### 系统控制台（`--admin`）
+
+一个页面内分页签的单机管理台，**默认关闭**，需显式 `--admin`：
+
+| 页签 | 内容 |
+|---|---|
+| **Users** | 可登录账号（默认隐藏系统账号）+ 活动会话 |
+| **Services** | systemd 服务列表；选中后右侧看 **unit 文件** 与 **journal 日志**（`--admin-write` 可启停） |
+| **Scheduled** | cron 任务 + systemd timers；选中看定义与日志 |
+| **Interfaces / Routes / Ports** | `ip addr` / `/proc/net/route` / `ss` 的表格视图 |
+| **Firewall** | nftables 表/链/规则（4/6 标记）+ 开放（监听）端口 |
+| **Disk** | `df -h` 分区占用（含百分比条）+ `lsblk` 块设备树 |
+| **Logs** | 系统日志查看器：来源（登录/认证/安全/内核）、时间范围、级别、关键词 |
+
+**Dashboard（概览）**：12 张信息卡（含 CPU 虚拟化识别、内存/交换/负载/磁盘占用的小圆环）+ CPU/内存/网络实时曲线（可切 30m～30d 历史）+ 进程表（可排序、过滤、发信号）。
+
+**Containers（`--admin` + `--admin-write`）**：容器与 compose 项目；列表先出、统计（CPU/内存/流量）随后异步补；端口可点击打开、日志抽屉、容器内 shell、启停删；compose 可查看 `docker-compose.yml`、up/stop/build/down/down -v。所有操作按状态禁用（如运行中不能删除），并写入审计。
+
 <br>
 
 ## 快捷键
@@ -149,7 +167,7 @@ npx edlics-plus serve --hostname 0.0.0.0 --port 5000 --readonly
 | `Ctrl+Shift+E` | 切到文件树 |
 | `Ctrl+Shift+F` | 切到全文搜索 |
 | `Ctrl+Shift+G` | 切到 Git 面板 |
-| `Ctrl+\`` | 开关底部终端 |
+| `Ctrl+\`` | 切到终端页（再按返回） |
 | `Escape` | 关闭对话框 / 菜单 |
 
 <br>
@@ -166,7 +184,20 @@ Options:
   --password   登录密码（或环境变量 EDLICS_PASSWORD；省略则自动生成并打印）
   --readonly   只读模式 —— 禁止所有写操作
   --terminal   启用内置终端 —— **默认关闭**，开启=授予完整 shell（先读「安全说明」；不能与 --readonly 同用）
+  --admin      启用系统控制台（指标/服务/网络/磁盘/日志）—— **默认关闭**，root 级能力
+  --admin-write 允许控制台的写操作（启停服务、容器操作等；隐含 --admin）
+  --data-dir   SQLite 数据目录（默认 ~/.edlics）
+  --retention-days 指标历史保留天数（默认 30）
+  --allow      逗号分隔的 CIDR 白名单（默认不限）—— 非白名单在任何逻辑之前被拒
+  --trust-proxy N  信任 N 层反向代理，从 X-Forwarded-For 取真实客户端 IP（默认 0）
+  --cookie-secure  会话 Cookie 加 Secure（走 TLS 时开启）
+
+# 丢失 2FA 设备时的救援（清除密钥，恢复仅密码登录）
+edlics reset-2fa [--data-dir <dir>]
 ```
+
+> **数据存放**：开启 `--admin` 后会在 `~/.edlics/edlics.db`（SQLite，WAL）写入分钟级指标、审计日志、
+> 登录失败计数与 2FA 密钥；`--data-dir` 可改。指标默认保留 30 天，审计 90 天。
 
 ### 标签页行为
 
@@ -189,9 +220,14 @@ Options:
 
 ### 其余防护
 
-- **必须密码登录**：所有 `/api/*` 未认证返回 401；sha256 + 恒时比较；同一 IP 连输 5 次错误锁定 15 分钟；HttpOnly + SameSite Cookie，7 天过期
+- **必须密码登录**：所有 `/api/*` 未认证返回 401；sha256 + 恒时比较；同一 IP 连输 5 次错误锁定 15 分钟（计数落 SQLite，重启不清零）；另有全局熔断（一分钟内失败过多时全体冷却）；HttpOnly + SameSite Cookie，7 天过期
+- **两步验证（TOTP）**：Dashboard 标题栏的盾牌按钮 → 扫码或手输密钥 → **输入 6 位动态码确认后才生效**（登记阶段不会锁死）；密钥默认保持不变（跨重启、跨启用/禁用），仅在点刷新或 `edlics reset-2fa` 时更换。认证器里显示为 `edlics_<主机名>_<密钥前4位>`，便于区分多台机器
+- **客户端白名单**：`--allow 10.0.0.0/8,192.168.1.0/24` —— 非白名单连接在**任何认证/静态逻辑之前**即被拒绝
+- **反向代理**：`--trust-proxy N` 从 `X-Forwarded-For` 取第 N 跳作为真实 IP（默认 0=直接用 socket 地址，防伪造）
+- **限流**：搜索、下载、日志、指标、进程等昂贵端点按 IP 滑动窗口限流
+- **审计**：登录成功/失败/锁定、服务启停、容器操作、2FA 启停全部落库，可在 `/api/sys/audit` 查询
 - **`--root` 目录牢笼**：文件读写、搜索、Git 与终端 cwd 全部校验路径 containment（含符号链接真实路径二次校验）；注意它约束不到 shell 内执行的命令本身（见上）
-- **绑定地址**：默认只监听 `127.0.0.1`；对局域网开放请用 `--hostname 0.0.0.0` 并配合防火墙/强密码
+- **绑定地址**：默认只监听 `127.0.0.1`；对局域网开放请用 `--hostname 0.0.0.0` 并配合防火墙/强密码。root 级面板（`--admin`）强烈建议只经隧道或白名单访问
 
 <br>
 
@@ -239,43 +275,58 @@ node bin/edlics.js serve --root . --password dev123
 ```text
 edlics-plus/
 ├── bin/
-│   ├── edlics.js              # 入口：CLI、启动、API 调度 + 声明式路由表（~170 行）
-│   └── lib/                   # 后端领域模块（每个 ≤270 行，见 CLAUDE.md 地图）
+│   ├── edlics.js              # 入口：CLI、启动、API 调度 + 声明式路由表
+│   └── lib/                   # 后端领域模块（见 CLAUDE.md 地图）
 │       ├── paths.js           #   路径安全原语 / 目录排除规则 / 二进制嗅探
-│       ├── auth.js            #   密码登录、会话、IP 锁定
+│       ├── auth.js            #   密码登录、会话、IP 锁定、全局熔断、TOTP 挂接
+│       ├── net.js             #   客户端 IP（信任代理）+ CIDR 白名单
+│       ├── ratelimit.js       #   昂贵端点滑动窗口限流
+│       ├── totp.js            #   RFC 6238 TOTP（零依赖）
 │       ├── static.js          #   静态服务（ETag 304 + gzip）+ 路由与穿越防护
 │       ├── files-api.js       #   文件 CRUD / stat / sudo / info
 │       ├── transfer-api.js    #   下载（tar.gz）/ 上传
 │       ├── search-api.js      #   文件名搜索 + 全文搜索（async fs）
 │       ├── git-api.js         #   Git 只读 API + 纯解析器（可单测）
 │       ├── terminal-api.js    #   node-pty 会话 + 空闲回收
+│       ├── sys-api.js         #   控制台：info/metrics(SSE)/health/audit/TOTP
+│       ├── metrics.js         #   /proc 1s 采样 + 分钟聚合（纯解析器）
+│       ├── db.js              #   node:sqlite 封装 + schema
+│       ├── audit.js           #   审计写入/查询/裁剪
+│       ├── services-api.js    #   systemd 列表/unit 文件/日志/启停 + 系统日志查询
+│       ├── network-api.js     #   ip/路由/端口/nftables（含 /proc/net/route）
+│       ├── users-api.js       #   用户/组/会话
+│       ├── cron-api.js        #   crontab + systemd timers
+│       ├── disk-api.js        #   df / lsblk / findmnt
+│       ├── container-api.js   #   Docker 容器/compose（列表/stats/日志/操作/文件）
+│       ├── processes-api.js   #   进程表 + 信号
 │       └── version.js         #   版本号解析
 ├── bundle/
 │   ├── editor.mjs             # CodeMirror 6 打包入口 → public/editor.mjs
 │   ├── terminal.mjs           # xterm.js 打包入口 → public/terminal.mjs + terminal.css
+│   ├── charts.mjs             # uPlot 打包入口 → public/charts.mjs + charts.css
+│   ├── qr.mjs                 # qrcode 打包入口 → public/qr.mjs（2FA 二维码）
 │   └── build-icons.mjs        # Material 图标 manifest 生成
 ├── public/                    # 前端静态资源（原样由服务器托管）
-│   ├── index.html             # 页面骨架：活动栏 / 侧栏面板 / 编辑区 / 终端 / 登录遮罩
-│   ├── css/style.css          # 全部样式（CSS 变量实现明暗主题；滚动条全局统一）
+│   ├── index.html             # 页面骨架：活动栏 / 侧栏 / 控制台页 / 编辑器 / 终端 / 登录页
+│   ├── css/style.css          # 全部样式（CSS 变量实现明暗主题）
 │   ├── js/
 │   │   ├── app.mjs            # 主入口：快捷键、初始化、登录后 boot
-│   │   ├── auth.mjs           # 登录遮罩与会话
-│   │   ├── activity.mjs       # 活动栏视图切换 / 终端开关
-│   │   ├── workspace.mjs      # 打开文件夹对话框 + localStorage 记忆
-│   │   ├── file-tree.mjs      # 可折叠文件树（懒加载）
-│   │   ├── search.mjs         # 文件名快搜 + 全文搜索面板
-│   │   ├── git.mjs            # Git 面板（Changes / Graph 时间线 / diff）
+│   │   ├── auth.mjs           # 登录页 / 会话 / 退出
+│   │   ├── activity.mjs       # 活动栏与 hash 路由（Console / IDE 两类视图）
+│   │   ├── overview.mjs       # Dashboard：信息卡、实时/历史图表、2FA 弹窗
+│   │   ├── services.mjs       # System 页页签调度 + 服务主从详情
+│   │   ├── logs.mjs           # 系统日志查看器（来源/时间/级别/关键词）
+│   │   ├── network.mjs users.mjs disk.mjs cron.mjs   # 控制台各页签
+│   │   ├── containers.mjs     # 容器/compose 看板（两步加载、状态化按钮）
+│   │   ├── processes.mjs      # 进程表（面板可见时才轮询）
 │   │   ├── terminal-ui.mjs    # xterm + PTY 流式输入输出
-│   │   ├── editor-ui.mjs      # CodeMirror 宿主：语言映射/预览/diff/跳转
-│   │   ├── tabs.mjs           # 标签页状态、渲染、右键菜单
-│   │   ├── pathbar-status.mjs # 面包屑路径栏 + 状态栏
-│   │   ├── file-ops.mjs       # 打开/保存/重命名/删除（支持跳转行列）
-│   │   ├── state.mjs api.mjs theme.mjs …
+│   │   ├── editor-ui.mjs tabs.mjs file-ops.mjs …     # 编辑器相关
+│   │   ├── workspace.mjs file-tree.mjs search.mjs git.mjs
+│   │   └── state.mjs api.mjs theme.mjs icons.mjs …
 │   ├── icons/                 # Material Design 图标（600+ SVG）
-│   ├── editor.mjs             # esbuild 产物（勿手改）
-│   └── terminal.mjs/.css      # esbuild 产物（勿手改）
+│   ├── editor.mjs terminal.mjs terminal.css charts.mjs charts.css qr.mjs  # esbuild 产物（勿手改）
 ├── test/                      # node --test：单测 + 服务集成冒烟
-├── docs/                      # README 截图与 logo（logo.svg）
+├── docs/                      # 截图、logo、ADMIN-PANEL-PLAN.md、UX-OPTIMIZATION.md
 ├── .github/workflows/         # publish.yml（tag→npm+Release）、release.yml（手动补发）
 ├── CLAUDE.md                  # AI/新人协作文档（地图、不变量、配方）
 ├── install.sh                 # 依赖安装 + symlink 安装

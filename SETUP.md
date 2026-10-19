@@ -142,13 +142,37 @@ edlics serve [options]
   --password   登录密码（或设置环境变量 EDLICS_PASSWORD；省略则自动生成并打印）
   --readonly   只读模式，禁止所有写操作
   --terminal   启用内置终端 —— **默认关闭**（完整 shell 权限，先读 README「安全说明」；不能与 --readonly 同用）
+  --admin      启用系统控制台（指标/服务/网络/磁盘/日志/进程）—— **默认关闭**，root 级能力
+  --admin-write 允许控制台写操作（启停服务、容器操作等；隐含 --admin）
+  --data-dir   SQLite 数据目录（默认 ~/.edlics）
+  --retention-days 指标历史保留天数（默认 30）
+  --allow      逗号分隔的 CIDR 白名单（默认不限）
+  --trust-proxy N  信任 N 层反向代理，从 X-Forwarded-For 取真实客户端 IP（默认 0）
+  --cookie-secure  会话 Cookie 加 Secure（走 TLS 时开启）
 
 示例：
   edlics serve
   edlics serve --hostname 0.0.0.0 --port 5000 --password 'secret'
   edlics serve --hostname 0.0.0.0 --port 5000 --root /var/www --password 'secret' --terminal
   edlics serve --readonly --root /var/www
+  edlics serve --admin --port 8088 --password 'secret'
+
+# 丢失 2FA 设备时：清除密钥，恢复仅密码登录
+edlics reset-2fa [--data-dir <dir>]
 ```
+
+### 数据存放
+
+开启 `--admin` 后使用 SQLite（WAL 模式），默认 `~/.edlics/edlics.db`（可用 `--data-dir` 或 `EDLICS_DATA_DIR` 修改）：
+
+| 表 | 内容 | 保留 |
+|---|---|---|
+| `metrics_min` | 分钟级指标（CPU/内存/交换/负载/网络/磁盘） | 30 天（`--retention-days`） |
+| `audit_log` | 审计（登录、服务、容器、2FA 操作） | 90 天 |
+| `login_attempts` | 每 IP 登录失败计数与锁定（跨重启） | — |
+| `meta` | 2FA 密钥（`totp_secret` / `totp_pending`） | — |
+
+> 不需要控制台时不必开 `--admin`，也就不会创建数据库。
 
 <br>
 
