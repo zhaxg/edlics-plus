@@ -1239,3 +1239,7 @@ pre.logs .log-warn { color: var(--yellow); }
 .ctr-head .ctr-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ctr-tagcol { grid-column: 2; grid-row: 1 / -1; align-self: center; justify-self: start; }
 .ctr-actions { grid-column: 4; }
+
+/* Compose file drawer (below the item, like the container logs) */
+.ctr > .cfview { grid-column: 1 / -1; margin-top: 6px; }
+.cfview-title { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }

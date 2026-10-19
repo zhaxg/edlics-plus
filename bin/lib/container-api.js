@@ -5,6 +5,7 @@
 // command runs — nothing client-supplied reaches argv unchecked. Actions are
 // audited. Console (docker exec) is handled by the terminal module.
 const { execFile } = require('child_process');
+const fs = require('fs');
 const audit = require('./audit');
 
 const CONTAINER_ACTIONS = new Set(['start', 'stop', 'restart']);
@@ -175,6 +176,28 @@ async function handleLogs(ctx) {
   } catch (e) { ctx.fail('docker logs failed: ' + (e.stderr || e.message)); }
 }
 
+/** Read a compose project's file(s). The path comes from `docker compose ls`,
+ *  never from the client — same trust model as the other compose actions. */
+async function handleComposeFile(ctx) {
+  const { params, ok, fail } = ctx;
+  const name = params.name;
+  if (typeof name !== 'string' || !name || name.length > 128) return fail('Invalid project name', 400);
+  const projects = await listCompose().catch(() => []);
+  const project = projects.find(p => p.name === name);
+  if (!project) return fail('Unknown compose project', 400);
+  const files = String(project.configFiles || '').split(',').map(s => s.trim()).filter(Boolean);
+  const out = [];
+  for (const f of files) {
+    try {
+      const st = fs.statSync(f);
+      if (!st.isFile()) { out.push({ path: f, error: 'not a file' }); continue; }
+      if (st.size > 1024 * 1024) { out.push({ path: f, error: 'file too large (>1MB)' }); continue; }
+      out.push({ path: f, content: fs.readFileSync(f, 'utf-8') });
+    } catch (e) { out.push({ path: f, error: e.message }); }
+  }
+  ok({ name, files: out });
+}
+
 function readJsonBody(req, cb, max = 8 * 1024) {
   let body = '';
   req.on('data', c => { body += c; if (body.length > max) req.destroy(); });
@@ -247,6 +270,7 @@ const routes = [
   { name: 'api/sys/containers/logs',   match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'logs',  handle: ctx => handleLogs(ctx) },
   { name: 'api/sys/containers/action', match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'action', handle: handleAction },
   { name: 'api/sys/containers/compose', match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'compose', handle: handleComposeAction },
+  { name: 'api/sys/containers/compose-file', match: p => p[1] === 'sys' && p[2] === 'containers' && p[3] === 'compose-file', handle: ctx => handleComposeFile(ctx) },
 ];
 
 module.exports = {

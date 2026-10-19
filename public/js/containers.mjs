@@ -32,6 +32,7 @@ const IC = {
   stop: S('<path d="M7 6a7.75 7.75 0 1 0 10 0m-5-2v8"/>'),
   build: F('<path d="m8.354 5.854l2-2a.5.5 0 0 0-.708-.707L8.5 4.293V.5a.5.5 0 0 0-1 0v3.793L6.354 3.147a.5.5 0 0 0-.707.707l2 2a.5.5 0 0 0 .707 0"/><path d="M15 12.5c0 1.379-1.121 2.5-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5v-6a.5.5 0 0 1 1 0v6c0 .827.673 1.5 1.5 1.5h9c.827 0 1.5-.673 1.5-1.5v-6a.5.5 0 0 1 1 0z"/><path d="M4 10a1 1 0 1 0 0-2a1 1 0 0 0 0 2m4 0a1 1 0 1 0 0-2a1 1 0 0 0 0 2m-2 3a1 1 0 1 0 0-2a1 1 0 0 0 0 2m4 0a1 1 0 1 0 0-2a1 1 0 0 0 0 2m2-3a1 1 0 1 0 0-2a1 1 0 0 0 0 2"/>', '0 0 16 16'),
   clean: F('<path d="m19.36 2.72l1.42 1.42l-5.72 5.71c1.07 1.54 1.22 3.39.32 4.59L9.06 8.12c1.2-.9 3.05-.75 4.59.32zM5.93 17.57c-2.01-2.01-3.24-4.41-3.58-6.65l4.88-2.09l7.44 7.44l-2.09 4.88c-2.24-.34-4.64-1.57-6.65-3.58"/>'),
+  composefile: F('<path d="M22.73 9.965c-.725-.42-1.68-.47-2.49-.235c-.1-.875-.67-1.63-1.345-2.17l-.27-.22l-.235.27c-.455.52-.59 1.395-.52 2.065c.05.485.2.99.505 1.395c-.235.135-.485.32-.725.405c-.47.17-.99.335-1.495.335H15.03V9.44h-2.185V5.245h-2.52V7.26h-4.2v2.185H3.94V11.8H2.055l-.035.25c-.085 1.075.05 2.12.505 3.11l.185.37l.015.035c1.33 2.25 3.645 3.195 6.185 3.195c4.91 0 8.96-2.2 10.81-6.825c1.245.065 2.52-.305 3.125-1.495l.15-.305l-.27-.17zm-16.27-2.2h1.68v1.85H6.46zm2.2 7.43c0 .285-.235.52-.52.52a.523.523 0 0 1-.52-.52c0-.285.235-.52.52-.52c.285.015.52.235.52.52M6.46 9.95h1.68v1.85H6.46zm-2.185 0h1.85v1.85h-1.85zm4.655 8.44c-2.655-.015-4.085-.91-5.26-2.085c.355.015.69.035.99.035c.27 0 .54 0 .79-.015a8 8 0 0 0 1.7-.25c.385.89 1.095 1.715 2.355 2.32h-.57zm1.395-6.59h-1.85V9.95h1.85zm0-2.185h-1.85v-1.85h1.85zM12.51 11.8h-1.85V9.95h1.85zm0-2.185h-1.85v-1.85h1.85zm0-2.185h-1.85V5.58h1.85zm2.185 4.37h-1.85V9.95h1.85zm-6.42 3.06a.4.4 0 0 0-.135-.035c-.2 0-.37.17-.37.37s.17.37.37.37s.37-.17.37-.37c0-.05-.015-.1-.035-.135c-.035.05-.065.085-.135.085a.147.147 0 0 1-.15-.15c.015-.065.05-.12.085-.135"/>'),
   del: F('<path d="M20 6a1 1 0 0 1 .117 1.993L20 8h-.081L19 19a3 3 0 0 1-2.824 2.995L16 22H8c-1.598 0-2.904-1.249-2.992-2.75l-.005-.167L4.08 8H4a1 1 0 0 1-.117-1.993L4 6zm-10 4a1 1 0 0 0-1 1v6a1 1 0 0 0 2 0v-6a1 1 0 0 0-1-1m4 0a1 1 0 0 0-1 1v6a1 1 0 0 0 2 0v-6a1 1 0 0 0-1-1m0-8a2 2 0 0 1 2 2a1 1 0 0 1-1.993.117L14 4h-4l-.007.117A1 1 0 0 1 8 4a2 2 0 0 1 1.85-1.995L10 2z"/>'),
 };
 const ibtn = (attr, key, title, danger) =>
@@ -147,15 +148,15 @@ function composeItem(p) {
   const dt = p.created ? new Date(p.created) : null;
   const created = dt && !isNaN(dt) ? dt.toLocaleDateString() : (p.created || '').slice(0, 10);
   const running = /(^|\()up|running/i.test(p.status || '');
-  const actions = canWrite()
-    ? `<div class="ctr-actions">
+  const actions = `<div class="ctr-actions">
+      ${ibtn(`data-cfile="${escapeHtml(p.name)}"`, 'composefile', 'View compose file')}
+      ${canWrite() ? `
          ${ibtn('data-cact="up"', 'start', 'Start (up -d)')}
          ${ibtn('data-cact="stop"', 'stop', 'Stop')}
          ${ibtn('data-cact="build"', 'build', 'Build images')}
          ${ibtn('data-cact="down"', 'clean', 'Clean up (down)')}
-         ${ibtn('data-cact="downv"', 'del', 'Delete (down -v)', true)}
-       </div>`
-    : '<div class="ctr-actions"></div>';
+         ${ibtn('data-cact="downv"', 'del', 'Delete (down -v)', true)}` : ''}
+    </div>`;
   return `<div class="ilist-item ctr" data-project="${escapeHtml(p.name)}">
     <div class="ctr-head">
       ${badge(running ? 'running' : 'exited', p.status)}
@@ -170,6 +171,10 @@ function composeItem(p) {
     </div>
     <div class="ctr-tagcol"><span class="ctr-tag">${escapeHtml(p.status || '')}</span></div>
     ${actions}
+    <div class="cfview hidden" data-cfilebox="${escapeHtml(p.name)}">
+      <div class="cfview-title mono"></div>
+      <pre class="svc-logs"></pre>
+    </div>
   </div>`;
 }
 
@@ -195,6 +200,7 @@ function render() {
           composeAction(name, a, a === 'up' ? 'Start' : a === 'stop' ? 'Stop' : 'Build');
         });
       });
+      row.querySelectorAll('[data-cfile]').forEach(btn => btn.addEventListener('click', () => toggleComposeFile(name)));
     });
     return;
   }
@@ -214,6 +220,27 @@ function render() {
       else btn.addEventListener('click', () => containerAction(id, a, a === 'start' ? 'Start' : a === 'restart' ? 'Restart' : 'Stop'));
     });
   });
+}
+
+/** Show/hide a project's docker-compose.yml inline (like the container logs). */
+async function toggleComposeFile(name) {
+  const box = document.querySelector(`[data-cfilebox="${CSS.escape(name)}"]`);
+  if (!box) return;
+  if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  const title = box.querySelector('.cfview-title');
+  const pre = box.querySelector('pre');
+  title.textContent = 'docker-compose.yml';
+  pre.textContent = 'Loading…';
+  try {
+    const r = await api('GET', `/api/sys/containers/compose-file?name=${encodeURIComponent(name)}`);
+    if (r.error) { pre.textContent = r.error; return; }
+    const files = r.files || [];
+    if (!files.length) { pre.textContent = '(no file)'; return; }
+    title.textContent = files.length === 1 ? files[0].path : `${files.length} files`;
+    pre.textContent = files.map(f =>
+      (files.length > 1 ? `# ${f.path}\n` : '') + (f.error ? `(error: ${f.error})` : (f.content || '(empty)'))).join('\n\n');
+  } catch (e) { pre.textContent = 'Failed: ' + e.message; }
 }
 
 async function toggleLogs(id) {
