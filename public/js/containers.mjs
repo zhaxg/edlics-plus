@@ -114,7 +114,7 @@ function containerItem(c) {
     ${badge(c.state, c.state)}
     <div class="ctr-main">
       <div class="ctr-name">${escapeHtml(c.name)}</div>
-      <div class="ctr-sub">${metrics || '<span class="muted">no stats</span>'}</div>
+      <div class="ctr-sub">${metrics || '<span class="ctr-metric">no stats</span>'}</div>
       <div class="ctr-meta mono">${escapeHtml(c.image)}${c.status ? ' · ' + escapeHtml(c.status) : ''}</div>
     </div>
     ${containerActions(c)}

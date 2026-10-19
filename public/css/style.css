@@ -1206,3 +1206,6 @@ pre.logs .log-warn { color: var(--yellow); }
 .dns-card { margin-bottom: 12px; padding: 10px 12px; }
 .dns-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .dns-row .ilist-addr { font-size: 12px; }
+
+/* Generic muted text utility */
+.muted { color: var(--text-dim); }
