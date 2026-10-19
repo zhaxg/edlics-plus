@@ -69,6 +69,18 @@ function migrate() {
       updated      INTEGER
     );
 
+    -- Login sessions survive restarts. Only a SHA-256 of the cookie token is
+    -- stored, so a leaked database cannot be replayed as a session.
+    CREATE TABLE IF NOT EXISTS sessions (
+      token_hash TEXT PRIMARY KEY,
+      created    INTEGER NOT NULL,   -- epoch ms: absolute cap (never slides)
+      seen       INTEGER NOT NULL,   -- epoch ms: last use (slides the idle TTL)
+      expires    INTEGER NOT NULL,   -- epoch ms: idle deadline
+      ip         TEXT,
+      ua         TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires);
+
     CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
   `);
   db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);

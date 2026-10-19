@@ -78,4 +78,52 @@ function isAllowed(ip, allow) {
   return allow.some(c => ipInCidr(ip, c));
 }
 
-module.exports = { normalizeIp, clientIp, ipInCidr, parseAllowlist, isAllowed, ipToBigInt };
+/** Loopback-only bind addresses. */
+const LOCAL_HOSTS = new Set(['127.0.0.1', '::1', 'localhost']);
+
+/**
+ * Decide whether a plain-HTTP bind needs a loud security warning.
+ *
+ * Exposed when the server listens on a non-loopback address without TLS
+ * (there is no TLS terminator in this server) **and** without an allowlist:
+ * the password and the session cookie then travel in clear text, so anyone on
+ * the path can read them and replay the cookie for the rest of its lifetime.
+ *
+ * Pure; tested.
+ * @param {{hostname?:string, allow?:string[]|string, cookieSecure?:boolean}} opts
+ * @returns {boolean}
+ */
+function needsInsecureWarning(opts = {}) {
+  const host = String(opts.hostname || '127.0.0.1').trim();
+  const exposed = !LOCAL_HOSTS.has(host);
+  if (!exposed) return false;
+  const allow = Array.isArray(opts.allow) ? opts.allow : parseAllowlist(opts.allow);
+  return allow.length === 0;
+}
+
+/**
+ * Human-readable explanation lines for {@link needsInsecureWarning}.
+ * @param {{hostname?:string, port?:number, allow?:string[]|string}} opts
+ * @returns {string[]}
+ */
+function insecureWarningLines(opts = {}) {
+  const host = opts.hostname || '127.0.0.1';
+  const port = opts.port || 3000;
+  return [
+    `Listening on ${host}:${port} over plain HTTP with no --allow allowlist.`,
+    'Anyone who can reach this port — or sniff the network path — can read the',
+    'login password and the session cookie in clear text, then reuse the cookie',
+    'until it expires. Brute-force protection does not help against that.',
+    '',
+    'Safer options (any one is enough):',
+    '  · Keep it private: bind 127.0.0.1 and use an SSH tunnel',
+    '      ssh -L ' + port + ':127.0.0.1:' + port + ' user@this-host',
+    '  · Put TLS in front (Caddy/nginx) and start with --cookie-secure',
+    '  · Restrict callers with --allow <CIDR>[,<CIDR>] behind a firewall',
+  ];
+}
+
+module.exports = {
+  normalizeIp, clientIp, ipInCidr, parseAllowlist, isAllowed, ipToBigInt,
+  needsInsecureWarning, insecureWarningLines, LOCAL_HOSTS,
+};

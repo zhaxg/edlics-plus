@@ -5,6 +5,7 @@ const path = require('path');
 const os = require('os');
 const { exec } = require('child_process');
 const { getRootDir, detectFileType, toPosix } = require('./paths');
+const { withJsonBody, FILE_MAX } = require('./http-body');
 const { VERSION } = require('./version');
 
 /**
@@ -118,13 +119,10 @@ function handleRead(ctx) {
 }
 
 function handleWrite(ctx) {
-  const { req, params, ok, fail, checkPath, checkReadonly } = ctx;
+  const { params, ok, fail, checkPath, checkReadonly } = ctx;
   if (checkReadonly()) return;
-  let body = '';
-  req.on('data', c => body += c);
-  req.on('end', () => {
-    let data;
-    try { data = JSON.parse(body); } catch { return fail('Invalid JSON', 400); }
+  // File contents are the largest legitimate payload; still bounded.
+  return withJsonBody(ctx, data => {
     if (!checkPath(params.path)) return;
     fs.writeFile(params.path, data.content, 'utf-8', err => {
       if (err && err.code === 'EACCES' && (hasSudoPassword() || params.sudo === '1')) {
@@ -161,13 +159,9 @@ function handleDelete(ctx) {
 }
 
 function handleRename(ctx) {
-  const { req, params, ok, fail, checkPath, checkReadonly } = ctx;
+  const { params, ok, fail, checkPath, checkReadonly } = ctx;
   if (checkReadonly()) return;
-  let body = '';
-  req.on('data', c => body += c);
-  req.on('end', () => {
-    let data;
-    try { data = JSON.parse(body); } catch { return fail('Invalid JSON', 400); }
+  return withJsonBody(ctx, data => {
     if (!checkPath(params.path) || !checkPath(data.newPath)) return;
     fs.rename(params.path, data.newPath, err => {
       if (err) return fail(err.message);
@@ -177,20 +171,16 @@ function handleRename(ctx) {
 }
 
 function handleCreate(ctx) {
-  const { req, params, ok, fail, checkPath, checkReadonly } = ctx;
+  const { params, ok, fail, checkPath, checkReadonly } = ctx;
   if (checkReadonly()) return;
-  let body = '';
-  req.on('data', c => body += c);
-  req.on('end', () => {
-    let data;
-    try { data = JSON.parse(body); } catch { return fail('Invalid JSON', 400); }
+  return withJsonBody(ctx, data => {
     if (!checkPath(params.path)) return;
     if (data.type === 'directory') {
       fs.mkdir(params.path, { recursive: true }, err => err ? fail(err.message) : ok({ ok: true }));
     } else {
       fs.writeFile(params.path, data.content || '', 'utf-8', err => err ? fail(err.message) : ok({ ok: true }));
     }
-  });
+  }, FILE_MAX);
 }
 
 function handleStat(ctx) {
@@ -209,12 +199,8 @@ function handleSudoStatus(ctx) {
 }
 
 function handleSudoAuth(ctx) {
-  const { req, ok, fail } = ctx;
-  let body = '';
-  req.on('data', c => body += c);
-  req.on('end', () => {
-    let data;
-    try { data = JSON.parse(body); } catch { return fail('Invalid JSON', 400); }
+  const { ok, fail } = ctx;
+  return withJsonBody(ctx, data => {
     if (!data.password) return fail('Password required');
     exec(`echo ${JSON.stringify(data.password)} | sudo -S true 2>/dev/null`, err => {
       if (err) return fail('Wrong password');

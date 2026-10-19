@@ -97,7 +97,7 @@ function handleAPI(req, res) {
     req, res, parts, params, ok, fail, checkReadonly, checkPath,
     readonly, rootDir: paths.getRootDir(), terminal: terminalEnabled,
     admin: adminEnabled, adminWrite: adminWriteEnabled,
-    authed: auth.isAuthed(req),
+    authed: auth.isAuthed(req, res),
     clientIp: net.clientIp(req, trustProxy),
   };
 
@@ -186,6 +186,22 @@ function resolveDataDir(opts) {
  * trail. Only meaningful when --admin opened the DB.
  */
 function wireAdminPersistence() {
+  // Sessions live in SQLite too: logins survive a restart, and the sliding
+  // idle TTL keeps working across one. Only the token hash is stored.
+  auth.setSessionStore({
+    all() {
+      return db.getDb().prepare('SELECT token_hash AS hash, created, seen, expires, ip, ua FROM sessions').all();
+    },
+    put(hash, row) {
+      db.getDb().prepare(
+        'INSERT INTO sessions (token_hash, created, seen, expires, ip, ua) VALUES (?, ?, ?, ?, ?, ?) ' +
+        'ON CONFLICT(token_hash) DO UPDATE SET seen = excluded.seen, expires = excluded.expires, ip = excluded.ip'
+      ).run(hash, row.created, row.seen, row.expires, row.ip || null, row.ua || null);
+    },
+    del(hash) { db.getDb().prepare('DELETE FROM sessions WHERE token_hash = ?').run(hash); },
+    prune(now) { db.getDb().prepare('DELETE FROM sessions WHERE expires <= ? OR created <= ?').run(now, now - auth.SESSION_MAX_LIFETIME); },
+    clear() { db.getDb().prepare('DELETE FROM sessions').run(); },
+  });
   auth.setAttemptStore({
     get(ip) {
       const row = db.getDb().prepare('SELECT fails, locked_until FROM login_attempts WHERE ip = ?').get(ip);
@@ -257,6 +273,17 @@ function startServer(opts) {
       process.exit(1);
     }
     paths.setRootDir(rootDir);
+  }
+
+  // Loud warning before we accept traffic: plain HTTP on a reachable address
+  // with no allowlist means passwords and session cookies are on the wire.
+  if (net.needsInsecureWarning({ hostname: opts.hostname, allow: opts.allow })) {
+    const lines = net.insecureWarningLines({ hostname: opts.hostname, port: opts.port });
+    const bar = '─'.repeat(74);
+    console.warn(`\n  \x1b[33m┌${bar}┐\x1b[0m`);
+    console.warn(`  \x1b[33m│\x1b[0m \x1b[1;33m⚠  INSECURE EXPOSURE — no TLS, no allowlist\x1b[0m`);
+    for (const l of lines) console.warn(`  \x1b[33m│\x1b[0m ${l}`);
+    console.warn(`  \x1b[33m└${bar}┘\x1b[0m\n`);
   }
 
   const server = http.createServer(gatedRouter);

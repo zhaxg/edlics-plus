@@ -92,7 +92,7 @@ npx edlics-plus serve --hostname 0.0.0.0 --port 5000 --readonly
 | **PTY 终端（独立页）** | **两步验证设置** |
 | ![terminal](docs/screenshots/terminal.png) | ![2fa](docs/screenshots/2fa.png) |
 
-**登录** —— 独立登录页（连续输错 5 次锁定 15 分钟，HttpOnly 会话 7 天；可叠加 TOTP 两步验证）：
+**登录** —— 独立登录页（连续输错 5 次锁定 15 分钟；HttpOnly 会话空闲 7 天滑动续期、30 天绝对上限，重启不掉线；可叠加 TOTP 两步验证）：
 
 ![login](docs/screenshots/login.png)
 
@@ -106,7 +106,7 @@ npx edlics-plus serve --hostname 0.0.0.0 --port 5000 --readonly
 
 | | |
 |---|---|
-| **密码登录** | 强制认证才能进入；sha256 恒时比较、5 次失败锁 15 分钟、HttpOnly 会话 7 天 |
+| **密码登录** | 强制认证才能进入；sha256 恒时比较、5 次失败锁 15 分钟、HttpOnly 会话（滑动 7 天 / 上限 30 天，落库持久化） |
 | **活动栏（VSCode 式）** | 最左侧图标条切换 文件树 / 搜索 / Git / 终端，激活态高亮指示 |
 | **工程文件夹（工作区）** | 在 `--root` 范围内打开一个项目目录，localStorage 记住，刷新自动恢复 |
 | **可折叠文件树** | VSCode 式懒加载展开/收起，Material Design 图标（600+），隐藏文件淡化 |
@@ -246,7 +246,7 @@ edlics reset-2fa [--data-dir <dir>]
 
 ### 其余防护
 
-- **必须密码登录**：所有 `/api/*` 未认证返回 401；sha256 + 恒时比较；同一 IP 连输 5 次错误锁定 15 分钟（计数落 SQLite，重启不清零）；另有全局熔断（一分钟内失败过多时全体冷却）；HttpOnly + SameSite Cookie，7 天过期
+- **必须密码登录**：所有 `/api/*` 未认证返回 401；sha256 + 恒时比较；同一 IP 连输 5 次错误锁定 15 分钟（计数落 SQLite，重启不清零）；另有全局熔断（一分钟内失败过多时全体冷却）；HttpOnly + SameSite=Strict Cookie，空闲 7 天滑动续期、登录起 30 天硬上限；会话只以 sha256 存 SQLite，重启不掉线
 - **两步验证（TOTP）**：Dashboard 标题栏的盾牌按钮 → 扫码或手输密钥 → **输入 6 位动态码确认后才生效**（登记阶段不会锁死）；密钥默认保持不变（跨重启、跨启用/禁用），仅在点刷新或 `edlics reset-2fa` 时更换。认证器里显示为 `edlics_<主机名>_<密钥前4位>`，便于区分多台机器
 - **客户端白名单**：`--allow 10.0.0.0/8,192.168.1.0/24` —— 非白名单连接在**任何认证/静态逻辑之前**即被拒绝
 - **反向代理**：`--trust-proxy N` 从 `X-Forwarded-For` 取第 N 跳作为真实 IP（默认 0=直接用 socket 地址，防伪造）
@@ -254,6 +254,8 @@ edlics reset-2fa [--data-dir <dir>]
 - **审计**：登录成功/失败/锁定、服务启停、容器操作、2FA 启停全部落库，可在 `/api/sys/audit` 查询
 - **`--root` 目录牢笼**：文件读写、搜索、Git 与终端 cwd 全部校验路径 containment（含符号链接真实路径二次校验）；注意它约束不到 shell 内执行的命令本身（见上）
 - **绑定地址**：默认只监听 `127.0.0.1`；对局域网开放请用 `--hostname 0.0.0.0` 并配合防火墙/强密码。root 级面板（`--admin`）强烈建议只经隧道或白名单访问
+- **明文 HTTP 的风险（重要）**：本服务不内置 TLS。绑定非 loopback 地址且**没有** `--allow` 时，启动会打印醒目警告——此时密码与会话 Cookie 在网络上**明文传输**，同一网段或链路上的人抓到 Cookie 即可在有效期内直接冒用登录（**暴力破解防护对此无效**），2FA 也拦不住已窃取的会话。请三选一：① 只绑 `127.0.0.1` 走 SSH 隧道（`ssh -L 8088:127.0.0.1:8088 user@host`）；② 前置 Caddy/nginx 做 TLS 并加 `--cookie-secure`；③ 用 `--allow` 限定来源网段并配防火墙
+- **请求体积上限**：所有读 body 的接口都有硬上限（普通 JSON 8MB、写文件 32MB），超限直接 413；chunked 上传同样按字节截断，不会把内存撑爆
 
 <br>
 

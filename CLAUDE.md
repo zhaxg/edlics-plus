@@ -29,7 +29,7 @@ npm(OIDC) → 创建 GitHub Release。
 bin/edlics.js        入口(~170行)：CLI 解析、启动、API 调度胶水 + 声明式路由表
 bin/lib/
   paths.js           路径安全原语 isWithinRoot/isPathSafe、getExcludes、detectFileType
-  auth.js            密码登录、会话 Cookie、IP 锁定(5次/15分)、公开路由 session/login/logout
+  auth.js            密码登录、会话 Cookie(滑动续期+SQLite 持久化)、IP 锁定(5次/15分)、公开路由 session/login/logout
   static.js          静态服务(ETag 304 + gzip)、router(含 public/ 路径穿越防护)
   files-api.js       list/read/write/delete/rename/create/stat/sudo-*/info + sudo 提权
   transfer-api.js    download(含 tar.gz 打包)/upload
@@ -95,7 +95,8 @@ docs/                README 截图与 logo
    Enter 边界用 `checkHighRisk` 拦截高危行（命中 → 吞掉 Enter 并发 ^C 丢行）；
    `trackLine` 做尽力而为的行跟踪（退格/历史键），详见 `terminal-api.js` 顶部注释。
 7. **前端响应形状**：成功=数据本体，失败=`{ error: string }` + 对应 status。
-   会话 Cookie：`HttpOnly; SameSite=Strict`，7 天。
+   会话 Cookie：`HttpOnly; SameSite=Strict`；空闲 7 天**滑动**续期，登录起 30 天**绝对上限**；
+   服务端只存 `sha256(token)`（`sessions` 表），因此重启不掉线、库泄露也无法回放。
 8. **密码**：`--password` > `EDLICS_PASSWORD` > 自动生成并打印；sha256 + `timingSafeEqual`。
 9. **对外路径一律 POSIX 正斜杠**：返回给客户端的路径（info.home、搜索结果、term cwd、
    面包屑）必须过 `paths.toPosix()`；Windows 的 `fs`/`path` 原生接受 `/`，内部计算可保留
@@ -130,7 +131,12 @@ docs/                README 截图与 logo
   `--admin-write` 预留写能力，`--readonly` 恒最高优先级。`/api/info` 上报 `admin/adminWrite` 供前端隐藏入口。
 - **数据**：`--data-dir`（默认 `~/.edlics`）下的 `edlics.db`（`node:sqlite`，零原生依赖）。
   `metrics_min` 每分钟一行、保留 `--retention-days`（默认 30）天；`audit_log` 记录登录与写操作；
-  `login_attempts` 让 IP 锁定跨重启存活。
+  `login_attempts` 让 IP 锁定跨重启存活；`sessions` 存会话 token 的哈希（重启不掉线）。
+- **请求体上限**：凡读 body 的端点一律用 `http-body.js` 的 `readJsonBody/withJsonBody`
+  （信封 8MB，写文件/新建 32MB；Content-Length 超限直接 413，chunked 按字节计数并在超限时
+  先回 413 再断开）。**不要**再手写 `req.on('data', c => body += c)`。
+- **启动告警**：绑定非 loopback 且没有 `--allow` 时，启动打印醒目“明文 HTTP 暴露”警告
+  （`net.needsInsecureWarning`，纯函数可单测）。
 - **采样**：`metrics.js` 单例 1s 采样（读 `/proc`，伪文件系统、非磁盘 IO），环形缓冲 180 点供实时图；
   分钟聚合经 `onMinute` 回调落库（该模块不直接依赖 db）。**永远只有一个采样器**，再广播给所有 SSE 连接。
 - **广播/背压**：`/api/sys/metrics/stream`（SSE；客户端上限 50，背压时丢帧，25s 心跳）。
