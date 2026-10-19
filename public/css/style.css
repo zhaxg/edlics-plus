@@ -1353,3 +1353,11 @@ pre.logs .log-warn { color: var(--yellow); }
 .code-icon { display: inline-flex; align-items: center; width: 18px; justify-content: center; }
 .code-icon.ok { color: var(--green); }
 .code-icon.bad { color: var(--red); }
+
+/* Login is a standalone page, not an overlay over the app */
+body.logged-out .toolbar,
+body.logged-out .container,
+body.logged-out .statusbar,
+body.logged-out .context-menu { display: none !important; }
+#loginOverlay.overlay { background: var(--bg); }
+#loginOverlay .dialog { box-shadow: none; }

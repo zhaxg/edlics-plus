@@ -2,7 +2,7 @@
 
 import { state, HOME, currentDir, setHOME, setServerInfo, setSudoPassword, setIconManifest, setRootRestricted } from './state.mjs';
 import { api } from './api.mjs';
-import { initAuth } from './auth.mjs';
+import { initAuth, logout } from './auth.mjs';
 import { initTheme } from './theme.mjs';
 import { renderTree, initFileTree } from './file-tree.mjs';
 import { initWorkspace, openFolderDialog } from './workspace.mjs';
@@ -24,6 +24,8 @@ import { initProcesses } from './processes.mjs';
 // Init
 document.getElementById('btnRefresh').onclick = () => renderTree();
 document.getElementById('btnOpenFolder').onclick = () => openFolderDialog();
+const logoutBtn = document.getElementById('btnLogout');
+if (logoutBtn) logoutBtn.addEventListener('click', logout);
 document.querySelector('.logo').addEventListener('click', () => {
   document.querySelector('.sidebar').classList.toggle('collapsed');
   document.querySelector('.sidebar-resize').classList.toggle('collapsed');

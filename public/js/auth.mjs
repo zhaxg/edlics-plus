@@ -9,6 +9,7 @@ let totpRequired = false;
 export function showLogin() {
   if (!overlay) return;
   overlay.classList.remove('hidden');
+  document.body.classList.add('logged-out');   // hide the app → login is its own page
   const wrap = document.getElementById('loginTotp');
   if (wrap) wrap.style.display = totpRequired ? 'block' : 'none';
   setTimeout(() => {
@@ -21,6 +22,13 @@ export function showLogin() {
 
 export function hideLogin() {
   if (overlay) overlay.classList.add('hidden');
+  document.body.classList.remove('logged-out');
+}
+
+/** Sign out and return to the login page. */
+export async function logout() {
+  try { await fetch('/api/logout', { method: 'POST' }); } catch { /* ignore */ }
+  location.reload();
 }
 
 function login(password, code) {
@@ -51,7 +59,7 @@ export function initAuth(then) {
 
   return api('GET', '/api/session').then(data => {
     if (data && data.totp) totpRequired = true;
-    if (data && data.authenticated) { if (then) then(); return true; }
+    if (data && data.authenticated) { hideLogin(); if (then) then(); return true; }
     showLogin();
     return false;
   }).catch(() => { showLogin(); return false; });
