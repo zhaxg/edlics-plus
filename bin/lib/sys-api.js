@@ -69,6 +69,40 @@ function loopDelayMs() {
 
 // --- handlers --------------------------------------------------------------
 
+/** Logical/physical CPU topology from /proc/cpuinfo. */
+function cpuTopology() {
+  try {
+    const txt = fs.readFileSync('/proc/cpuinfo', 'utf-8');
+    const logical = (txt.match(/^processor\s*:/gm) || []).length || (os.cpus() || []).length;
+    const phys = [...txt.matchAll(/^physical id\s*:\s*(\d+)/gm)].map(m => m[1]);
+    const core = [...txt.matchAll(/^core id\s*:\s*(\d+)/gm)].map(m => m[1]);
+    const ids = new Set();
+    for (let i = 0; i < Math.min(phys.length, core.length); i++) ids.add(phys[i] + ':' + core[i]);
+    let cores = ids.size;
+    if (!cores) { const m = /^cpu cores\s*:\s*(\d+)/m.exec(txt); cores = m ? Number(m[1]) : logical; }
+    if (cores > logical) cores = logical;
+    const threads = cores > 0 ? Math.round(logical / cores) : 1;
+    return { logical, cores, threads };
+  } catch { const l = (os.cpus() || []).length; return { logical: l, cores: l, threads: 1 }; }
+}
+
+/** Hypervisor name, or null for bare metal. */
+function detectVirt() {
+  try {
+    const p = (fs.readFileSync('/sys/class/dmi/id/product_name', 'utf-8') + ' ' +
+      fs.readFileSync('/sys/class/dmi/id/sys_vendor', 'utf-8')).trim();
+    const map = [[/vmware/i, 'VMware'], [/kvm|qemu/i, 'KVM'], [/virtualbox/i, 'VirtualBox'],
+      [/hyper-v|microsoft corporation/i, 'Hyper-V'], [/xen/i, 'Xen'], [/amazon ec2/i, 'AWS'],
+      [/google/i, 'GCP'], [/openstack/i, 'OpenStack'], [/bhyve/i, 'bhyve']];
+    for (const [re, name] of map) if (re.test(p)) return name;
+    if (/virtual/i.test(p)) return 'VM';
+  } catch { /* no DMI */ }
+  try {
+    if (/^flags.*\bhypervisor\b/m.test(fs.readFileSync('/proc/cpuinfo', 'utf-8'))) return 'VM';
+  } catch { /* ignore */ }
+  return null;
+}
+
 /** Primary non-internal IPv4 address, or 127.0.0.1. */
 function primaryIp() {
   try {
@@ -96,6 +130,7 @@ function handleInfo(ctx) {
   const { ok } = ctx;
   const cpus = os.cpus() || [];
   const mem = memSummary();
+  const topo = cpuTopology();
   ok({
     hostname: os.hostname(),
     os: osPrettyName(),
@@ -104,7 +139,10 @@ function handleInfo(ctx) {
     platform: process.platform,
     uptime: Math.round(os.uptime()),
     cpuModel: cpuModel(),
-    cores: cpus.length,
+    cores: topo.logical,
+    cpuCores: topo.cores,
+    cpuThreads: topo.threads,
+    virt: detectVirt(),
     memTotal: os.totalmem(),
     memFree: os.freemem(),
     memAvailable: mem.memAvailable,

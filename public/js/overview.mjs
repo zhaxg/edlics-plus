@@ -163,13 +163,16 @@ function renderInfo(info) {
   const swapP = pct(info.swapUsed, info.swapTotal);
   const loadP = (info.cores && info.load && info.load[0] != null)
     ? Math.min(100, 100 * info.load[0] / info.cores) : null;
+  const cpuStr = info.virt
+    ? `${info.cores} vCPU (${info.virt})`
+    : `${info.cores} (${info.cpuCores} cores × ${info.cpuThreads} threads)`;
   const rows = [
     ['Host', info.hostname, null],
     ['IP', info.ip || '—', null],
     ['OS', info.os, null],
     ['Kernel', info.kernel, null],
     ['Arch', info.arch, null],
-    ['CPU', `${info.cores}× ` + (info.cpuModel || 'unknown'), null],
+    ['CPU', cpuStr, null, info.cpuModel || ''],
     ['Memory', `${fmtBytes(memUsed)} / ${fmtBytes(memTotal)}`, pct(memUsed, memTotal)],
     ['Swap', info.swapTotal ? `${fmtBytes(info.swapUsed)} / ${fmtBytes(info.swapTotal)}` : 'none', swapP],
     ['Load', (info.load || []).join(' '), loadP],
@@ -177,10 +180,11 @@ function renderInfo(info) {
     ['Uptime', fmtUptime(info.uptime), null],
     ['Node', info.node, null],
   ];
-  box.innerHTML = rows.map(([k, v, p]) => {
+  box.innerHTML = rows.map(([k, v, p, t]) => {
+    const title = t || v;
     const meter = p != null
-      ? `<span class="ov-meter"><span class="ov-v" title="${escapeHtml(v)}">${escapeHtml(v)}</span>${ring(p)}</span>`
-      : `<span class="ov-v" title="${escapeHtml(v)}">${escapeHtml(v)}</span>`;
+      ? `<span class="ov-meter"><span class="ov-v" title="${escapeHtml(title)}">${escapeHtml(v)}</span>${ring(p)}</span>`
+      : `<span class="ov-v" title="${escapeHtml(title)}">${escapeHtml(v)}</span>`;
     return `<div class="ov-row"><span class="ov-k">${k}</span>${meter}</div>`;
   }).join('');
   loadDiskCard();
