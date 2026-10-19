@@ -24,13 +24,25 @@ const jparse = (text, fallback) => { try { return JSON.parse(text); } catch { re
 
 // --- pure parsers (exported for tests) -------------------------------------
 
-/** `ip -j addr` → [{name, state, mac, mtu, addresses:[{family,address,prefixlen}], v4, v6}] */
+/** Classify one addr_info entry so the UI can explain what each address is. */
+function addrKind(a) {
+  if (a.scope === 'link') return 'link-local';
+  if (a.temporary) return 'temporary';
+  if (a.deprecated) return 'deprecated';
+  if (a.protocol === 'kernel_ra') return 'eui-64';   // SLAAC from the MAC
+  if (a.mngtmpaddr) return 'privacy';                // RFC 7217 / managed temp
+  return 'global';
+}
+
+/** `ip -j addr` → [{name, state, mac, mtu, addresses:[…], v4, v6}] */
 function parseIpAddr(json) {
   const arr = jparse(json, []);
   if (!Array.isArray(arr)) return [];
   return arr.map(l => {
     const addresses = (l.addr_info || []).map(a => ({
       family: a.family, address: a.local, prefixlen: a.prefixlen,
+      scope: a.scope, kind: addrKind(a), dynamic: !!a.dynamic,
+      preferred: a.preferred_life_time, valid: a.valid_life_time,
     }));
     return {
       name: l.ifname,

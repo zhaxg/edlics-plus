@@ -40,7 +40,7 @@ bin/lib/
   sys-api.js         管理面板(--admin)：/api/sys/{info,metrics,metrics/stream,health,audit}
   metrics.js         /proc 采样(1s) + 分钟聚合 + 环形缓冲（onMinute 落库；纯解析器可单测）
   services-api.js    systemd 服务列表/unit 文件(cat)/日志/启停 + 系统日志查询 /api/sys/journal（source/since/level/q，白名单校验 + --admin-write + 审计）
-  network-api.js     网络只读视图：接口/路由/DNS/监听端口/nftables（ip -j、ss、nft -j + 文本兜底）
+  network-api.js     网络只读视图：接口/路由/DNS/监听端口/nftables（ip -j、ss、nft -j + 文本兜底；地址带 kind/scope/生命周期）
   users-api.js       用户/组/会话只读（/etc/passwd、/etc/group、who）
   cron-api.js        定时任务只读（crontab、/etc/crontab、/etc/cron.d、systemd timers）
   container-api.js   Docker 容器/compose：列表(含 stats/project/ports)+日志+启停/compose up|stop|build|down(|-v)（--admin-write+审计；引用先校验枚举）

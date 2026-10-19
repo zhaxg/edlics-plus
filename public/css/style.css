@@ -1116,3 +1116,15 @@ pre.logs .log-warn { color: var(--yellow); }
 .log-prio.log-err { color: var(--red); }
 .log-prio.log-warn { color: var(--yellow); }
 .log-prio.log-notice { color: var(--accent); }
+
+/* Network: per-address kind tag (link-local / eui-64 / privacy / global) */
+.ilist-addr { display: flex; align-items: center; gap: 6px; }
+.addr-tag {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px;
+  color: var(--text-dim); background: var(--hover); border-radius: 3px; padding: 0 4px;
+}
+.addr-tag.addr-linklocal { color: var(--text-dimmer); }
+.addr-tag.addr-eui64 { color: var(--accent); }
+.addr-tag.addr-privacy { color: var(--mauve); }
+.addr-tag.addr-temporary { color: var(--peach); }
+.addr-tag.addr-deprecated { color: var(--red); }
