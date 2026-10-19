@@ -5,9 +5,9 @@
 <h1 align="center">Edlics-Plus</h1>
 
 <p align="center">
-  <strong>浏览器里的 VSCode 式 IDE —— 编辑器 · 文件树 · 搜索 · Git · 终端</strong>
+  <strong>浏览器里的 VSCode 式 IDE + 轻量 Linux 管理面板 —— 编辑器 · 文件树 · 搜索 · Git · 终端 · 系统控制台</strong>
   <br>
-  一行命令把你的服务器变成网页 IDE，打开浏览器即可开发。
+  一行命令把你的服务器变成网页 IDE，打开浏览器即可开发与运维。
 </p>
 
 <p align="center">
@@ -30,6 +30,8 @@
 
 **Edlics-Plus 把服务器变成一个网页版 VSCode**：运行一条命令，浏览器打开一个 URL，你就得到完整的文件树、语法高亮编辑器、全文搜索、Git 面板和**真实终端**。除了初始安装，不需要任何 SSH 技能。
 
+再加上可选的 **系统控制台**（`--admin`），同一个界面里还能看指标曲线、管 systemd 服务、查网络/磁盘/日志、操作 Docker 容器——不必在 IDE 和另一个管理面板之间来回切换。
+
 <br>
 
 ## 快速开始
@@ -37,13 +39,14 @@
 ```bash
 npx edlics-plus serve --hostname 0.0.0.0 --port 5000 --password '你的密码'
 # 需要内置终端时追加 --terminal（默认关闭，风险见「安全说明」）
+# 需要系统控制台时追加 --admin（写操作再加 --admin-write）
 ```
 
 浏览器打开 `http://localhost:5000`（远程服务器则是 `http://服务器IP:5000`），**输入密码登录**后：
 
 1. 点击左上角 **Open Folder**，在根目录范围内打开一个工程文件夹（记住在 localStorage，刷新不丢）
-2. 左侧活动栏切换：**文件树 | 搜索 | Git | 终端**
-3. 点文件编辑、`Ctrl+Shift+F` 全文搜索、Git 面板看变更和时间线、底部终端敲命令
+2. 左侧活动栏切换：**Dashboard | System | Containers | Explorer | Search | Git | Terminal**
+3. 点文件编辑、`Ctrl+Shift+F` 全文搜索、Git 面板看变更和时间线、Terminal 页敲命令
 
 限制文件操作范围 / 只读模式：
 
@@ -59,14 +62,37 @@ npx edlics-plus serve --hostname 0.0.0.0 --port 5000 --readonly
 
 ## 截图
 
+### 系统控制台（`--admin`）
+
+**Dashboard** —— 12 张信息卡（CPU 虚拟化识别、内存/交换/负载/磁盘占用圆环）+ 实时曲线 + 进程表：
+
+![dashboard](docs/screenshots/dashboard.png)
+
 | | |
 |---|---|
-| **全文搜索** | **Git 变更 + Diff** |
-| ![search](docs/screenshots/search.png) | ![git-changes](docs/screenshots/git-changes.png) |
-| **提交时间线 Graph** | **PTY 终端** |
-| ![git-graph](docs/screenshots/git-graph.png) | ![terminal](docs/screenshots/terminal.png) |
+| **Services —— unit 文件 / 日志** | **Interfaces —— 地址、路由、端口表格** |
+| ![system-services](docs/screenshots/system-services.png) | ![system-interfaces](docs/screenshots/system-interfaces.png) |
+| **Disk —— 分区占用 + 块设备** | **Logs —— 按来源/时间/级别/关键词过滤** |
+| ![system-disk](docs/screenshots/system-disk.png) | ![system-logs](docs/screenshots/system-logs.png) |
 
-**登录保护** —— 打开页面先验证密码（连续输错 5 次锁定 15 分钟，HttpOnly 会话 7 天）：
+**Containers** —— 状态化操作、端口下拉、日志与容器内 shell、compose 文件查看：
+
+| | |
+|---|---|
+| ![containers](docs/screenshots/containers.png) | ![containers-compose](docs/screenshots/containers-compose.png) |
+
+### 编辑器与开发
+
+| | |
+|---|---|
+| **文件树 + 编辑** | **全文搜索** |
+| ![hero](docs/screenshots/hero.png) | ![search](docs/screenshots/search.png) |
+| **Git 变更 + Diff** | **提交时间线 Graph** |
+| ![git-changes](docs/screenshots/git-changes.png) | ![git-graph](docs/screenshots/git-graph.png) |
+| **PTY 终端（独立页）** | **两步验证设置** |
+| ![terminal](docs/screenshots/terminal.png) | ![2fa](docs/screenshots/2fa.png) |
+
+**登录** —— 独立登录页（连续输错 5 次锁定 15 分钟，HttpOnly 会话 7 天；可叠加 TOTP 两步验证）：
 
 ![login](docs/screenshots/login.png)
 
