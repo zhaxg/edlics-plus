@@ -120,8 +120,8 @@ export function copyToClipboard(text) {
 
 // --- dialogs ---------------------------------------------------------------
 
-/** Mount dialog markup into the shared overlay. */
-function openDialog(html) {
+/** Mount dialog markup into the shared overlay. Exported for custom dialogs. */
+export function openDialog(html) {
   const overlay = document.getElementById('dialogOverlay');
   const content = document.getElementById('dialogContent');
   content.innerHTML = html;

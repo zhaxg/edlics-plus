@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/zhaxg/edlics-plus#readme",
   "scripts": {
-    "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020 --minify && esbuild bundle/terminal.mjs --bundle --format=esm --outfile=public/terminal.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/charts.mjs --bundle --format=esm --outfile=public/charts.mjs --target=es2020 --minify --loader:.css=css",
+    "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020 --minify && esbuild bundle/terminal.mjs --bundle --format=esm --outfile=public/terminal.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/charts.mjs --bundle --format=esm --outfile=public/charts.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/qr.mjs --bundle --format=esm --outfile=public/qr.mjs --target=es2020 --minify",
     "postinstall": "npm run build",
     "test": "node --test"
   },
@@ -48,6 +48,7 @@
     "codemirror": "^6.0.2",
     "esbuild": "^0.28.0",
     "node-pty": "^1.1.0",
+    "qrcode": "^1.5.4",
     "uplot": "^1.6.32"
   }
 }

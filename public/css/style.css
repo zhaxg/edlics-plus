@@ -1268,3 +1268,18 @@ pre.logs .log-warn { color: var(--yellow); }
   border-radius: 5px; padding: 6px 10px; font-size: 13px; outline: none; width: 150px; letter-spacing: 2px;
 }
 .totp-confirm input:focus { border-color: var(--accent); }
+
+/* 2FA header button + setup dialog */
+.icon-btn.on { color: var(--green); border-color: var(--green); }
+.totp-qr { display: inline-block; padding: 10px; background: #ffffff; border-radius: 8px; margin: 4px 0 10px; }
+.totp-qr svg { display: block; width: 180px; height: 180px; }
+.totp-secretline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.dialog .totp-confirm button {
+  padding: 7px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  border: 1px solid var(--border); transition: all 0.15s; background: transparent; color: var(--text);
+}
+.dialog .totp-confirm .primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.dialog .totp-confirm .primary:hover { background: var(--accent-hover); }
+.dialog .totp-confirm .cancel:hover { background: var(--hover); }
+.totp-confirm { margin-top: 4px; }
+.dialog .totp-confirm input { margin-bottom: 0; }

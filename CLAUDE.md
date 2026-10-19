@@ -67,7 +67,7 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   containers.mjs     Docker 看板（tab：Containers/Compose）；item 三列（徽标｜三行内容｜图标按钮列，端口是唯一下拉），含 stats/项目
   processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
-bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)
+bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)、qr.mjs(qrcode)
 test/                node --test：paths/auth/git-parse/search/terminal-idle 单测 + smoke 集成
 docs/                README 截图与 logo
 ```
@@ -138,7 +138,8 @@ docs/                README 截图与 logo
   昂贵端点（搜索/下载/日志/指标）按 IP 滑动窗口限流；**TOTP 两步验证**为最强反爆破手段。
   **2FA 采用「先确认再启用」**：`/api/sys/totp/enroll` 只生成 *pending* 密钥（不生效），
   用 `/confirm` 提交一次有效动态码后才写入 `meta.totp_secret` 并生效——因此**登记阶段不可能把自己锁死**；
-  `/cancel` 丢弃 pending。锁死救援：`node bin/edlics.js reset-2fa [--data-dir …]`（清除密钥，恢复仅密码登录）。
+  `/cancel` 丢弃 pending。入口在 **Dashboard 标题栏的盾牌按钮**（刷新按钮后）→ 弹窗：扫码/密钥 + 6 位码确认。
+  锁死救援：`node bin/edlics.js reset-2fa [--data-dir …]`（清除密钥，恢复仅密码登录）。
 - **长跑**：SIGTERM/SIGINT 优雅关停（flush 当前分钟 + 关 DB + 关 SSE）；`uncaughtException` 受控退出。
 - 只有改图表库才需 `npm run build`（`bundle/charts.mjs` → `public/charts.mjs`+`charts.css`，构建产物禁止手改）。
 - 本地验证：`node bin/edlics.js serve --port 8088 --password 1234 --admin --terminal`（登录后左栏出现 Overview）。
