@@ -1329,3 +1329,19 @@ pre.logs .log-warn { color: var(--yellow); }
 /* Copy actions stacked on their own lines under the key */
 .totp-key { margin-bottom: 6px; }
 .totp-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+
+/* 2FA: copy icon buttons + warning box + disabled confirm */
+.copy-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  font-size: 12px; padding: 5px 10px; border-radius: 6px; cursor: pointer;
+}
+.copy-btn:hover { border-color: var(--text-dimmer); }
+.copy-btn svg { color: var(--text-dim); }
+.totp-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.totp-warn {
+  background: rgba(249, 226, 175, 0.14); border: 1px solid var(--yellow); color: var(--text-dim);
+  border-radius: 6px; padding: 8px 10px; font-size: 11px; line-height: 1.5; margin-bottom: 14px;
+}
+.totp-warn code { font-family: var(--font-mono); color: var(--text); }
+.dialog .btn-row button:disabled { opacity: 0.45; cursor: not-allowed; }

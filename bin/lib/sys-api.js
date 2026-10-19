@@ -274,12 +274,25 @@ function handleTotpConfirm(ctx) {
   if (!pending) return fail('No pending 2FA enrollment', 400);
   return readJsonBody(req, data => {
     if (!data) return fail('Invalid JSON', 400);
-    if (!totp.verify(pending, data.code || '')) return fail('Invalid code — check the authenticator and try again', 401);
+    // 400 (not 401) on a bad code — 401 would be read by the client as an
+    // expired session and pop the login gate.
+    if (!totp.verify(pending, data.code || '')) return fail('Invalid code — check the authenticator and try again', 400);
     setMeta('totp_secret', pending);
     delMeta('totp_pending');
     auth.setTotpSecret(pending);
     audit.log('totp.enable', { ip: ctx.clientIp || (req.socket && req.socket.remoteAddress) || 'unknown', ua: req.headers['user-agent'] || '', result: 'ok' });
     ok({ enabled: true });
+  });
+}
+
+/** Side-effect-free code check (pending secret first, else active) for live
+ *  validation in the UI. Always 200 with { valid }. */
+function handleTotpVerify(ctx) {
+  const { req, ok, fail } = ctx;
+  return readJsonBody(req, data => {
+    if (!data) return fail('Invalid JSON', 400);
+    const secret = getMeta('totp_pending') || getMeta('totp_secret') || '';
+    ok({ valid: !!secret && totp.verify(secret, String(data.code || '')) });
   });
 }
 
@@ -297,7 +310,7 @@ function handleTotpDisable(ctx) {
   if (!adminWrite) return fail('Disabling 2FA requires --admin-write', 403);
   return readJsonBody(req, data => {
     if (!data) return fail('Invalid JSON', 400);
-    if (!totp.verify(getMeta('totp_secret') || '', data.code || '')) return fail('Invalid code', 401);
+    if (!totp.verify(getMeta('totp_secret') || '', data.code || '')) return fail('Invalid code', 400);
     delMeta('totp_secret');
     delMeta('totp_pending');
     auth.setTotpSecret(null);
@@ -371,6 +384,7 @@ const routes = [
   { name: 'api/sys/totp',           match: p => p[1] === 'sys' && p[2] === 'totp' && !p[3],                        handle: handleTotpStatus },
   { name: 'api/sys/totp/enroll',    match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'enroll',            handle: handleTotpEnroll },
   { name: 'api/sys/totp/confirm',   match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'confirm',           handle: handleTotpConfirm },
+  { name: 'api/sys/totp/verify',    match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'verify',            handle: handleTotpVerify },
   { name: 'api/sys/totp/cancel',    match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'cancel',            handle: handleTotpCancel },
   { name: 'api/sys/totp/disable',   match: p => p[1] === 'sys' && p[2] === 'totp' && p[3] === 'disable',           handle: handleTotpDisable },
 ];

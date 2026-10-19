@@ -191,6 +191,8 @@ function openTotpDialog() {
   return openEnableDialog();
 }
 
+const COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+
 async function openEnableDialog() {
   const en = await api('POST', '/api/sys/totp/enroll', {});
   if (en.error) { toast(en.error, true); return; }
@@ -207,38 +209,51 @@ async function openEnableDialog() {
         <p class="totp-help">Or enter the key manually. Works with Google Authenticator, Authy, 1Password, and browser extensions such as &ldquo;Authenticator: 2FA Client&rdquo;.</p>
         <div class="totp-key"><code>${escapeHtml(secret)}</code></div>
         <div class="totp-actions">
-          <button class="text-btn" id="totpCopyKey">Copy</button>
-          <button class="text-btn" id="totpCopyUrl">Copy setup link</button>
+          <button class="copy-btn" id="totpCopyKey">${COPY_ICON}secret</button>
+          <button class="copy-btn" id="totpCopyUrl">${COPY_ICON}setup link</button>
         </div>
       </div>
     </div>
+    <div class="totp-warn">Keep a backup of the key. If the device is lost, disable 2FA on the server with <code>edlics reset-2fa</code>.</div>
     <label class="dlg-label" for="totpConfirmCode">6-digit code</label>
     <input id="totpConfirmCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="123 456" />
     <div class="btn-row">
       <button class="cancel" id="totpCancelBtn">Cancel</button>
-      <button class="primary" id="totpConfirmBtn">Confirm</button>
-    </div>
-    <p class="totp-note">Keep a backup of the key. If the device is lost, disable 2FA on the server with <code>edlics reset-2fa</code>.</p>`);
+      <button class="primary" id="totpConfirmBtn" disabled>Confirm</button>
+    </div>`);
   content.classList.add('totp-dialog');
   content.querySelector('#totpCopyKey').onclick = () => copyToClipboard(secret).then(() => toast('Key copied')).catch(() => {});
   content.querySelector('#totpCopyUrl').onclick = () => copyToClipboard(url).then(() => toast('Link copied')).catch(() => {});
   const input = content.querySelector('#totpConfirmCode');
+  const confirmBtn = content.querySelector('#totpConfirmBtn');
+  const setValid = v => { confirmBtn.disabled = !v; };
+  let vtimer = null;
+  input.oninput = () => {
+    const code = input.value.replace(/\D/g, '');
+    clearTimeout(vtimer);
+    setValid(false);
+    if (code.length < 6) return;
+    vtimer = setTimeout(async () => {
+      try { const r = await api('POST', '/api/sys/totp/verify', { code }); setValid(!!(r && r.valid)); }
+      catch { setValid(false); }
+    }, 250);
+  };
+  input.onkeydown = e => { if (e.key === 'Enter' && !confirmBtn.disabled) confirmBtn.click(); };
   input.focus();
   content.querySelector('#totpCancelBtn').onclick = async () => {
     await api('POST', '/api/sys/totp/cancel', {}).catch(() => {});
     overlay.classList.add('hidden');
     loadTotp();
   };
-  content.querySelector('#totpConfirmBtn').onclick = async () => {
+  confirmBtn.onclick = async () => {
     const code = input.value.trim();
     if (!code) return;
     const r = await api('POST', '/api/sys/totp/confirm', { code });
-    if (r.error) { toast(r.error, true); return; }
+    if (r.error) { toast(r.error, true); setValid(false); return; }
     overlay.classList.add('hidden');
     toast('Two-factor enabled');
     loadTotp();
   };
-  input.onkeydown = e => { if (e.key === 'Enter') content.querySelector('#totpConfirmBtn').click(); };
 }
 
 function openDisableDialog() {
