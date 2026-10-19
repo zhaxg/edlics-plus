@@ -35,26 +35,25 @@ function fmtLft(sec) {
 function ifaceItems(n) {
   const items = (n.interfaces || []).map(i => {
     const addrAll = (i.addresses || []);
-    const v4 = addrAll.filter(a => a.family === 'inet');
-    const v6 = addrAll.filter(a => a.family === 'inet6');
-    // IPv4 first, then IPv6 — one address per line, each tagged with its kind.
+    // Show only stable addresses: hide temporary / deprecated / privacy ones.
+    // If that would hide every global v6, fall back to showing them all.
+    const UNSTABLE = new Set(['temporary', 'deprecated', 'privacy']);
+    let shown = addrAll.filter(a => !UNSTABLE.has(a.kind));
+    const hasGlobalV6 = arr => arr.some(a => a.family === 'inet6' && a.scope === 'global');
+    if (!hasGlobalV6(shown) && hasGlobalV6(addrAll)) shown = addrAll;
+
+    const v4 = shown.filter(a => a.family === 'inet');
+    const v6 = shown.filter(a => a.family === 'inet6');
+    // IPv4 first, then IPv6 — one address per line. Kind/lifetime on hover only.
     const addrHtml = [...v4, ...v6].map(a => {
       const tip = a.kind === 'link-local' ? 'link-local (fe80::)'
         : `${a.kind}${a.preferred != null ? ' · preferred ' + fmtLft(a.preferred) : ''}${a.valid != null ? ' · valid ' + fmtLft(a.valid) : ''}`;
-      return `<div class="ilist-addr" title="${escapeHtml(tip)}">
-        <span>${escapeHtml(a.address)}/${a.prefixlen}</span>
-        <span class="addr-tag addr-${String(a.kind).replace(/-/g, '')}">${escapeHtml(a.kind)}</span>
-      </div>`;
+      return `<div class="ilist-addr" title="${escapeHtml(tip)}">${escapeHtml(a.address)}/${a.prefixlen}</div>`;
     }).join('');
-    const globals = addrAll.filter(a => a.family === 'inet6' && a.scope === 'global').length;
-    const note = globals > 2
-      ? `<div class="ilist-sub">${globals} global v6 addresses — normal for SLAAC with rolling/multiple prefixes; older ones expire (see tooltips)</div>`
-      : '';
     return `<div class="ilist-item">
       <div class="ilist-head">${dot(i.state)}<span class="ilist-title">${escapeHtml(i.name)}</span>
         <span class="ilist-meta">${escapeHtml(i.state || '')}${i.mtu ? ' · MTU ' + i.mtu : ''}</span></div>
       <div class="ilist-addrs">${addrHtml || '<div class="ilist-addr muted">no address</div>'}</div>
-      ${note}
       <div class="ilist-sub">MAC ${escapeHtml(i.mac || '—')}</div>
     </div>`;
   });
