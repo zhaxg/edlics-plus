@@ -192,24 +192,26 @@ function openTotpDialog() {
 }
 
 const COPY_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
+const REFRESH_ICON = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>';
 const CODE_OK = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg>';
 const CODE_BAD = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 
 async function openEnableDialog() {
   const en = await api('POST', '/api/sys/totp/enroll', {});
   if (en.error) { toast(en.error, true); return; }
-  const secret = en.secret;
-  const url = `otpauth://totp/Edlics:admin?secret=${encodeURIComponent(secret)}&issuer=Edlics&algorithm=SHA1&digits=6&period=30`;
-  let qr = '';
-  try { const m = await import('/qr.mjs'); qr = await m.qrSvg(url, { width: 150, margin: 0 }); } catch { /* QR optional */ }
+  let secret = en.secret;
+  let url = en.url || '';
   const { overlay, content } = openDialog(`
     <h3>Enable two-factor authentication</h3>
     <p class="dlg-sub">Scan this code with an authenticator app, then confirm with a 6-digit code. It stays off until you confirm.</p>
     <div class="totp-grid">
-      <div class="totp-qr">${qr || '<span class="muted">QR unavailable</span>'}</div>
+      <div class="totp-qr" id="totpQr"></div>
       <div class="totp-side">
         <p class="totp-help">Or enter the key manually. Works with Google Authenticator, Authy, 1Password, and browser extensions such as &ldquo;Authenticator: 2FA Client&rdquo;.</p>
-        <div class="totp-key"><code>${escapeHtml(secret)}</code></div>
+        <div class="totp-key">
+          <code id="totpSecretText"></code>
+          <button class="icon-btn sm" id="totpRegen" title="Generate a new key">${REFRESH_ICON}</button>
+        </div>
         <div class="totp-actions">
           <button class="copy-btn" id="totpCopyKey">${COPY_ICON}secret</button>
           <button class="copy-btn" id="totpCopyUrl">${COPY_ICON}setup link</button>
@@ -227,13 +229,34 @@ async function openEnableDialog() {
       <button class="primary" id="totpConfirmBtn" disabled>Confirm</button>
     </div>`);
   content.classList.add('totp-dialog');
-  content.querySelector('#totpCopyKey').onclick = () => copyToClipboard(secret).then(() => toast('Key copied')).catch(() => {});
-  content.querySelector('#totpCopyUrl').onclick = () => copyToClipboard(url).then(() => toast('Link copied')).catch(() => {});
+
+  const secretEl = content.querySelector('#totpSecretText');
+  const qrEl = content.querySelector('#totpQr');
   const input = content.querySelector('#totpConfirmCode');
   const confirmBtn = content.querySelector('#totpConfirmBtn');
   const icon = content.querySelector('#totpCodeIcon');
   const setValid = v => { confirmBtn.disabled = !v; };
   let vtimer = null;
+
+  async function applySecret(s) {
+    secret = s;
+    url = `otpauth://totp/Edlics:admin?secret=${encodeURIComponent(s)}&issuer=Edlics&algorithm=SHA1&digits=6&period=30`;
+    secretEl.textContent = s;
+    try { const m = await import('/qr.mjs'); qrEl.innerHTML = await m.qrSvg(url, { width: 150, margin: 0 }); }
+    catch { qrEl.innerHTML = '<span class="muted">QR unavailable</span>'; }
+    input.value = ''; setValid(false); icon.className = 'code-icon'; icon.innerHTML = '';
+    input.focus();
+  }
+  await applySecret(secret);
+
+  content.querySelector('#totpRegen').onclick = async () => {
+    const r = await api('POST', '/api/sys/totp/regenerate', {});
+    if (r.error) { toast(r.error, true); return; }
+    await applySecret(r.secret);
+    toast('New key generated');
+  };
+  content.querySelector('#totpCopyKey').onclick = () => copyToClipboard(secret).then(() => toast('Key copied')).catch(() => {});
+  content.querySelector('#totpCopyUrl').onclick = () => copyToClipboard(url).then(() => toast('Link copied')).catch(() => {});
   input.oninput = () => {
     const code = input.value.replace(/\D/g, '');
     clearTimeout(vtimer);
@@ -249,12 +272,9 @@ async function openEnableDialog() {
     }, 250);
   };
   input.onkeydown = e => { if (e.key === 'Enter' && !confirmBtn.disabled) confirmBtn.click(); };
-  input.focus();
-  content.querySelector('#totpCancelBtn').onclick = async () => {
-    await api('POST', '/api/sys/totp/cancel', {}).catch(() => {});
-    overlay.classList.add('hidden');
-    loadTotp();
-  };
+  // Cancel just closes the dialog — the pending key is kept so it stays
+  // stable across opens (use the refresh button to mint a new one).
+  content.querySelector('#totpCancelBtn').onclick = () => { overlay.classList.add('hidden'); };
   confirmBtn.onclick = async () => {
     const code = input.value.trim();
     if (!code) return;

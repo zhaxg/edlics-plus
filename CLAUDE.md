@@ -136,10 +136,9 @@ docs/                README 截图与 logo
 - **防爆破/边界**：`--allow <CIDR,…>` 在**任何逻辑之前**拒绝非白名单客户端；`--trust-proxy N` 决定从
   `X-Forwarded-For` 取第几跳作为真实 IP（默认 0=用 socket 地址，防伪造）；全局熔断 + IP 锁定计数落库；
   昂贵端点（搜索/下载/日志/指标）按 IP 滑动窗口限流；**TOTP 两步验证**为最强反爆破手段。
-  **2FA 采用「先确认再启用」**：`/api/sys/totp/enroll` 只生成 *pending* 密钥（不生效），
-  用 `/confirm` 提交一次有效动态码后才写入 `meta.totp_secret` 并生效——因此**登记阶段不可能把自己锁死**；
-  `/cancel` 丢弃 pending。入口在 **Dashboard 标题栏的盾牌按钮**（刷新按钮后）→ 弹窗：扫码/密钥 + 6 位码确认。
-  锁死救援：`node bin/edlics.js reset-2fa [--data-dir …]`（清除密钥，恢复仅密码登录）。
+  **2FA 采用「先确认再启用」**：`/api/sys/totp/enroll` **幂等**——已有 pending 就复用（密钥跨弹窗/进程重启稳定），
+  仅在用户点密钥框后的**刷新按钮**（`/api/sys/totp/regenerate`）时才生成新密钥；用 `/confirm` 提交有效动态码后才生效
+  （写入 `meta.totp_secret`），故登记阶段不可能锁死；关闭弹窗**不会**丢弃密钥。锁死救援：`node bin/edlics.js reset-2fa [--data-dir …]`。
 - **长跑**：SIGTERM/SIGINT 优雅关停（flush 当前分钟 + 关 DB + 关 SSE）；`uncaughtException` 受控退出。
 - 只有改图表库才需 `npm run build`（`bundle/charts.mjs` → `public/charts.mjs`+`charts.css`，构建产物禁止手改）。
 - 本地验证：`node bin/edlics.js serve --port 8088 --password 1234 --admin --terminal`（登录后左栏出现 Overview）。
