@@ -23,6 +23,7 @@ const usersApi = require('./lib/users-api');
 const cronApi = require('./lib/cron-api');
 const containerApi = require('./lib/container-api');
 const processesApi = require('./lib/processes-api');
+const diskApi = require('./lib/disk-api');
 const net = require('./lib/net');
 const { createLimiter } = require('./lib/ratelimit');
 const db = require('./lib/db');
@@ -43,6 +44,7 @@ const ROUTES = [
   ...cronApi.routes,
   ...containerApi.routes,
   ...processesApi.routes,
+  ...diskApi.routes,
 ];
 
 let readonly = false; // When true, all write operations are blocked

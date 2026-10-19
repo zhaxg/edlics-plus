@@ -97,7 +97,5 @@ export function initCron() {
   inited = true;
   const toggle = document.getElementById('cronSystemToggle');
   if (toggle) toggle.addEventListener('click', () => { showSystem = !showSystem; renderList(); });
-  document.addEventListener('view-changed', e => {
-    if (e.detail && e.detail.view === 'services') refreshCron();
-  });
+  // Refresh is driven by services.mjs tab activation.
 }

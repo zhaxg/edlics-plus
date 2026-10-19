@@ -1128,3 +1128,35 @@ pre.logs .log-warn { color: var(--yellow); }
 .addr-tag.addr-privacy { color: var(--mauve); }
 .addr-tag.addr-temporary { color: var(--peach); }
 .addr-tag.addr-deprecated { color: var(--red); }
+
+/* System page: extra tab views + boards */
+.tabview { flex: 1; min-height: 0; overflow: auto; }
+.board-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 1000px) { .board-cols { grid-template-columns: 1fr; } }
+
+/* Disk tables */
+.disk-section { margin-bottom: 18px; }
+.disk-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); margin-bottom: 6px; }
+.disk-title .muted { text-transform: none; letter-spacing: 0; color: var(--text-dimmer); }
+.disk-table { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; font-size: 12px; }
+.disk-head, .disk-table.grid6 .disk-row {
+  display: grid; grid-template-columns: 1.4fr 1.6fr 80px 90px 90px 130px;
+  gap: 10px; padding: 6px 10px; align-items: center;
+}
+.disk-head { color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; background: var(--sidebar); border-bottom: 1px solid var(--border); }
+.disk-row { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.disk-row:last-child { border-bottom: none; }
+.disk-row:hover { background: var(--hover); }
+.disk-table.flexrows .disk-row { display: flex; gap: 10px; align-items: center; }
+.disk-table.flexrows .disk-num { margin-left: auto; }
+.disk-mount, .disk-src { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.disk-num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+.disk-pct { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.disk-pct b { color: var(--text); font-weight: 500; }
+.disk-bar { width: 70px; height: 6px; border-radius: 3px; background: var(--border); overflow: hidden; display: inline-block; }
+.disk-bar-fill { display: block; height: 100%; background: var(--green); }
+.disk-bar-fill.warn { background: var(--yellow); }
+.disk-bar-fill.danger { background: var(--red); }
+
+/* Tabs may wrap when a page has many (System) */
+.page-tabs { flex-wrap: wrap; }

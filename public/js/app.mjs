@@ -89,7 +89,7 @@ function bootApp() {
       if (svcBtn) svcBtn.style.display = data.admin ? 'flex' : 'none';
       const netBtn = document.getElementById('btnNetwork');
       if (netBtn) netBtn.style.display = data.admin ? 'flex' : 'none';
-      for (const id of ['btnUsers', 'btnContainers']) {
+      for (const id of ['btnContainers']) {
         const b = document.getElementById(id);
         if (b) b.style.display = data.admin ? 'flex' : 'none';
       }

@@ -6,6 +6,9 @@ import { api, escapeHtml, toast, confirmDialog, setBusy, spinner, loadJournalInt
 import { serverInfo } from './state.mjs';
 import { refreshCron, initCron } from './cron.mjs';
 import { refreshLogs, initLogs } from './logs.mjs';
+import { refreshNetwork } from './network.mjs';
+import { refreshUsers } from './users.mjs';
+import { refreshDisk, initDisk } from './disk.mjs';
 
 let units = [];
 let loaded = false;
@@ -122,26 +125,40 @@ export async function refreshServices() {
   }
 }
 
+const TAB_VIEW = {
+  services: 'servicesSplit', scheduled: 'scheduledSplit', logs: 'logsView',
+  interfaces: 'interfacesView', routes: 'routesView', ports: 'portsView',
+  firewall: 'firewallView', disk: 'diskView', users: 'usersView',
+};
+
+function refreshTab(t) {
+  switch (t) {
+    case 'scheduled': return refreshCron();
+    case 'logs': return refreshLogs();
+    case 'interfaces': case 'routes': case 'ports': case 'firewall': return refreshNetwork();
+    case 'disk': return refreshDisk();
+    case 'users': return refreshUsers();
+    default: return refreshServices();
+  }
+}
+
 function setTab(t) {
   tab = t;
   const bar = document.getElementById('servicesTabs');
   if (bar) bar.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.stab === t));
-  document.getElementById('servicesSplit')?.classList.toggle('hidden', t !== 'services');
-  document.getElementById('scheduledSplit')?.classList.toggle('hidden', t !== 'scheduled');
-  document.getElementById('logsView')?.classList.toggle('hidden', t !== 'logs');
-  if (t === 'scheduled') refreshCron();
-  else if (t === 'logs') refreshLogs();
+  for (const [k, id] of Object.entries(TAB_VIEW)) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('hidden', k !== t);
+  }
+  refreshTab(t);
 }
 
-function refreshActive() {
-  if (tab === 'scheduled') refreshCron();
-  else if (tab === 'logs') refreshLogs();
-  else refreshServices();
-}
+function refreshActive() { refreshTab(tab); }
 
 export function initServices() {
   initCron();
   initLogs();
+  initDisk();
   const filterInput = document.getElementById('servicesFilter');
   if (filterInput) filterInput.addEventListener('input', () => { filter = filterInput.value; renderList(); });
   const bar = document.getElementById('servicesTabs');
@@ -151,6 +168,6 @@ export function initServices() {
   const btn = document.getElementById('btnServicesRefresh');
   if (btn) btn.addEventListener('click', refreshActive);
   document.addEventListener('view-changed', e => {
-    if (e.detail && e.detail.view === 'services') refreshServices();
+    if (e.detail && e.detail.view === 'services') refreshActive();
   });
 }

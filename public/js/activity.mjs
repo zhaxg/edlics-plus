@@ -19,16 +19,16 @@ const IDE_VIEWS = {
 // Console views render full-width, one page at a time.
 const CONSOLE_VIEWS = {
   overview: { page: 'page-overview', title: 'Dashboard' },
-  services: { page: 'page-services', title: 'Services' },
-  network: { page: 'page-network', title: 'Network' },
-  access: { page: 'page-access', title: 'Access' },
+  services: { page: 'page-services', title: 'System' },
   containers: { page: 'page-containers', title: 'Containers' },
   terminal: { page: 'page-terminal', title: 'Terminal' },
 };
 
-// Older deep links still resolve (users/cron merged into access; the process
-// table now lives under the Dashboard).
-const VIEW_ALIAS = { users: 'access', cron: 'access', processes: 'overview' };
+// Older deep links still resolve (network/access/users/cron merged into
+// services; the process table lives under the Dashboard).
+const VIEW_ALIAS = {
+  users: 'services', cron: 'services', network: 'services', access: 'services', processes: 'overview',
+};
 
 function el(id) { return document.getElementById(id); }
 

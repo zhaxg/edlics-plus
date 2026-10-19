@@ -1,6 +1,5 @@
-// network.mjs — Network as a 4-column board (Interfaces / Routes / Sockets /
-// Firewall). Each column is a card with its own scrollable item list.
-// Read-only; data from /api/sys/network{,/sockets,/firewall}.
+// network.mjs — network views for the System page tabs: Interfaces / Routes /
+// Ports / Firewall. Read-only; data from /api/sys/network{,/sockets,/firewall}.
 import { api, escapeHtml, spinner } from './api.mjs';
 
 let data = null;      // { interfaces, routes, dns }
@@ -12,17 +11,12 @@ function dot(state) {
   return `<span class="svc-dot ${cls}"></span>`;
 }
 
-/** Render a list of item-html strings into a column body, with a count. */
-function fill(bodyId, countId, items) {
-  const body = document.getElementById(bodyId);
-  const count = document.getElementById(countId);
-  if (count) count.textContent = items.length ? String(items.length) : '';
-  if (!body) return;
-  body.innerHTML = items.length ? `<div class="ilist">${items.join('')}</div>`
-    : '<div class="panel-placeholder">No data</div>';
+function board(elId, items, empty) {
+  const b = document.getElementById(elId);
+  if (!b) return;
+  b.innerHTML = items && items.length ? `<div class="ilist">${items.join('')}</div>`
+    : `<div class="panel-placeholder">${empty}</div>`;
 }
-
-// --- item builders ---------------------------------------------------------
 
 function fmtLft(sec) {
   if (sec == null) return '';
@@ -32,19 +26,17 @@ function fmtLft(sec) {
   return sec + 's';
 }
 
+// --- item builders ---------------------------------------------------------
+
 function ifaceItems(n) {
   const items = (n.interfaces || []).map(i => {
     const addrAll = (i.addresses || []);
-    // Show only stable addresses: hide temporary / deprecated / privacy ones.
-    // If that would hide every global v6, fall back to showing them all.
     const UNSTABLE = new Set(['temporary', 'deprecated', 'privacy']);
     let shown = addrAll.filter(a => !UNSTABLE.has(a.kind));
     const hasGlobalV6 = arr => arr.some(a => a.family === 'inet6' && a.scope === 'global');
     if (!hasGlobalV6(shown) && hasGlobalV6(addrAll)) shown = addrAll;
-
     const v4 = shown.filter(a => a.family === 'inet');
     const v6 = shown.filter(a => a.family === 'inet6');
-    // IPv4 first, then IPv6 — one address per line. Kind/lifetime on hover only.
     const addrHtml = [...v4, ...v6].map(a => {
       const tip = a.kind === 'link-local' ? 'link-local (fe80::)'
         : `${a.kind}${a.preferred != null ? ' · preferred ' + fmtLft(a.preferred) : ''}${a.valid != null ? ' · valid ' + fmtLft(a.valid) : ''}`;
@@ -78,32 +70,40 @@ function routeItems(n) {
       `<div class="ilist-field"><span class="ilist-k">${k}</span><span class="ilist-v">${escapeHtml(v)}</span></div>`).join('');
     return `<div class="ilist-item">
       <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(r.dst)}</span>
-        <span class="ilist-meta">${r.family === 'inet6' ? 'v6' : 'v4'}</span></div>
+        <span class="ilist-meta">${r.family === 'inet6' ? 'v6' : 'v4'}${r.protocol ? ' · ' + escapeHtml(r.protocol) : ''}</span></div>
       ${fields ? `<div class="ilist-fields">${fields}</div>` : ''}
     </div>`;
   });
 }
 
-function socketItems() {
-  if (sockets === null) return null;
-  return sockets.map(s => `<div class="ilist-item">
+function socketItems(list) {
+  return (list || []).map(s => `<div class="ilist-item">
       <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(s.local)}</span>
-        <span class="ilist-meta">${escapeHtml(s.proto)}</span></div>
+        <span class="ilist-meta">${escapeHtml(s.proto)} · ${escapeHtml(s.state)}</span></div>
       ${s.process ? `<div class="ilist-sub mono">${escapeHtml(s.process)}</div>` : ''}
     </div>`);
 }
 
 function firewallItems() {
-  if (firewall === null) return null;
   const f = firewall;
-  if (!f.available || !f.tables) return [];
+  if (f === null) return null;
+  if (!f.available) return [];
   const out = [`<div class="ilist-item"><div class="ilist-head">
       <span class="ilist-title">nftables</span>
-      <span class="ilist-meta">${f.chains} chains · ${f.rules} rules</span></div></div>`];
+      <span class="ilist-meta">${f.tables} tables · ${f.chains} chains · ${f.rules} rules</span></div></div>`];
   for (const t of f.list) {
     out.push(`<div class="ilist-item">
       <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(t.name)}</span>
-        <span class="ilist-meta">${escapeHtml(t.family)} · ${t.chains}</span></div></div>`);
+        <span class="ilist-meta">${escapeHtml(t.family)} · ${t.chains} chains</span></div></div>`);
+  }
+  // Listening TCP ports = the practically "open" services.
+  out.push('<div class="split-group-title" style="margin-top:8px;">open (listening) TCP ports</div>');
+  const tcp = (sockets || []).filter(s => /tcp/i.test(s.proto));
+  if (!tcp.length) out.push('<div class="panel-placeholder">none</div>');
+  for (const s of tcp) {
+    out.push(`<div class="ilist-item">
+      <div class="ilist-head"><span class="ilist-title mono">${escapeHtml(s.local)}</span>
+        <span class="ilist-meta">${escapeHtml(s.process || '')}</span></div></div>`);
   }
   return out;
 }
@@ -112,15 +112,18 @@ function firewallItems() {
 
 function render() {
   const n = data || { interfaces: [], routes: [], dns: { nameservers: [], search: [] } };
-  fill('netIfaces', 'netIfCount', ifaceItems(n));
-  fill('netRoutes', 'netRoutesCount', routeItems(n));
-  fill('netSockets', 'netSocketsCount', socketItems() || []);
-  fill('netFw', 'netFwCount', firewallItems() || []);
+  board('ifacesBoard', ifaceItems(n), 'No interfaces');
+  board('routesBoard', routeItems(n), 'No routes');
+  board('portsBoard', socketItems(sockets), 'No listening ports');
+  const fw = firewallItems();
+  board('firewallBoard', fw, fw && fw.length ? 'No firewall data' : 'nftables not available');
 }
 
 export async function refreshNetwork() {
-  data = null; sockets = null; firewall = null;
-  document.getElementById('netIfaces') && (document.getElementById('netIfaces').innerHTML = spinner('Loading…'));
+  ['ifacesBoard', 'routesBoard', 'portsBoard', 'firewallBoard'].forEach(id => {
+    const e = document.getElementById(id);
+    if (e) e.innerHTML = spinner('Loading…');
+  });
   const [net, sock, fw] = await Promise.all([
     api('GET', '/api/sys/network').catch(() => ({ interfaces: [], routes: [], dns: { nameservers: [], search: [] } })),
     api('GET', '/api/sys/network/sockets').catch(() => ({ sockets: [] })),
@@ -132,10 +135,4 @@ export async function refreshNetwork() {
   render();
 }
 
-export function initNetwork() {
-  const btn = document.getElementById('btnNetworkRefresh');
-  if (btn) btn.addEventListener('click', refreshNetwork);
-  document.addEventListener('view-changed', e => {
-    if (e.detail && e.detail.view === 'network') refreshNetwork();
-  });
-}
+export function initNetwork() { /* refreshed on tab activation by services.mjs */ }

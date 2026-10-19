@@ -43,6 +43,7 @@ bin/lib/
   network-api.js     网络只读视图：接口/路由/DNS/监听端口/nftables（ip -j、ss、nft -j + 文本兜底；地址带 kind/scope/生命周期）
   users-api.js       用户/组/会话只读（/etc/passwd、/etc/group、who）
   cron-api.js        定时任务只读（crontab、/etc/crontab、/etc/cron.d、systemd timers）
+  disk-api.js       存储视图：/api/sys/disk（df -h/df -i、lsblk -J、findmnt -J；纯解析器可单测）
   container-api.js   Docker 容器/compose：列表(含 stats/project/ports)+日志+启停/compose up|stop|build|down(|-v)（--admin-write+审计；引用先校验枚举）
   processes-api.js   进程列表(top 式 CPU%/MEM%/RSS/STAT/CMD) + 发信号(--admin-write + 白名单 + 审计)
   db.js              node:sqlite 封装 + schema(metrics_min/audit_log/login_attempts/meta)
@@ -57,11 +58,12 @@ public/js/           原生 ESM，**无构建、改完刷新即生效**
   auth.mjs activity.mjs workspace.mjs file-tree.mjs search.mjs git.mjs
   terminal-ui.mjs editor-ui.mjs tabs.mjs pathbar-status.mjs file-ops.mjs …
   overview.mjs       概览面板：系统信息 + 实时/历史图表（uPlot，SSE 驱动）
-  services.mjs       Services 页：tab(Services|Scheduled) + 左右分栏主从（服务→unit 文件 + 日志）
-  network.mjs        网络四列看板：接口/路由/监听端口/防火墙（每列一张卡+滚动 item 列表，只读）
-  users.mjs          Access 三列看板：Users/Groups/Sessions（每列一张卡+滚动列表，只读）
-  cron.mjs           Services 页 Scheduled tab：cron/timers 列表 → 右侧详情日志（cron 看守护单元日志）
-  logs.mjs           Services 页 Logs tab：系统日志查看器（来源 登录/认证/安全/内核、时间范围、级别、关键词）
+  services.mjs       System 页：多页签(Services|Scheduled|Logs|网络|Disk|Users) + 各 tab 激活时刷新；Services 为左右主从（服务→unit 文件+日志）
+  network.mjs        System ▸ Interfaces/Routes/Ports/Firewall 页签（ip -j / ss / nft，只读）
+  users.mjs          System ▸ Users：可登录账号 + who 会话（最后登录不可用：本机无 lastlog/last）
+  cron.mjs           System ▸ Scheduled tab：cron/timers 列表 → 右侧详情日志（cron 看守护单元日志）
+  logs.mjs           System ▸ Logs tab：系统日志查看器（来源 登录/认证/安全/内核、时间范围、级别、关键词）
+  disk.mjs           System ▸ Disk tab：df -h / df -i / lsblk / findmnt 四个分区
   containers.mjs     Docker 看板（tab：Containers/Compose）；item 三列（徽标｜三行内容｜图标按钮列，端口是唯一下拉），含 stats/项目
   processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
@@ -163,9 +165,11 @@ docs/                README 截图与 logo
 
 ## 前端关键约定
 
-- **两种视图族**：IDE（explorer/search/git，侧栏 + 编辑器）与 Console（Dashboard/Services/Network/
-  Access/Containers/**Terminal**，`index.html` 的 `#consoleArea` 内**单列全宽页**，不左右分栏）；**终端是
-  独立满页**（`#page-terminal`，xterm 填满主区；`--terminal` 关闭时切页给提示），不再是底部面板。**进程表并入
+- **两种视图族**：IDE（explorer/search/git，侧栏 + 编辑器）与 Console（Dashboard/**System**/
+  Containers/**Terminal**，`index.html` 的 `#consoleArea` 内**单列全宽页**，不左右分栏）。
+  **System 页 = 多页签**：Services｜Scheduled｜Logs｜Interfaces｜Routes｜Ports｜Firewall｜Disk｜Users
+  （网络/用户的独立页已并入此处；`#/network`、`#/access`、`#/users`、`#/cron` 由 `VIEW_ALIAS` 重定向到 services）。
+  **终端是独立满页**（`#page-terminal`）。**进程表并入
   Dashboard 下方**（`#procContent`，自身滚动 + 粘顶表头 + 过滤框；统计与过滤同一行）；**Scheduled
   tasks（cron + timers）在 Services 页内**，Access 页仅账号。列表一律用 `.ilist`/`.ilist-item` 卡片式
   （不要多列拥挤）；Dashboard 信息卡固定 **6 列**（`.dash-cards`，窄屏降 4/2/1），Security 卡
