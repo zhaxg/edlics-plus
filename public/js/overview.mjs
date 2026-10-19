@@ -145,26 +145,44 @@ function loadHistory(rangeKey) {
 
 // --- system info -----------------------------------------------------------
 
+/** Small, faint percentage ring. */
+function ring(pct) {
+  const p = Math.max(0, Math.min(100, Number(pct) || 0));
+  return `<svg class="ring" viewBox="0 0 36 36" width="20" height="20" aria-hidden="true">`
+    + `<circle class="ring-track" cx="18" cy="18" r="15.5" fill="none" stroke-width="3"/>`
+    + `<circle class="ring-fill" cx="18" cy="18" r="15.5" fill="none" stroke-width="3" pathLength="100"`
+    + ` stroke-dasharray="${p.toFixed(1)} 100" transform="rotate(-90 18 18)"/></svg>`;
+}
+
 function renderInfo(info) {
   const box = document.getElementById('ovInfo');
   if (!box || !info) return;
+  const pct = (used, total) => (total > 0 ? 100 * used / total : null);
+  const memTotal = info.memTotal || 0;
+  const memUsed = Math.max(0, memTotal - (info.memAvailable || info.memFree || 0));
+  const swapP = pct(info.swapUsed, info.swapTotal);
+  const loadP = (info.cores && info.load && info.load[0] != null)
+    ? Math.min(100, 100 * info.load[0] / info.cores) : null;
   const rows = [
-    ['Host', info.hostname],
-    ['OS', info.os],
-    ['Kernel', info.kernel],
-    ['Arch', info.arch],
-    ['CPU', `${info.cores}× ` + (info.cpuModel || 'unknown')],
-    ['Memory', `${fmtBytes(info.memTotal)}`],
-    ['Swap', info.swapTotal ? `${fmtBytes(info.swapUsed)} / ${fmtBytes(info.swapTotal)}` : 'none'],
-    ['Load', (info.load || []).join(' ')],
-    ['Disk /', '…'],
-    ['IP', info.ip || '—'],
-    ['Uptime', fmtUptime(info.uptime)],
-    ['Node', info.node],
+    ['Host', info.hostname, null],
+    ['OS', info.os, null],
+    ['Kernel', info.kernel, null],
+    ['Arch', info.arch, null],
+    ['CPU', `${info.cores}× ` + (info.cpuModel || 'unknown'), null],
+    ['Memory', `${fmtBytes(memUsed)} / ${fmtBytes(memTotal)}`, pct(memUsed, memTotal)],
+    ['Swap', info.swapTotal ? `${fmtBytes(info.swapUsed)} / ${fmtBytes(info.swapTotal)}` : 'none', swapP],
+    ['Load', (info.load || []).join(' '), loadP],
+    ['Disk /', '…', 0],   // placeholder ring; filled by loadDiskCard()
+    ['IP', info.ip || '—', null],
+    ['Uptime', fmtUptime(info.uptime), null],
+    ['Node', info.node, null],
   ];
-  box.innerHTML = rows.map(([k, v]) =>
-    `<div class="ov-row"><span class="ov-k">${k}</span><span class="ov-v" title="${escapeHtml(v)}">${escapeHtml(v)}</span></div>`
-  ).join('');
+  box.innerHTML = rows.map(([k, v, p]) => {
+    const meter = p != null
+      ? `<span class="ov-meter"><span class="ov-v" title="${escapeHtml(v)}">${escapeHtml(v)}</span>${ring(p)}</span>`
+      : `<span class="ov-v" title="${escapeHtml(v)}">${escapeHtml(v)}</span>`;
+    return `<div class="ov-row"><span class="ov-k">${k}</span>${meter}</div>`;
+  }).join('');
   loadDiskCard();
 }
 
@@ -173,13 +191,17 @@ async function loadDiskCard() {
   try {
     const d = await api('GET', '/api/sys/disk');
     const root = (d.mounts || []).find(m => m.mount === '/') || (d.mounts || [])[0];
-    const val = root ? `${root.used} / ${root.size} (${root.pct})` : '—';
+    if (!root) return;
     const box = document.getElementById('ovInfo');
     if (!box) return;
+    const val = `${root.used} / ${root.size} (${root.pct})`;
+    const p = Math.max(0, Math.min(100, parseFloat(String(root.pct).replace('%', '')) || 0));
     for (const row of box.querySelectorAll('.ov-row')) {
       if (row.querySelector('.ov-k').textContent === 'Disk /') {
         const v = row.querySelector('.ov-v');
-        v.textContent = val; v.title = val;
+        if (v) { v.textContent = val; v.title = val; }
+        const fill = row.querySelector('.ring-fill');
+        if (fill) fill.setAttribute('stroke-dasharray', `${p.toFixed(1)} 100`);
         break;
       }
     }

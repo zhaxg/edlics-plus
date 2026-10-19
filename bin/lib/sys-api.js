@@ -82,22 +82,20 @@ function primaryIp() {
   return '127.0.0.1';
 }
 
-/** Swap (bytes) from /proc/meminfo: {total, used}. */
-function swapInfo() {
+/** Memory/swap bytes from /proc/meminfo. */
+function memSummary() {
   try {
     const txt = fs.readFileSync('/proc/meminfo', 'utf-8');
-    const total = /SwapTotal:\s+(\d+)/.exec(txt);
-    const free = /SwapFree:\s+(\d+)/.exec(txt);
-    const t = total ? Number(total[1]) * 1024 : 0;
-    const f = free ? Number(free[1]) * 1024 : 0;
-    return { total: t, used: Math.max(0, t - f) };
-  } catch { return { total: 0, used: 0 }; }
+    const get = (k) => { const m = new RegExp('^' + k + ':\\s+(\\d+)', 'm').exec(txt); return m ? Number(m[1]) * 1024 : 0; };
+    const swapTotal = get('SwapTotal'), swapFree = get('SwapFree');
+    return { swapTotal, swapUsed: Math.max(0, swapTotal - swapFree), memAvailable: get('MemAvailable') };
+  } catch { return { swapTotal: 0, swapUsed: 0, memAvailable: 0 }; }
 }
 
 function handleInfo(ctx) {
   const { ok } = ctx;
   const cpus = os.cpus() || [];
-  const sw = swapInfo();
+  const mem = memSummary();
   ok({
     hostname: os.hostname(),
     os: osPrettyName(),
@@ -109,8 +107,9 @@ function handleInfo(ctx) {
     cores: cpus.length,
     memTotal: os.totalmem(),
     memFree: os.freemem(),
-    swapTotal: sw.total,
-    swapUsed: sw.used,
+    memAvailable: mem.memAvailable,
+    swapTotal: mem.swapTotal,
+    swapUsed: mem.swapUsed,
     load: os.loadavg().map(n => Number(n.toFixed(2))),
     ip: primaryIp(),
     node: process.version,

@@ -1365,3 +1365,10 @@ body.logged-out .context-menu { display: none !important; }
 /* Header icon buttons (refresh / 2FA / sign-out): borderless, hover tint */
 .page-header .icon-btn { border: none; background: transparent; }
 .page-header .icon-btn:hover { background: var(--hover); color: var(--text); }
+
+/* Dashboard cards: small, faint usage ring */
+.ov-meter { display: flex; align-items: center; gap: 8px; }
+.ov-meter .ov-v { flex: 1; }
+.ring { flex: 0 0 auto; }
+.ring-track { stroke: var(--border); }
+.ring-fill { stroke: var(--text-dim); opacity: 0.5; transition: stroke-dasharray 0.3s; }
