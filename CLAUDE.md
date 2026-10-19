@@ -54,20 +54,21 @@ bin/lib/
   version.js         版本号(git tag 优先，package.json 兜底)
 public/index.html    页面骨架：登录遮罩/活动栏/侧栏面板/编辑区/终端面板
 public/js/           原生 ESM，**无构建、改完刷新即生效**
-  app.mjs            主入口：快捷键、init、登录成功后 bootApp
-  auth.mjs activity.mjs workspace.mjs file-tree.mjs search.mjs git.mjs
-  terminal-ui.mjs editor-ui.mjs tabs.mjs pathbar-status.mjs file-ops.mjs …
-  overview.mjs       概览面板：系统信息 + 实时/历史图表（uPlot，SSE 驱动）
-  services.mjs       System 页：多页签(Services|Scheduled|Logs|网络|Disk|Users) + 各 tab 激活时刷新；Services 为左右主从（服务→unit 文件+日志）
-  network.mjs        System ▸ Interfaces/Routes/Ports/Firewall 页签（ip -j / ss / nft，只读）
-  users.mjs          System ▸ Users：可登录账号 + who 会话（最后登录不可用：本机无 lastlog/last）
-  cron.mjs           System ▸ Scheduled tab：cron/timers 列表 → 右侧详情日志（cron 看守护单元日志）
-  logs.mjs           System ▸ Logs tab：系统日志查看器（来源 登录/认证/安全/内核、时间范围、级别、关键词）
-  disk.mjs           System ▸ Disk tab：df -h / df -i / lsblk / findmnt 四个分区
-  containers.mjs     Docker 看板（tab：Containers/Compose）；item 三列（徽标｜三行内容｜图标按钮列，端口是唯一下拉），含 stats/项目
-  processes.mjs      top 式进程表（2s 自刷新，仅面板可见时轮询；有 --admin-write 时可发信号）
+  app.mjs            主入口：快捷键、IDE 模块 init、登录成功后 bootApp
+  shell.mjs          Preact 外壳：活动栏(CONSOLE_VIEWS/IDE_VIEWS) + 路由(hash) + 布局切换
+  store.mjs          极简共享状态(subscribe/set/setTab)：当前视图、每页页签、serverInfo、authed
+  components.mjs     通用展示组件：Page/Tabs/Card/Fields/DataTable/Chip/StatusDot/Ring/Spinner/Empty
+  format.mjs         数值格式化：fmtBytes/fmtRss/fmtUptime/pct/parsePct/fmtTime
+  views/             **Console 页 = Preact 组件**（唯一允许渲染 HTML 的地方）
+    dashboard.mjs      概览：信息卡 + uPlot 图表(SSE/历史) + 进程表 + 2FA 弹窗
+    system.mjs         System 九页签：Users|Services|Scheduled|Interfaces|Routes|Ports|Firewall|Disk|Logs
+    containers.mjs     Containers/Compose 两页签（stats 二次加载、状态化按钮、日志/编排文件抽屉）
+    terminal.mjs       Terminal 页壳；xterm 由 terminal-ui.mjs 挂载（terminal-mount 事件）
+  auth.mjs workspace.mjs file-tree.mjs search.mjs git.mjs   ← IDE（命令式 DOM）
+  terminal-ui.mjs editor-ui.mjs tabs.mjs pathbar-status.mjs file-ops.mjs …  ← IDE（命令式 DOM）
+public/ui.mjs        **构建产物**：Preact + htm + hooks + createPortal（约 18KB）
 public/css/style.css 全部样式(明暗主题=CSS变量；滚动条=全局规则)
-bundle/              esbuild 打包入口：editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)、qr.mjs(qrcode)
+bundle/              esbuild 打包入口：ui.mjs(Preact+htm)、editor.mjs(CodeMirror)、terminal.mjs(xterm)、charts.mjs(uPlot)、qr.mjs(qrcode)
 test/                node --test：paths/auth/git-parse/search/terminal-idle 单测 + smoke 集成
 docs/                README 截图与 logo
 ```
@@ -158,31 +159,46 @@ docs/                README 截图与 logo
 - 需要共享状态 → 模块内 `let`（参照 files-api 的 sudoPassword）
 - 给纯解析逻辑抽 `parse*` 导出函数 + 在 `test/` 加单测
 
-## 如何新增一个侧栏面板
+## 如何新增一个页面
 
-1. `public/index.html`：活动栏加 `<button class="act-btn" data-view="xxx">`，侧栏加
-   `<div class="panel hidden" id="panel-xxx">`
-2. `public/js/activity.mjs`：`VIEW_TO_PANEL` 加映射
+**Console 页（全宽，推荐）** —— 三步，无需改 index.html：
+
+1. 新建 `public/js/views/xxx.mjs`，`export default function XxxPage()`；
+   只从 `/ui.mjs`、`../api.mjs`、`../components.mjs`、`../format.mjs`、`../store.mjs` 导入
+2. `shell.mjs` 的 `CONSOLE_VIEWS` 加一条 `{ title, page, icon }`（需 `--admin` 的加入 `ADMIN_ONLY`）
+3. 数据请求放 `useEffect`（带 cleanup）；页签状态用 `setTab('xxx', id)`
+
+**IDE 侧栏页** ——
+
+1. `public/index.html`：侧栏加 `<div class="panel hidden" id="panel-xxx">`
+2. `shell.mjs` 的 `IDE_VIEWS` 加 `{ title, panel: 'panel-xxx', icon }`
 3. 新建 `public/js/xxx.mjs`，在 `app.mjs` 里 init
-4. 样式写进 `public/css/style.css`（颜色一律用 `var(--*)`，明暗主题自动适配）
+
+样式写进 `public/css/style.css`（颜色一律用 `var(--*)`，明暗主题自动适配）。
 
 ## 前端关键约定
 
-- **两种视图族**：Console（Dashboard/**System**/Containers/**Terminal**，`index.html` 的 `#consoleArea`
-  内**单列全宽页**，不左右分栏）与 IDE（explorer/search/git，侧栏 + 编辑器）。活动栏顺序为
-  先 Console 组、后 IDE 组；**默认视图 = Dashboard**（`applyInitialView` 无 hash 时回落 overview）。
-  **System 页 = 多页签**：Services｜Scheduled｜Logs｜Interfaces｜Routes｜Ports｜Firewall｜Disk｜Users
-  （网络/用户的独立页已并入此处；`#/network`、`#/access`、`#/users`、`#/cron` 由 `VIEW_ALIAS` 重定向到 services）。
-  **终端是独立满页**（`#page-terminal`）。**进程表并入
-  Dashboard 下方**（`#procContent`，自身滚动 + 粘顶表头 + 过滤框；统计与过滤同一行）；**Scheduled
-  tasks（cron + timers）在 Services 页内**，Access 页仅账号。列表一律用 `.ilist`/`.ilist-item` 卡片式
-  （不要多列拥挤）；Dashboard 信息卡固定 **6 列**（`.dash-cards`，窄屏降 4/2/1），Security 卡
-  `grid-column: span 3`。`activity.mjs` 按 `location.hash`（`#/services`）路由，切换时派发 `view-changed`；
-  旧 `#/processes`、`#/cron`、`#/users` 通过 `VIEW_ALIAS` 重定向。新增 Console 页 = `index.html` 加
-  `<section class="page" id="page-x">` + `activity.mjs` 的 `CONSOLE_VIEWS` 映射 + `app.mjs` init。
-- **业务代码零构建**：只改 `public/js/*.mjs` 即生效；改 `bundle/editor.mjs`（CodeMirror）或
-  `bundle/terminal.mjs`（xterm）才需要 `npm run build`。
-- **`public/editor.mjs`、`public/terminal.*` 是构建产物，禁止手改。**
+- **两种视图族**：Console（Dashboard/**System**/Containers/**Terminal**，渲染进 `#consoleArea`，
+  **单列全宽页**，不左右分栏）与 IDE（explorer/search/git，侧栏 + 编辑器）。活动栏顺序为先 Console
+  组、后 IDE 组；**默认视图 = Dashboard**（`applyInitialView` 无 hash 时回落 overview）。
+- **渲染分层（重要）**：Console 页一律用 **Preact + htm**（`views/*.mjs`），IDE 仍为命令式 DOM
+  （CodeMirror/xterm 持有自己的节点）。`shell.mjs` 渲染活动栏和当前 Console 页，并把 IDE 布局
+  留在 `index.html`（`#sidebar`/`#editorArea`/`#tabs`），因为那些节点归 IDE 模块所有。
+- **禁止 `innerHTML` 拼接**：任何用户/系统数据都走 `html\`\`` 的文本节点（天然转义）；唯一的
+  `dangerouslySetInnerHTML` 是 2FA 的二维码 SVG（本地生成）。渲染函数只渲染，**不在 render 里注册
+  全局 `document` 监听**（全局监听放 `useEffect` 并返回清理函数）。
+- **System 页 = 九页签**：Users｜Services｜Scheduled｜Interfaces｜Routes｜Ports｜Firewall｜Disk｜Logs
+  （网络/用户的独立页已并入此处；`#/network`、`#/access`、`#/users`、`#/cron` 由 `ALIAS` 重定向到 services）。
+  **终端是独立满页**；**进程表并入 Dashboard 下方**（自身滚动 + 粘顶表头 + 过滤框）；
+  **Scheduled tasks（cron + timers）在 System 页内**。列表一律用 `.ilist`/`.ilist-item` 卡片式
+  （不要多列拥挤）；Dashboard 信息卡固定 **6 列**（`.dash-cards`，窄屏降 4/2/1）。
+- **登录前不得拉数据**：`store.authed` 在 `bootApp` 里置真，`ConsoleHost` 未登录时渲染 null
+  （否则会 401 刷屏）。
+- **业务代码零构建**：只改 `public/js/*.mjs` 即生效；改 `bundle/ui.mjs`（Preact+htm）、
+  `bundle/editor.mjs`（CodeMirror）或 `bundle/terminal.mjs`（xterm）才需要 `npm run build`。
+- **`public/ui.mjs`、`public/editor.mjs`、`public/terminal.*`、`public/charts.mjs`、`public/qr.mjs`
+  是构建产物，禁止手改。** `npm run build` 末尾会跑 `scripts/check-bundles.mjs` 校验导出表
+  （压缩器丢弃未用绑定时会在这里立刻报错，而不是运行时报 “does not provide an export”）。
 - ESM 循环引用（tabs ↔ editor-ui）：只允许**运行时**使用对方（函数体内调用），顶层勿执行。
   新模块优先动态 `import('./x.mjs')` 打断环（file-ops/git 均如此）。
 - `state.mjs` 是全局单例状态；类型见其中的 `TabInfo` JSDoc typedef。
@@ -197,6 +213,8 @@ docs/                README 截图与 logo
 - 纯函数：直接 `require('../bin/lib/xxx')`（如 git 解析、路径安全、内容匹配）
 - 集成：`test/smoke.test.js` 模式——spawn 真服务(随机端口+--password) → fetch 驱动 →
   after() kill。含认证、穿越回归、gzip/304、PTY 往返。
+- 前端架构守卫：`test/frontend-arch.test.js`（views 无 innerHTML、仅从共享模块导入、
+  所有 Console 页都注册进 `shell.mjs`、构建产物导出齐全）
 - 改动后基线：`npm test && npm run build && timeout 3 node bin/edlics.js serve --port 19999 || true`
 
 ## 已知坑

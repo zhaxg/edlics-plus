@@ -108,8 +108,9 @@ function sendInput(data) {
   });
 }
 
-function restartTerminal() {
-  if (!term) return;
+/** Restart the shell (also used by the Terminal page toolbar). */
+export function restartTerminal() {
+  if (!term) { ensureInit(); return; }
   closing = true;
   api('POST', '/api/term/close', {})
     .catch(() => {})
@@ -231,6 +232,20 @@ export function initTerminal() {
   initPanelResize();
   const kill = document.getElementById('terminalKill');
   if (kill) kill.addEventListener('click', restartTerminal);
+  // The Terminal page is a Preact view now: notify us whenever it mounts so
+  // the xterm instance is created against the live container element.
+  document.addEventListener('terminal-mount', ensureInit);
+}
+
+/**
+ * Detach xterm from its container (called when the Terminal page unmounts, or
+ * before the container element is replaced). Call initTerminal() to remount.
+ */
+export function disposeTerminal() {
+  if (term) { try { term.dispose(); } catch { /* already disposed */ } }
+  term = null;
+  fit = null;
+  document.removeEventListener('terminal-mount', ensureInit);
 }
 
 /**
@@ -243,7 +258,7 @@ export function runCommandInTerminal(cmd) {
     import('./api.mjs').then(m => m.toast('Terminal is disabled — start the server with --terminal', true));
     return;
   }
-  import('./activity.mjs').then(m => m.switchView('terminal'));
+  import('./shell.mjs').then(m => m.switchView('terminal'));
   const go = () => sendInput(cmd + '\r');
   if (term) { try { fit.fit(); } catch {} ensureSession(); setTimeout(go, 250); }
   else setTimeout(() => { ensureInit(); setTimeout(go, 500); }, 250);

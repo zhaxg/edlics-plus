@@ -327,30 +327,33 @@ edlics-plus/
 │       ├── processes-api.js   #   进程表 + 信号
 │       └── version.js         #   版本号解析
 ├── bundle/
+│   ├── ui.mjs                 # Preact + htm 打包入口 → public/ui.mjs（控制台页框架）
 │   ├── editor.mjs             # CodeMirror 6 打包入口 → public/editor.mjs
 │   ├── terminal.mjs           # xterm.js 打包入口 → public/terminal.mjs + terminal.css
 │   ├── charts.mjs             # uPlot 打包入口 → public/charts.mjs + charts.css
 │   ├── qr.mjs                 # qrcode 打包入口 → public/qr.mjs（2FA 二维码）
 │   └── build-icons.mjs        # Material 图标 manifest 生成
 ├── public/                    # 前端静态资源（原样由服务器托管）
-│   ├── index.html             # 页面骨架：活动栏 / 侧栏 / 控制台页 / 编辑器 / 终端 / 登录页
+│   ├── index.html             # 页面骨架：活动栏挂载点 / 侧栏 / 控制台区 / 编辑器 / 登录页
 │   ├── css/style.css          # 全部样式（CSS 变量实现明暗主题）
 │   ├── js/
-│   │   ├── app.mjs            # 主入口：快捷键、初始化、登录后 boot
+│   │   ├── app.mjs            # 主入口：快捷键、IDE 模块初始化、登录后 boot
+│   │   ├── shell.mjs          # Preact 外壳：活动栏 + hash 路由 + 布局切换
+│   │   ├── store.mjs          # 共享状态（当前视图 / 页签 / serverInfo / 登录态）
+│   │   ├── components.mjs     # 通用组件：Page/Tabs/Card/Table/StatusDot/Ring…
+│   │   ├── format.mjs         # 数值格式化（字节/时长/百分比）
+│   │   ├── views/             # 控制台页（Preact 组件）
+│   │   │   ├── dashboard.mjs  #   Dashboard：信息卡、图表、进程表、2FA 弹窗
+│   │   │   ├── system.mjs     #   System 九页签（用户/服务/定时/网络/防火墙/磁盘/日志）
+│   │   │   ├── containers.mjs #   容器与 compose 看板
+│   │   │   └── terminal.mjs   #   终端页壳（xterm 由 terminal-ui 挂载）
 │   │   ├── auth.mjs           # 登录页 / 会话 / 退出
-│   │   ├── activity.mjs       # 活动栏与 hash 路由（Console / IDE 两类视图）
-│   │   ├── overview.mjs       # Dashboard：信息卡、实时/历史图表、2FA 弹窗
-│   │   ├── services.mjs       # System 页页签调度 + 服务主从详情
-│   │   ├── logs.mjs           # 系统日志查看器（来源/时间/级别/关键词）
-│   │   ├── network.mjs users.mjs disk.mjs cron.mjs   # 控制台各页签
-│   │   ├── containers.mjs     # 容器/compose 看板（两步加载、状态化按钮）
-│   │   ├── processes.mjs      # 进程表（面板可见时才轮询）
 │   │   ├── terminal-ui.mjs    # xterm + PTY 流式输入输出
-│   │   ├── editor-ui.mjs tabs.mjs file-ops.mjs …     # 编辑器相关
+│   │   ├── editor-ui.mjs tabs.mjs file-ops.mjs …     # 编辑器相关（命令式 DOM）
 │   │   ├── workspace.mjs file-tree.mjs search.mjs git.mjs
 │   │   └── state.mjs api.mjs theme.mjs icons.mjs …
 │   ├── icons/                 # Material Design 图标（600+ SVG）
-│   ├── editor.mjs terminal.mjs terminal.css charts.mjs charts.css qr.mjs  # esbuild 产物（勿手改）
+│   ├── ui.mjs editor.mjs terminal.mjs terminal.css charts.mjs charts.css qr.mjs  # esbuild 产物（勿手改）
 ├── test/                      # node --test：单测 + 服务集成冒烟
 ├── docs/                      # 截图、logo、ADMIN-PANEL-PLAN.md、UX-OPTIMIZATION.md
 ├── .github/workflows/         # publish.yml（tag→npm+Release）、release.yml（手动补发）
@@ -362,9 +365,12 @@ edlics-plus/
 ### 前端调试须知
 
 - **业务代码无构建**：`public/js/*.mjs` 是原生 ES Module，服务器不缓存，改完**刷新浏览器即生效**
-- **需要打包的只有两个 bundle**（改到才需要重新 `npm run build`）：
+- **需要打包的只有这几个 bundle**（改到才需要重新 `npm run build`）：
+  - `bundle/ui.mjs` → Preact + htm（控制台页框架，约 18KB）
   - `bundle/editor.mjs` → CodeMirror 相关
   - `bundle/terminal.mjs` → xterm 相关
+- **控制台页用 Preact 组件写**：新建 `public/js/views/xxx.mjs`，在 `shell.mjs` 的 `CONSOLE_VIEWS`
+  注册一行即可；模板用 `html\`\`` 标签（数据自动转义，不要再拼 `innerHTML`）
 - 主题：`theme.mjs` 里 `THEME_LIGHT` 定义 CSS 变量组；xterm 调色板在 `terminal-ui.mjs` 的 `XTERM_DARK/XTERM_LIGHT`
 
 ### 后端调试须知

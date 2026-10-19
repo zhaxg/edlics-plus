@@ -1,7 +1,7 @@
 {
   "name": "edlics-plus",
   "version": "1.2.7",
-  "description": "Web-based file browser and code editor for Linux servers — enhanced fork of Edlics",
+  "description": "Web-based file browser and code editor for Linux servers \u2014 enhanced fork of Edlics",
   "bin": {
     "edlics": "./bin/edlics.js"
   },
@@ -20,9 +20,10 @@
   },
   "homepage": "https://github.com/zhaxg/edlics-plus#readme",
   "scripts": {
-    "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020 --minify && esbuild bundle/terminal.mjs --bundle --format=esm --outfile=public/terminal.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/charts.mjs --bundle --format=esm --outfile=public/charts.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/qr.mjs --bundle --format=esm --outfile=public/qr.mjs --target=es2020 --minify",
+    "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020 --minify && esbuild bundle/terminal.mjs --bundle --format=esm --outfile=public/terminal.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/charts.mjs --bundle --format=esm --outfile=public/charts.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/qr.mjs --bundle --format=esm --outfile=public/qr.mjs --target=es2020 --minify && esbuild bundle/ui.mjs --bundle --format=esm --outfile=public/ui.mjs --target=es2020 --minify && node scripts/check-bundles.mjs",
     "postinstall": "npm run build",
-    "test": "node --test"
+    "test": "node --test",
+    "check:bundles": "node scripts/check-bundles.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.3",
@@ -47,7 +48,9 @@
     "@xterm/xterm": "^6.0.0",
     "codemirror": "^6.0.2",
     "esbuild": "^0.28.0",
+    "htm": "^3.1.1",
     "node-pty": "^1.1.0",
+    "preact": "^11.0.1",
     "qrcode": "^1.5.4",
     "uplot": "^1.6.32"
   }

@@ -75,6 +75,8 @@ body {
 .toolbar .search-box:focus { border-color: var(--accent); width: 200px; }
 .toolbar .search-box::placeholder { color: var(--text-dimmer); }
 .container { display: flex; flex: 1; overflow: hidden; }
+/* Preact mounts the activity rail into this host (see shell.mjs). */
+#railHost { display: contents; }
 
 /* Activity bar (VS Code style icon strip) */
 .activitybar {
@@ -1375,3 +1377,16 @@ body.logged-out .context-menu { display: none !important; }
 
 /* Ring progress: bright green, clearly visible */
 .ring-fill { stroke: var(--green); opacity: 1; }
+
+/* ---- Preact shell: helpers added with the component migration ---------- */
+
+/* Per-tab refresh control (Interfaces/Routes/Ports/Firewall/Disk) */
+.board-actions { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.board-actions .icon-btn { font-size: 13px; line-height: 1; }
+
+/* Sortable process columns */
+.proc-sortable { cursor: pointer; }
+.proc-sortable:hover { color: var(--text); }
+
+/* Floating menu anchored to the right edge (port lists) */
+.floating-menu { max-height: 60vh; overflow: auto; }
