@@ -19,18 +19,20 @@ const openLogs = new Set();
 const canWrite = () => !!(serverInfo && serverInfo.adminWrite) && !(serverInfo && serverInfo.readonly);
 const WHALE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></svg>';
 
-// Inline SVG icons for the action buttons.
-const S = (inner) => `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+// Inline SVG icons for the action buttons (paths supplied by the user;
+// stroke/fill set to currentColor so they follow the app theme).
+const S = (inner) => `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const F = (d, vb = '0 0 24 24') => `<svg viewBox="${vb}" width="15" height="15" fill="currentColor">${d}</svg>`;
 const IC = {
   ports: S('<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>'),
-  logs: S('<path d="M4 6h16M4 12h16M4 18h10"/>'),
-  console: S('<polyline points="5 7 10 12 5 17"/><line x1="12" y1="17" x2="19" y2="17"/>'),
-  start: S('<path d="M7 4l12 8-12 8z" fill="currentColor"/>'),
-  restart: S('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
-  stop: S('<rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor" stroke="none"/>'),
-  build: S('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/>'),
-  clean: S('<path d="M12 4v11M7 10l5 5 5-5M4 20h16"/>'),
-  del: S('<path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/>'),
+  logs: S('<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2m-8-4h6m-6-4h6"/>'),
+  console: S('<path d="m5 7l5 5l-5 5m7 2h7"/>'),
+  start: S('<path d="M5 5v14a2 2 0 0 0 2.75 1.84L20 13.74a2 2 0 0 0 0-3.5L7.75 3.14A2 2 0 0 0 5 4.89"/>'),
+  restart: S('<path d="M19.933 13.041a8 8 0 1 1-9.925-8.788c3.899-1 7.935 1.007 9.425 4.747"/><path d="M20 4v5h-5"/>'),
+  stop: S('<path d="M7 6a7.75 7.75 0 1 0 10 0m-5-2v8"/>'),
+  build: F('<path d="m8.354 5.854l2-2a.5.5 0 0 0-.708-.707L8.5 4.293V.5a.5.5 0 0 0-1 0v3.793L6.354 3.147a.5.5 0 0 0-.707.707l2 2a.5.5 0 0 0 .707 0"/><path d="M15 12.5c0 1.379-1.121 2.5-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5v-6a.5.5 0 0 1 1 0v6c0 .827.673 1.5 1.5 1.5h9c.827 0 1.5-.673 1.5-1.5v-6a.5.5 0 0 1 1 0z"/><path d="M4 10a1 1 0 1 0 0-2a1 1 0 0 0 0 2m4 0a1 1 0 1 0 0-2a1 1 0 0 0 0 2m-2 3a1 1 0 1 0 0-2a1 1 0 0 0 0 2m4 0a1 1 0 1 0 0-2a1 1 0 0 0 0 2m2-3a1 1 0 1 0 0-2a1 1 0 0 0 0 2"/>', '0 0 16 16'),
+  clean: F('<path d="m19.36 2.72l1.42 1.42l-5.72 5.71c1.07 1.54 1.22 3.39.32 4.59L9.06 8.12c1.2-.9 3.05-.75 4.59.32zM5.93 17.57c-2.01-2.01-3.24-4.41-3.58-6.65l4.88-2.09l7.44 7.44l-2.09 4.88c-2.24-.34-4.64-1.57-6.65-3.58"/>'),
+  del: F('<path d="M20 6a1 1 0 0 1 .117 1.993L20 8h-.081L19 19a3 3 0 0 1-2.824 2.995L16 22H8c-1.598 0-2.904-1.249-2.992-2.75l-.005-.167L4.08 8H4a1 1 0 0 1-.117-1.993L4 6zm-10 4a1 1 0 0 0-1 1v6a1 1 0 0 0 2 0v-6a1 1 0 0 0-1-1m4 0a1 1 0 0 0-1 1v6a1 1 0 0 0 2 0v-6a1 1 0 0 0-1-1m0-8a2 2 0 0 1 2 2a1 1 0 0 1-1.993.117L14 4h-4l-.007.117A1 1 0 0 1 8 4a2 2 0 0 1 1.85-1.995L10 2z"/>'),
 };
 const ibtn = (attr, key, title, danger) =>
   `<button class="icon-btn sm ctr-ibtn${danger ? ' danger' : ''}" ${attr} title="${escapeHtml(title)}">${IC[key]}</button>`;
