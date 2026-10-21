@@ -77,6 +77,14 @@ function splitStatus(status) {
 /** Health value → dot colour class: ok green / bad red / anything else warn. */
 const healthDot = h => h === 'healthy' ? 'ok' : h === 'unhealthy' ? 'bad' : 'warn';
 
+/**
+ * Dot after the status text: health wins when the container has a HEALTHCHECK,
+ * otherwise fall back to the container state (running/exited/…).
+ */
+const metaDot = (st, state) => st.health
+  ? healthDot(st.health)
+  : state === 'running' ? 'ok' : state === 'exited' ? 'off' : 'warn';
+
 /** Docker's MemUsage is "used / total"; the card shows the used part only. */
 const usedOnly = v => String(v).split('/')[0].trim();
 
@@ -179,8 +187,8 @@ function ContainerCard({ c, stats, statsLoading, busy, onAction }) {
         <div class="ctr-name"><span class="ctr-name-text">${c.name}</span></div>
         <div class="ctr-sub">
           ${metrics.length ? metrics : html`<span class="ctr-metric">${statsLoading ? 'loading stats…' : 'no stats'}</span>`}
-          <span class="ctr-meta mono" title=${c.status || ''}>${c.image}${st.text ? ' · ' + st.text : ''}${st.health
-            ? html`<i class=${'ctr-hdot ' + healthDot(st.health)}></i>` : null}</span>
+          <span class="ctr-meta mono" title=${[c.image, c.status].filter(Boolean).join(' · ')}>${st.text}${st.text
+            ? html`<i class=${'ctr-hdot ' + metaDot(st, c.state)}></i>` : ''}</span>
         </div>
       </div>
     </div>
