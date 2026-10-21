@@ -61,6 +61,25 @@ const BADGE_ICON = html`<svg viewBox="0 0 24 24" width="22" height="22" fill="no
 
 const dotClass = s => s === 'running' ? 'ok' : s === 'exited' ? 'off' : 'warn';
 
+/**
+ * Split Docker's Status into plain text + health, so the card can render the
+ * health part as a dot instead of the long "(healthy)" / "(health: starting)"
+ * suffix — the meta row then has a stable width and never gains a line.
+ *   "Up 2 hours (healthy)" → { text: 'Up 2 hours', health: 'healthy' }
+ *   "Exited (1) 2 hours ago" → { text: 'Exited (1) 2 hours ago', health: '' }
+ */
+function splitStatus(status) {
+  const m = /^(.*?)\s*\((healthy|unhealthy|health:\s*starting)\)$/i.exec(String(status || ''));
+  if (!m) return { text: String(status || ''), health: '' };
+  return { text: m[1], health: m[2].toLowerCase().replace(/^health:\s*/, '') };
+}
+
+/** Health value → dot colour class: ok green / bad red / anything else warn. */
+const healthDot = h => h === 'healthy' ? 'ok' : h === 'unhealthy' ? 'bad' : 'warn';
+
+/** Docker's MemUsage is "used / total"; the card shows the used part only. */
+const usedOnly = v => String(v).split('/')[0].trim();
+
 /** Top-level URL for a published port (wildcard hosts use the page host). */
 function portUrl(p) {
   const host = (!p.host || /^(0\.0\.0\.0|::|\[::\]|:::)$/.test(p.host)) ? location.hostname : p.host;
@@ -146,11 +165,12 @@ function ContainerCard({ c, stats, statsLoading, busy, onAction }) {
   }
 
   const metrics = [
-    s.mem ? html`<span class="ctr-metric"><b>RAM</b> ${s.mem}</span>` : null,
+    s.mem ? html`<span class="ctr-metric"><b>RAM</b> ${usedOnly(s.mem)}</span>` : null,
     s.cpu ? html`<span class="ctr-metric"><b>CPU</b> ${s.cpu}</span>` : null,
     net[0] ? html`<span class="ctr-metric"><b>↓</b> ${net[0]}</span>` : null,
     net[1] ? html`<span class="ctr-metric"><b>↑</b> ${net[1]}</span>` : null,
   ].filter(Boolean);
+  const st = splitStatus(c.status);
 
   return html`<div class="ilist-item ctr">
     <div class="ctr-head">
@@ -159,7 +179,8 @@ function ContainerCard({ c, stats, statsLoading, busy, onAction }) {
         <div class="ctr-name"><span class="ctr-name-text">${c.name}</span></div>
         <div class="ctr-sub">
           ${metrics.length ? metrics : html`<span class="ctr-metric">${statsLoading ? 'loading stats…' : 'no stats'}</span>`}
-          <span class="ctr-meta mono">${c.image}${c.status ? ' · ' + c.status : ''}</span>
+          <span class="ctr-meta mono" title=${c.status || ''}>${c.image}${st.text ? ' · ' + st.text : ''}${st.health
+            ? html`<i class=${'ctr-hdot ' + healthDot(st.health)}></i>` : null}</span>
         </div>
       </div>
     </div>

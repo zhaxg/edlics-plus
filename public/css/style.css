@@ -1012,13 +1012,22 @@ pre.logs .log-warn { color: var(--yellow); }
 .ctr-ico { color: var(--accent); display: flex; align-items: center; }
 .ctr-actions { margin-left: auto; display: flex; gap: 4px; align-items: center; }
 .icon-btn.sm { padding: 2px 7px; font-size: 11px; line-height: 1.2; }
-.ctr-sub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ctr-sub { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; margin-top: 6px; min-width: 0; overflow: hidden; }
 .ctr-tag {
   font-size: 10px; background: var(--hover); border: 1px solid var(--border);
   border-radius: 4px; padding: 1px 6px; color: var(--text-dim);
 }
-.ctr-metric { font-size: 11px; color: var(--text-dim); }
+.ctr-metric { font-size: 11px; color: var(--text-dim); flex: 0 0 auto; white-space: nowrap; }
 .ctr-metric b { color: var(--text-dimmer); font-weight: 600; margin-right: 3px; }
+
+/* Health suffix from Docker's Status, shown as a dot (keeps the row one line) */
+.ctr-hdot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-left: 6px; vertical-align: -1px; background: var(--text-dimmer);
+}
+.ctr-hdot.ok { background: var(--green); }
+.ctr-hdot.warn { background: var(--yellow); }
+.ctr-hdot.bad { background: var(--red); }
 
 .floating-menu {
   position: fixed; z-index: 3000; min-width: 180px;
@@ -1067,7 +1076,7 @@ pre.logs .log-warn { color: var(--yellow); }
 .ctr-badge-dot.warn { background: var(--yellow); }
 .ctr-main { grid-column: 2; grid-row: 1 / -1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ctr-name { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ctr-meta { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ctr-meta { font-size: 11px; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1 1 auto; min-width: 0; }
 .ctr-sub { margin-top: 0; }
 .ctr-actions {
   grid-column: 3; grid-row: 1 / -1; align-self: center; margin: 0;
