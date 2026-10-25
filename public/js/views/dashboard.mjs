@@ -61,9 +61,10 @@ function Chart({ label, unit, series, data }) {
     const el = host.current;
     if (!el) return undefined;
     const p = { accent: cssVar('--accent', '#1e66f5'), green: cssVar('--green', '#40a02b'), peach: cssVar('--peach', '#fe640b'), mauve: cssVar('--mauve', '#8839ef') };
+    const fillAlpha = cssVar('--chart-fill-alpha', '22');
     const strokes = series.map(k => p[k] || p.accent);
     chart.current = new uPlot(
-      chartOpts(el, strokes.map(c => ({ stroke: c, width: 1.5, ...(series.length === 1 ? { fill: c + '22' } : {}) }))),
+      chartOpts(el, strokes.map(c => ({ stroke: c, width: 1.5, ...(series.length === 1 ? { fill: c + fillAlpha } : {}) }))),
       [[], ...series.map(() => [])],
       el,
     );

@@ -15,10 +15,10 @@ const XTERM_DARK = {
   selectionBackground: '#45475a',
 };
 const XTERM_LIGHT = {
-  background: '#eff1f5',
-  foreground: '#4c4f69',
-  cursor: '#dc8a78',
-  selectionBackground: '#ccd0da',
+  background: '#f6f7fa',
+  foreground: '#333747',
+  cursor: '#d2694a',
+  selectionBackground: '#dfe3ec',
 };
 function isLightTheme() {
   return !!document.documentElement.style.getPropertyValue('--bg');

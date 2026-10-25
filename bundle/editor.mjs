@@ -2,6 +2,8 @@ export { EditorView, keymap } from '@codemirror/view';
 export { EditorState, Compartment } from '@codemirror/state';
 export { basicSetup } from 'codemirror';
 export { oneDark } from '@codemirror/theme-one-dark';
+export { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
+export { tags } from '@lezer/highlight';
 export { javascript } from '@codemirror/lang-javascript';
 export { python } from '@codemirror/lang-python';
 export { html } from '@codemirror/lang-html';
