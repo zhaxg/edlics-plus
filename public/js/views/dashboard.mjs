@@ -6,7 +6,7 @@
 // All other markup is declarative, so numbers are text nodes (no escaping).
 import { html, useState, useEffect, useRef, Fragment } from '/ui.mjs';
 import { api, toast, copyToClipboard, choiceDialog } from '../api.mjs';
-import { Ring, Spinner, Empty } from '../components.mjs';
+import { Ring, Spinner, Empty, Page } from '../components.mjs';
 import { uPlot } from '/charts.mjs';
 import { serverInfo } from '../state.mjs';
 import { fmtBytes, fmtRss, fmtUptime, pct as pctOf, parsePct } from '../format.mjs';
@@ -458,37 +458,31 @@ export default function Dashboard() {
 
   const onChanged = () => { loadTotp(); setRefresh(n => n + 1); };
 
-  return html`<section class="page dash">
-    <header class="page-header">
-      <h1 class="page-h1">Dashboard</h1>
-      <div class="page-actions">
-        <select class="ov-range" title="Data range" value=${range} onChange=${e => setRange(e.target.value)}>
-          ${RANGES.map(r => html`<option value=${r} key=${r}>${r === 'live' ? 'Live' : r}</option>`)}
-        </select>
-        <button class="icon-btn" title="Refresh" onClick=${() => setRefresh(n => n + 1)}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 20q-3.35 0-5.675-2.325T4 12t2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V5q0-.425.288-.712T19 4t.713.288T20 5v5q0 .425-.288.713T19 11h-5q-.425 0-.712-.288T13 10t.288-.712T14 9h3.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12t1.75 4.25T12 18q1.7 0 3.113-.862t2.187-2.313q.2-.35.563-.487t.737-.013q.4.125.575.525t-.025.75q-1.025 2-2.925 3.2T12 20"/></svg>
-        </button>
-        <button class=${'icon-btn' + (totp.enabled ? ' on' : '')}
-          title=${totp.enabled ? 'Two-factor authentication: ON — click to manage' : 'Two-factor authentication: OFF — click to enable'}
-          aria-pressed=${totp.enabled}
-          onClick=${() => setDialog(totp.enabled ? 'disable' : 'enable')}>
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 8a1 1 0 0 1 1 1a1 1 0 0 1-1 1a1 1 0 0 1-1-1a1 1 0 0 1 1-1m9 3c0 5.55-3.84 10.74-9 12c-5.16-1.26-9-6.45-9-12V5l9-4l9 4zm-9-5a3 3 0 0 0-3 3c0 1.31.83 2.42 2 2.83V18h2v-2h2v-2h-2v-2.17c1.17-.41 2-1.52 2-2.83a3 3 0 0 0-3-3"/></svg>
-        </button>
-        <button class="icon-btn" title="Sign out" onClick=${() => import('../auth.mjs').then(m => m.logout())}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
-        </button>
-      </div>
-    </header>
-    <div class="page-body">
-      <${InfoCards} info=${info} disk=${disk} />
-      <div class="dash-charts">
-        <${Chart} label="CPU" unit="%" series=${['cpu']} data=${[series.x, series.cpu]} />
-        <${Chart} label="Memory" unit="%" series=${['mem']} data=${[series.x, series.mem]} />
-        <${Chart} label="Network" unit="KB/s" series=${['rx', 'tx']} data=${[series.x, series.rx, series.tx]} />
-      </div>
-      <${Processes} />
+  return html`<${Page} title="Dashboard" class="dash" actions=${html`<${Fragment}>
+    <select class="ov-range" title="Data range" value=${range} onChange=${e => setRange(e.target.value)}>
+      ${RANGES.map(r => html`<option value=${r} key=${r}>${r === 'live' ? 'Live' : r}</option>`)}
+    </select>
+    <button class="icon-btn" title="Refresh" onClick=${() => setRefresh(n => n + 1)}>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 20q-3.35 0-5.675-2.325T4 12t2.325-5.675T12 4q1.725 0 3.3.712T18 6.75V5q0-.425.288-.712T19 4t.713.288T20 5v5q0 .425-.288.713T19 11h-5q-.425 0-.712-.288T13 10t.288-.712T14 9h3.2q-.8-1.4-2.187-2.2T12 6Q9.5 6 7.75 7.75T6 12t1.75 4.25T12 18q1.7 0 3.113-.862t2.187-2.313q.2-.35.563-.487t.737-.013q.4.125.575.525t-.025.75q-1.025 2-2.925 3.2T12 20"/></svg>
+    </button>
+    <button class=${'icon-btn' + (totp.enabled ? ' on' : '')}
+      title=${totp.enabled ? 'Two-factor authentication: ON — click to manage' : 'Two-factor authentication: OFF — click to enable'}
+      aria-pressed=${totp.enabled}
+      onClick=${() => setDialog(totp.enabled ? 'disable' : 'enable')}>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M12 8a1 1 0 0 1 1 1a1 1 0 0 1-1 1a1 1 0 0 1-1-1a1 1 0 0 1 1-1m9 3c0 5.55-3.84 10.74-9 12c-5.16-1.26-9-6.45-9-12V5l9-4l9 4zm-9-5a3 3 0 0 0-3 3c0 1.31.83 2.42 2 2.83V18h2v-2h2v-2h-2v-2.17c1.17-.41 2-1.52 2-2.83a3 3 0 0 0-3-3"/></svg>
+    </button>
+    <button class="icon-btn" title="Sign out" onClick=${() => import('../auth.mjs').then(m => m.logout())}>
+      <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+    </button>
+  </${Fragment}>`}>
+    <${InfoCards} info=${info} disk=${disk} />
+    <div class="dash-charts">
+      <${Chart} label="CPU" unit="%" series=${['cpu']} data=${[series.x, series.cpu]} />
+      <${Chart} label="Memory" unit="%" series=${['mem']} data=${[series.x, series.mem]} />
+      <${Chart} label="Network" unit="KB/s" series=${['rx', 'tx']} data=${[series.x, series.rx, series.tx]} />
     </div>
+    <${Processes} />
     ${dialog === 'enable' ? html`<${EnableTotp} onClose=${() => setDialog('')} onChanged=${onChanged} />` : null}
     ${dialog === 'disable' ? html`<${DisableTotp} onClose=${() => setDialog('')} onChanged=${onChanged} />` : null}
-  </section>`;
+  </${Page}>`;
 }

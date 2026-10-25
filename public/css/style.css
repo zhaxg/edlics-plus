@@ -742,7 +742,11 @@ body {
 
 /* --- Console mode: full-width single-column pages (P0.1) ---------------- */
 .page-title { display: none; }
-body.console-mode .page-title { display: inline-block; font-size: 12px; color: var(--text-dim); margin-right: auto; }
+body.console-mode .page-title {
+  display: inline-block; font-size: 13px; font-weight: 600; color: var(--text);
+  min-width: 0; max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@media (max-width: 640px) { body.console-mode .page-title { display: none; } }
 body.console-mode #pathBar,
 body.console-mode #searchScope,
 body.console-mode .search-box-wrap { display: none; }
@@ -755,12 +759,14 @@ body.console-mode .editor-area { display: none !important; }
 
 .console-area { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .page { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-.page-header {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
-  padding: 12px 20px; border-bottom: 1px solid var(--border);
+/* Console page actions are portalled into the shell toolbar (#pageActions),
+   so they share the one header row with the page title. */
+.page-actions-host {
+  display: flex; align-items: center; gap: 6px;
+  margin-left: auto; min-width: 0; overflow-x: auto; scrollbar-width: none;
 }
-.page-h1 { font-size: 15px; font-weight: 600; margin-right: auto; }
-.page-actions { display: flex; align-items: center; gap: 8px; }
+.page-actions-host::-webkit-scrollbar { display: none; }
+.page-actions { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .page-actions .search-input-wrap { min-width: 180px; }
 .page-body { flex: 1; min-height: 0; overflow: auto; padding: 16px 20px; }
 
@@ -1325,8 +1331,8 @@ pre.logs .log-warn { color: var(--yellow); }
 /* 2FA header button + setup dialog */
 .icon-btn.on { color: var(--green); border-color: var(--green); }
 /* Header buttons are borderless, so `on` must not paint a lone green border. */
-.page-header .icon-btn.on { border-color: transparent; background: transparent; color: var(--green); }
-.page-header .icon-btn.on:hover { background: var(--hover); border-color: transparent; }
+.page-actions .icon-btn.on { border-color: transparent; background: transparent; color: var(--green); }
+.page-actions .icon-btn.on:hover { background: var(--hover); border-color: transparent; }
 .totp-qr { display: inline-block; padding: 10px; background: #ffffff; border-radius: 8px; margin: 4px 0 10px; }
 .totp-qr svg { display: block; width: 180px; height: 180px; }
 .totp-secretline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -1419,14 +1425,14 @@ body.logged-out .context-menu { display: none !important; }
 #loginOverlay .dialog { box-shadow: none; }
 
 /* Header icon buttons (refresh / 2FA / sign-out): borderless, hover tint */
-.page-header .icon-btn {
+.page-actions .icon-btn {
   border: none; background: transparent;
   width: 26px; height: 26px; padding: 0;
   align-items: center; justify-content: center; flex: 0 0 26px;
 }
-.page-header .icon-btn:hover { background: var(--hover); color: var(--text); }
+.page-actions .icon-btn:hover { background: var(--hover); color: var(--text); }
 /* Keep every header glyph optically the same size regardless of fill/stroke. */
-.page-header .icon-btn svg { display: block; width: 15px; height: 15px; flex: 0 0 15px; }
+.page-actions .icon-btn svg { display: block; width: 15px; height: 15px; flex: 0 0 15px; }
 
 /* Dashboard cards: small, faint usage ring */
 .ov-meter { display: flex; align-items: center; gap: 8px; }

@@ -1,14 +1,20 @@
 // components.mjs — shared presentational components (Preact + htm).
 // All text goes through Preact's text nodes, so no manual escaping is needed.
-import { html } from '/ui.mjs';
+import { html, createPortal } from '/ui.mjs';
 
-/** Page scaffold: title, header actions, body. */
+/**
+ * Console page scaffold.
+ *
+ * The page title lives in the shell toolbar (`#pageTitle`), so it is not
+ * rendered again here. `actions` are portalled into the toolbar's
+ * `#pageActions` slot, which keeps them in this page's component tree
+ * (state, hooks and handlers all keep working) while rendering them in the
+ * global toolbar row — one header row for the whole console.
+ */
 export function Page({ title, actions, children, class: cls = '' }) {
-  return html`<section class=${'page ' + cls}>
-    <header class="page-header">
-      <h1 class="page-h1">${title}</h1>
-      ${actions ? html`<div class="page-actions">${actions}</div>` : null}
-    </header>
+  const host = actions ? document.getElementById('pageActions') : null;
+  return html`<section class=${'page ' + cls} aria-label=${title || undefined}>
+    ${host ? createPortal(html`<div class="page-actions">${actions}</div>`, host) : null}
     <div class="page-body">${children}</div>
   </section>`;
 }
