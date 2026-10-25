@@ -967,7 +967,8 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
 .page-tabs button.active { color: var(--text); border-bottom-color: var(--accent); }
 
 /* Master/detail split (Services + Scheduled) */
-.page-body.fill { display: flex; flex-direction: column; overflow: hidden; }
+/* `fill` is set on the page (<Page class="fill">), so target its body. */
+.page.fill .page-body { display: flex; flex-direction: column; overflow: hidden; }
 .split { display: grid; grid-template-columns: minmax(260px, 380px) 1fr; gap: 12px; flex: 1; min-height: 0; }
 .split > * { min-height: 0; }
 @media (max-width: 900px) { .split { grid-template-columns: 1fr; } }
@@ -1046,10 +1047,12 @@ pre.logs .log-warn { color: var(--yellow); }
 /* Detail pane: fill height, inner scroll; tabbed panes (Unit file / Logs) */
 .split-detail { display: flex; flex-direction: column; overflow: hidden; }
 .detail-tabs { margin: 12px 0 8px; }
-.detail-pane { flex: 1; min-height: 0; overflow: auto; }
+.detail-pane { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 .detail-pane.hidden { display: none !important; }
+/* The log/unit panel itself is the fixed-height scroll region, so the page
+   (and the detail column) never scroll — only the logs do. */
 .detail-pane pre.file,
-.detail-pane pre.logs { max-height: none; min-height: 100%; margin: 0; }
+.detail-pane pre.logs { max-height: none; min-height: 0; flex: 1; margin: 0; overflow: auto; }
 
 /* Container/compose item: 3 columns (badge | content rows | actions) */
 .ctr {
@@ -1156,7 +1159,18 @@ pre.logs .log-warn { color: var(--yellow); }
 .addr-tag.addr-deprecated { color: var(--red); }
 
 /* System page: extra tab views + boards */
-.tabview { flex: 1; min-height: 0; overflow: auto; }
+.tabview { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; }
+.tabview > .split { flex: 1; min-height: 0; }
+
+/* Narrow screens: the split stacks, so let the page scroll again and cap the
+   log panel to a share of the viewport instead of the full column height. */
+@media (max-width: 900px) {
+  .tabview { display: block; overflow: auto; }
+  .split-detail { overflow: visible; }
+  .detail-pane { overflow: visible; }
+  .detail-pane pre.file,
+  .detail-pane pre.logs { flex: none; max-height: 60vh; }
+}
 .board-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 1000px) { .board-cols { grid-template-columns: 1fr; } }
 

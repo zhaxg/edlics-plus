@@ -1,6 +1,6 @@
 // views/system.mjs — System page (Preact): nine tabs over one page.
 //
-//   Users | Services | Scheduled | Interfaces | Routes | Ports | Firewall |
+//   Services | Scheduled | Users | Interfaces | Routes | Ports | Firewall |
 //   Disk | Logs
 //
 // Every tab is a small self-contained component that owns its fetch, so the
@@ -633,9 +633,9 @@ function LogsTab() {
 // --- page ------------------------------------------------------------------
 
 const TABS = [
-  { id: 'users', label: 'Users', render: () => html`<${UsersTab} />` },
   { id: 'services', label: 'Services', render: () => html`<${ServicesTab} />` },
   { id: 'scheduled', label: 'Scheduled', render: () => html`<${ScheduledTab} />` },
+  { id: 'users', label: 'Users', render: () => html`<${UsersTab} />` },
   { id: 'interfaces', label: 'Interfaces', render: () => html`<${NetworkTab} kind="interfaces" />` },
   { id: 'routes', label: 'Routes', render: () => html`<${NetworkTab} kind="routes" />` },
   { id: 'ports', label: 'Ports', render: () => html`<${NetworkTab} kind="ports" />` },
