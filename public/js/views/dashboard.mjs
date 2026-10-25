@@ -458,7 +458,7 @@ export default function Dashboard() {
 
   const onChanged = () => { loadTotp(); setRefresh(n => n + 1); };
 
-  return html`<section class="page">
+  return html`<section class="page dash">
     <header class="page-header">
       <h1 class="page-h1">Dashboard</h1>
       <div class="page-actions">

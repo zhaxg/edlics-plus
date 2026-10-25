@@ -857,6 +857,20 @@ button.primary.danger:hover, button.danger:hover { filter: brightness(1.1); }
   max-height: 460px; overflow: auto;
   border: 1px solid var(--border); border-radius: 8px; background: var(--bg);
 }
+/* Dashboard fills the viewport: info cards + charts keep their natural height,
+   the process table takes the remaining space and scrolls internally, so the
+   page body (external) never gets a scrollbar. */
+.page.dash .page-body { display: flex; flex-direction: column; overflow: hidden; }
+.page.dash .dash-cards,
+.page.dash .dash-charts,
+.page.dash .section-sep { flex: 0 0 auto; }
+.page.dash .proc-scroll { flex: 1 1 0; min-height: 140px; max-height: none; }
+/* Short/narrow viewports: cards + charts alone can exceed the window, so let
+   the page scroll again and cap the process table instead. */
+@media (max-height: 700px), (max-width: 900px) {
+  .page.dash .page-body { overflow: auto; }
+  .page.dash .proc-scroll { flex: 0 0 auto; max-height: 460px; }
+}
 /* (the old #procContent-scoped rules were dropped: the Dashboard process
    table has no such wrapper since the Preact migration, so they applied to
    nothing — the sizing now lives on .proc-table/.proc-head above) */
