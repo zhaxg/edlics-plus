@@ -23,6 +23,10 @@ const MIME = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
   '.json': 'application/json',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
 };
 
 const GZIP_EXTS = new Set(['.mjs', '.js', '.css', '.html', '.json', '.svg', '.map', '.txt']);

@@ -1,0 +1,29 @@
+/* fonts.css — self-hosted Nordwand Mono (3 weights) in public/fonts/.
+   Local files, no CDN: served by the app itself with ETag + no-cache. */
+
+/* Light — OS/2 usWeightClass 300 */
+@font-face {
+  font-family: "Nordwand Mono";
+  src: url("/fonts/NordwandMono-Light.ttf") format("truetype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Regular — OS/2 usWeightClass 400 */
+@font-face {
+  font-family: "Nordwand Mono";
+  src: url("/fonts/NordwandMono-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Bold — OS/2 usWeightClass 700 */
+@font-face {
+  font-family: "Nordwand Mono";
+  src: url("/fonts/NordwandMono-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}

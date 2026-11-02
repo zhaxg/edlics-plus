@@ -6,6 +6,7 @@
 import { Terminal, FitAddon } from '/terminal.mjs';
 import { api } from './api.mjs';
 import { state, serverInfo } from './state.mjs';
+import { cssMonoFont } from './fonts.mjs';
 
 // xterm palettes matching the app's dark / light themes (theme.mjs THEME_LIGHT)
 const XTERM_DARK = {
@@ -140,7 +141,7 @@ function ensureInit() {
   term = new Terminal({
     cursorBlink: true,
     fontSize: 13,
-    fontFamily: '"SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace',
+    fontFamily: cssMonoFont('"SF Mono", "Fira Code", "Cascadia Code", Consolas, monospace'),
     convertEol: false,
     scrollback: 5000,
     theme: isLightTheme() ? XTERM_LIGHT : XTERM_DARK,

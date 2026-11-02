@@ -13,7 +13,13 @@
   --green: #a6e3a1; --red: #f38ba8; --yellow: #f9e2af; --peach: #fab387; --mauve: #cba6f7; --pink: #f5c2e7;
   --chart-fill-alpha: 22;
   --shadow-color: rgba(0,0,0,0.50);
-  --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, Menlo, Monaco, 'Courier New', monospace;
+  --font-mono: "Nordwand Mono", var(--font-cjk), 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, Menlo, Monaco, 'Courier New', monospace;
+  /* CJK fallback for glyphs Nordwand Mono doesn't ship (it's Latin-only, 326
+     glyphs). Order: Windows → macOS/iOS → Linux (Source Han / Noto CJK). */
+  --font-cjk: "Microsoft YaHei", "微软雅黑", "PingFang SC", "苹方-简",
+              "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC",
+              "Source Han Sans CN", "思源黑体", "Hiragino Sans GB", "Heiti SC",
+              "WenQuanYi Micro Hei", sans-serif;
 }
 
 /* Global scrollbars — every scrollable region (folder dialog, panels, editor,
@@ -30,7 +36,8 @@
 *::-webkit-scrollbar-thumb:hover { background: var(--text-dimmer); }
 *::-webkit-scrollbar-corner { background: transparent; }
 body {
-  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: "Nordwand Mono", var(--font-cjk), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: normal;
   background: var(--bg); color: var(--text); height: 100vh; overflow: hidden;
   display: flex; flex-direction: column;
 }
@@ -148,7 +155,7 @@ body {
 .search-input-wrap .search-clear { right: 5px; }
 .search-toggle {
   background: transparent; border: 1px solid var(--border); color: var(--text-dim);
-  border-radius: 5px; padding: 0 8px; font-size: 11px; cursor: pointer; font-family: monospace;
+  border-radius: 5px; padding: 0 8px; font-size: 11px; cursor: pointer; font-family: var(--font-mono);
 }
 .search-toggle:hover { background: var(--hover); color: var(--text); }
 .search-toggle.on { background: var(--accent); color: var(--bg); border-color: var(--accent); }
@@ -283,7 +290,7 @@ body {
 /* Diff viewer */
 .diff-view {
   flex: 1; overflow: auto; padding: 8px 0; background: var(--bg);
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-family: var(--font-mono);
   font-size: 12.5px; line-height: 1.55;
 }
 .diff-view > div { padding: 0 16px; white-space: pre-wrap; word-break: break-all; }
@@ -383,7 +390,7 @@ body {
 .tree-item:hover { background: var(--hover); }
 .tree-item .icon {
   flex-shrink: 0; width: 18px; height: 18px; text-align: center; font-size: 11px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   display: flex; align-items: center; justify-content: center;
 }
 .tree-item .icon .icon-img {
@@ -572,7 +579,7 @@ body {
 /* Markdown preview panel */
 .md-preview, .svg-preview {
   flex: 1; overflow-y: auto; padding: 24px 32px; color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, var(--font-cjk), sans-serif;
   font-size: 14px; line-height: 1.7;
 }
 .svg-preview {
@@ -600,7 +607,7 @@ body {
 .md-preview a:hover { text-decoration: underline; }
 .md-preview code {
   background: var(--surface); padding: 2px 6px; border-radius: 4px;
-  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; font-size: 0.9em;
+  font-family: var(--font-mono); font-size: 0.9em;
 }
 .md-preview pre {
   background: var(--surface); border: 1px solid var(--border); border-radius: 6px;

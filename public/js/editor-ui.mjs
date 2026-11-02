@@ -9,6 +9,7 @@ import { themeCompartment, currentTheme } from './theme.mjs';
 import { isMarkdownFile, isSvgFile, isHtmlFile, renderMarkdown, renderSvgPreview, renderHtmlPreview } from './markdown-preview.mjs';
 import { renderTabs } from './tabs.mjs';                 // runtime cycle — see CLAUDE.md
 import { updatePathBar, updateStatus } from './pathbar-status.mjs';
+import { cssMonoFont } from './fonts.mjs';
 
 // Back-compat re-exports: file-ops / app / git keep importing from here.
 export { addTab, removeTab, setActiveTab, renderTabs, showTabContextMenu } from './tabs.mjs';
@@ -240,7 +241,8 @@ export function loadEditor(tab) {
     const cm6Theme = EditorView.theme({
       '&': { height: '100%', fontSize: '13px' },
       '.cm-scroller': { overflow: 'auto' },
-      '.cm-content': { fontFamily: '"SF Mono", "Fira Code", "Cascadia Code", monospace', tabSize: '2' },
+      // Same stack as the rest of the UI (public/css/style.css --font-mono)
+      '.cm-content': { fontFamily: cssMonoFont(), tabSize: '2' },
     });
     const langExt = getCM6Lang(tab.path);
 
