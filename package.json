@@ -22,6 +22,7 @@
   "scripts": {
     "build": "esbuild bundle/editor.mjs --bundle --format=esm --outfile=public/editor.mjs --target=es2020 --minify && esbuild bundle/terminal.mjs --bundle --format=esm --outfile=public/terminal.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/charts.mjs --bundle --format=esm --outfile=public/charts.mjs --target=es2020 --minify --loader:.css=css && esbuild bundle/qr.mjs --bundle --format=esm --outfile=public/qr.mjs --target=es2020 --minify && esbuild bundle/ui.mjs --bundle --format=esm --outfile=public/ui.mjs --target=es2020 --minify && node scripts/check-bundles.mjs && node scripts/check-icons.mjs",
     "postinstall": "npm run build",
+    "dev": "node scripts/dev.mjs",
     "test": "node --test",
     "check:bundles": "node scripts/check-bundles.mjs",
     "check:icons": "node scripts/check-icons.mjs"
