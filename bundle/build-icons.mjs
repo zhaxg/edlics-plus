@@ -13,7 +13,7 @@
  * Default: ../vscode-material-icon-theme
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, copyFileSync, mkdirSync } from 'fs';
 import { join, dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -189,6 +189,49 @@ function parseFolderIcons() {
   };
 }
 
+// ─── Sync SVGs ───
+
+// Every id in the manifest must have an SVG in public/icons, otherwise the
+// frontend requests /icons/<id>.svg, gets a 404 and renders a blank icon.
+// Cloned icons ship as `<id>.clone.svg` in the theme (see material-icon-theme
+// clonesGenerator), so try both spellings.
+function syncIcons(manifest) {
+  const SRC_ICONS = join(SOURCE, 'icons');
+  const OUT_ICONS = join(__dirname, '..', 'public', 'icons');
+
+  const ids = new Set([manifest.file, manifest.folder, manifest.rootFolder]);
+  for (const table of ['fileNames', 'fileExtensions', 'folderNames', 'folderNamesExpanded']) {
+    for (const id of Object.values(manifest[table])) ids.add(id);
+  }
+
+  if (!existsSync(SRC_ICONS)) {
+    console.log(`\nIcon source not found (${SRC_ICONS}) — skipping SVG sync, ${ids.size} ids unchecked`);
+    return;
+  }
+
+  mkdirSync(OUT_ICONS, { recursive: true });
+  const have = new Set(readdirSync(OUT_ICONS).filter((f) => f.endsWith('.svg')).map((f) => f.slice(0, -4)));
+
+  const unresolved = [];
+  let copied = 0;
+  for (const id of ids) {
+    if (have.has(id)) continue;
+    const src = [`${id}.svg`, `${id}.clone.svg`].map((f) => join(SRC_ICONS, f)).find(existsSync);
+    if (!src) { unresolved.push(id); continue; }
+    copyFileSync(src, join(OUT_ICONS, `${id}.svg`));
+    copied++;
+  }
+
+  console.log(`\nIcon SVGs:`);
+  console.log(`  ${ids.size} ids referenced, ${copied} copied from ${SRC_ICONS}, ${ids.size - copied} already present`);
+
+  if (unresolved.length) {
+    console.error(`  ✗ ${unresolved.length} id(s) have no SVG in the icon source:`);
+    for (const id of unresolved) console.error(`      ${id}`);
+    process.exit(1);
+  }
+}
+
 // ─── Build manifest ───
 
 function buildManifest() {
@@ -239,6 +282,8 @@ function buildManifest() {
 
   writeFileSync(OUT, JSON.stringify(manifest));
   console.log(`\nWritten to: ${OUT} (${(readFileSync(OUT).length / 1024).toFixed(0)}KB)`);
+
+  syncIcons(manifest);
 
   return manifest;
 }

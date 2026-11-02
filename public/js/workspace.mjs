@@ -88,7 +88,7 @@ export function openFolderDialog() {
       if (cursor !== ceiling) {
         const up = document.createElement('div');
         up.className = 'tree-item';
-        up.innerHTML = `<span class="chevron placeholder">▸</span><span class="icon"><img src="/icons/${getFileIcon('..', true)}.svg" class="icon-img" alt="" onerror="this.style.display='none'"></span><span class="name" style="color:var(--text-dim)">..</span>`;
+        up.innerHTML = `<span class="chevron placeholder">▸</span><span class="icon"><img src="/icons/${getFileIcon('..', true)}.svg" class="icon-img" alt="" onerror="window.onIconError(this,true)"></span><span class="name" style="color:var(--text-dim)">..</span>`;
         up.addEventListener('click', () => {
           const idx = cursor.lastIndexOf('/');
           cursor = idx > 0 ? cursor.slice(0, idx) : ceiling;
@@ -106,7 +106,7 @@ export function openFolderDialog() {
       for (const d of dirs) {
         const row = document.createElement('div');
         row.className = 'tree-item';
-        row.innerHTML = `<span class="chevron placeholder">▸</span><span class="icon"><img src="/icons/${getFileIcon(d.name, true)}.svg" class="icon-img" alt="" onerror="this.style.display='none'"></span><span class="name">${escapeHtml(d.name)}</span>`;
+        row.innerHTML = `<span class="chevron placeholder">▸</span><span class="icon"><img src="/icons/${getFileIcon(d.name, true)}.svg" class="icon-img" alt="" onerror="window.onIconError(this,true)"></span><span class="name">${escapeHtml(d.name)}</span>`;
         row.addEventListener('click', () => { cursor = joinPath(cursor, d.name); refresh(); });
         list.appendChild(row);
       }

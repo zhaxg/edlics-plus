@@ -9,7 +9,7 @@ import { getFileIcon } from './icons.mjs';
 function iconHtml(filePath) {
   const name = basename(filePath.replace(/\\/g, '/'));
   const iconId = getFileIcon(name, false);
-  return `<span class="icon"><img src="/icons/${iconId}.svg" class="icon-img" alt="" onerror="this.style.display='none'"></span>`;
+  return `<span class="icon"><img src="/icons/${iconId}.svg" class="icon-img" alt="" onerror="window.onIconError(this,false)"></span>`;
 }
 
 const XY_LABEL = {

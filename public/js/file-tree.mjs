@@ -2,7 +2,7 @@
 
 import { api, toast, escapeHtml, join, dirname } from './api.mjs';
 import { state, currentDir, HOME, setCurrentDir } from './state.mjs';
-import { getFileIcon } from './icons.mjs';
+import { getFileIcon, onIconError } from './icons.mjs';
 import { showContextMenu, showTreeEmptyMenu } from './context-menu.mjs';
 import { openFile } from './file-ops.mjs';
 
@@ -61,7 +61,7 @@ function makeRow(depth, name, isDir, fullPath) {
   img.src = '/icons/' + getFileIcon(name, isDir) + '.svg';
   img.alt = '';
   img.className = 'icon-img';
-  img.onerror = function () { this.style.display = 'none'; };
+  img.onerror = function () { onIconError(this, isDir); };
   icon.appendChild(img);
   div.appendChild(icon);
 
